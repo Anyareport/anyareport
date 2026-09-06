@@ -4,6 +4,7 @@ import {
   TileLayer,
   Marker,
   useMapEvents,
+  useMap,
   Polyline,
 } from "react-leaflet";
 import L from "leaflet";
@@ -19,6 +20,21 @@ const markerIcon = new L.Icon({
   iconSize: [25, 41],
   iconAnchor: [12, 41],
 });
+
+function MapResizeHandler() {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+    const observer = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [map]);
+
+  return null;
+}
 
 interface MapPickerProps {
   latitude?: number;
@@ -84,6 +100,7 @@ export default function MapPicker({
       style={{ height, width: "100%", borderRadius: 8 }}
       scrollWheelZoom
     >
+      <MapResizeHandler />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -153,6 +170,7 @@ export function RouteMap({
       style={{ height, width: "100%", borderRadius: 8 }}
       scrollWheelZoom
     >
+      <MapResizeHandler />
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
       <Marker position={incidentPos} icon={markerIcon} />
       {responderPos && <Marker position={responderPos} icon={markerIcon} />}
@@ -186,6 +204,7 @@ export function StaticMap({
       style={{ height, width: "100%", borderRadius: 8 }}
       scrollWheelZoom={false}
     >
+      <MapResizeHandler />
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
       <Marker position={[latitude, longitude]} icon={markerIcon} />
     </MapContainer>
