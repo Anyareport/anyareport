@@ -9,6 +9,10 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { GeoJSON } from "react-leaflet";
+import type { Feature, Geometry, FeatureCollection } from "geojson";
+import type { Layer, PathOptions } from "leaflet";
+import barangayData from "../data/DMM.json";
 
 const defaultCenter: [number, number] = [16.4833, 121.3708];
 
@@ -20,6 +24,44 @@ const markerIcon = new L.Icon({
   iconSize: [25, 41],
   iconAnchor: [12, 41],
 });
+
+function getBarangayStyle(feature?: Feature<Geometry, any>): PathOptions {
+  const name = feature?.properties?.name?.toLowerCase() || "";
+  const isBoundary = name.includes("barangay");
+
+  return isBoundary
+    ? { color: "#eab308", weight: 3, fillOpacity: 0 }
+    : { color: "#ec4899", weight: 2, fillOpacity: 0.12, fillColor: "#ec4899" };
+}
+
+function onEachBarangayFeature(feature: Feature<Geometry, any>, layer: Layer) {
+  const name = feature.properties?.name;
+  if (!name) return;
+
+  const isBoundary = name.toLowerCase().includes("barangay");
+
+  layer.bindTooltip(name, {
+    permanent: false,
+    direction: "center",
+    className: isBoundary ? "barangay-label" : "purok-label",
+    sticky: true,
+  });
+
+  layer.on("mouseover", () => {
+    (layer as L.Path).setStyle({
+      weight: 3,
+      fillOpacity: 0.35,
+    });
+  });
+
+  layer.on("mouseout", () => {
+    (layer as L.Path).setStyle(
+      isBoundary
+        ? { weight: 3, fillOpacity: 0 }
+        : { weight: 2, fillOpacity: 0.12 }
+    );
+  });
+}
 
 function MapResizeHandler() {
   const map = useMap();
@@ -190,23 +232,63 @@ interface StaticMapProps {
   latitude: number;
   longitude: number;
   height?: number;
+  showBoundaries?: boolean; // toggle the barangay/purok overlay on or off
 }
 
 export function StaticMap({
   latitude,
   longitude,
   height = 250,
+  showBoundaries = true,
 }: StaticMapProps) {
   return (
     <MapContainer
-      center={[latitude, longitude]}
-      zoom={15}
-      style={{ height, width: "100%", borderRadius: 8 }}
-      scrollWheelZoom={false}
-    >
+  center={[latitude, longitude]} // TEMP: hardcoded barangay center instead of [latitude, longitude]
+  zoom={10}                    // TEMP: lower zoom to see a wider area
+  style={{ height, width: "100%", borderRadius: 8 }}
+  scrollWheelZoom={false}
+>
       <MapResizeHandler />
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      {showBoundaries && (
+        <GeoJSON
+          data={barangayData as FeatureCollection}
+          style={getBarangayStyle}
+          onEachFeature={onEachBarangayFeature}
+        />
+      )}
       <Marker position={[latitude, longitude]} icon={markerIcon} />
     </MapContainer>
   );
 }
+// interface BarangayMapProps {
+//   center?: [number, number];
+//   zoom?: number;
+//   height?: number;
+// }
+
+// export function BarangayMap({
+//   center = [16.482, 121.1557],
+//   zoom = 16,
+//   height = 500,
+// }: BarangayMapProps) {
+//   return (
+//     <MapContainer
+//       center={center}
+//       zoom={zoom}
+//       style={{ height, width: "100%", borderRadius: 8 }}
+//       scrollWheelZoom
+//     >
+//       <MapResizeHandler />
+//       <TileLayer
+//         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+//         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+//       />
+//       <GeoJSON
+//         data={barangayData as FeatureCollection}
+//         style={getBarangayStyle}
+//         onEachFeature={onEachBarangayFeature}
+//       />
+//     </MapContainer>
+//   );
+// }

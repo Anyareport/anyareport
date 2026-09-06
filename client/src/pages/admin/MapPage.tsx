@@ -4,6 +4,7 @@ import { Card, Col, Row, Space, Typography } from 'antd';
 import { api, type Report } from '../../lib/api';
 import { StaticMap } from '../../components/MapPicker';
 import StatusTag from '../../components/StatusTag';
+// import {BarangayMap} from '../../components/MapPicker';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -32,6 +33,7 @@ export default function AdminMapPage() {
         </Card>
         <Card className="soft-card" title="Incident map">
           <StaticMap latitude={lat} longitude={lng} height={500} />
+          {/* <BarangayMap/> */}
         </Card>
       </Col>
       <Col xs={24} xl={8}>
@@ -50,5 +52,6 @@ export default function AdminMapPage() {
         </Card>
       </Col>
     </Row>
+   
   );
 }
