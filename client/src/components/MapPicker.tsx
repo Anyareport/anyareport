@@ -14,7 +14,7 @@ import type { Feature, Geometry, FeatureCollection } from "geojson";
 import type { Layer, PathOptions } from "leaflet";
 import barangayData from "../data/DMM.json";
 
-const defaultCenter: [number, number] = [16.4833, 121.3708];
+const defaultCenter: [number, number] = [16.482, 121.1557];
 
 const markerIcon = new L.Icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -27,7 +27,7 @@ const markerIcon = new L.Icon({
 
 function getBarangayStyle(feature?: Feature<Geometry, any>): PathOptions {
   const name = feature?.properties?.name?.toLowerCase() || "";
-  const isBoundary = name.includes("barangay");
+  const isBoundary = name.includes("don mariano marcos");
 
   return isBoundary
     ? { color: "#eab308", weight: 3, fillOpacity: 0 }
@@ -38,7 +38,7 @@ function onEachBarangayFeature(feature: Feature<Geometry, any>, layer: Layer) {
   const name = feature.properties?.name;
   if (!name) return;
 
-  const isBoundary = name.toLowerCase().includes("barangay");
+  const isBoundary = name.toLowerCase().includes("don mariano marcos");
 
   layer.bindTooltip(name, {
     permanent: false,
@@ -58,9 +58,51 @@ function onEachBarangayFeature(feature: Feature<Geometry, any>, layer: Layer) {
     (layer as L.Path).setStyle(
       isBoundary
         ? { weight: 3, fillOpacity: 0 }
-        : { weight: 2, fillOpacity: 0.12 }
+        : { weight: 2, fillOpacity: 0.12 },
     );
   });
+}
+function isPointInPolygon(
+  point: [number, number],
+  polygon: number[][],
+): boolean {
+  const [lat, lng] = point;
+  let inside = false;
+
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [lngI, latI] = polygon[i];
+    const [lngJ, latJ] = polygon[j];
+
+    const intersects =
+      latI > lat !== latJ > lat &&
+      lng < ((lngJ - lngI) * (lat - latI)) / (latJ - latI) + lngI;
+
+    if (intersects) inside = !inside;
+  }
+
+  return inside;
+}
+
+function isInsideBarangayBoundary(
+  point: [number, number],
+  data: FeatureCollection,
+): boolean {
+  for (const feature of data.features) {
+    const name = feature.properties?.name?.toLowerCase() || "";
+    if (!name.includes("don mariano marcos")) continue;
+
+    const geometry = feature.geometry;
+
+    if (geometry.type === "Polygon") {
+      if (isPointInPolygon(point, geometry.coordinates[0])) return true;
+    } else if (geometry.type === "MultiPolygon") {
+      for (const polygon of geometry.coordinates) {
+        if (isPointInPolygon(point, polygon[0])) return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 function MapResizeHandler() {
@@ -74,6 +116,15 @@ function MapResizeHandler() {
     observer.observe(container);
     return () => observer.disconnect();
   }, [map]);
+
+  return null;
+}
+function RecenterMap({ position }: { position: [number, number] }) {
+  const map = useMap();
+
+  useEffect(() => {
+    map.setView(position, map.getZoom());
+  }, [position, map]);
 
   return null;
 }
@@ -95,7 +146,20 @@ function ClickHandler({
 }) {
   useMapEvents({
     click(e) {
-      if (!readOnly) onChange(e.latlng.lat, e.latlng.lng);
+      if (readOnly) return;
+
+      const point: [number, number] = [e.latlng.lat, e.latlng.lng];
+      const isInside = isInsideBarangayBoundary(
+        point,
+        barangayData as FeatureCollection,
+      );
+
+      if (!isInside) {
+        alert("Please select a location within the barangay boundary.");
+        return;
+      }
+
+      onChange(e.latlng.lat, e.latlng.lng);
     },
   });
   return null;
@@ -111,24 +175,43 @@ export default function MapPicker({
   const [pos, setPos] = useState<[number, number]>(
     latitude && longitude ? [latitude, longitude] : defaultCenter,
   );
+  const [isOutsideBoundary, setIsOutsideBoundary] = useState(false);
 
   useEffect(() => {
     if (latitude && longitude) setPos([latitude, longitude]);
   }, [latitude, longitude]);
 
   useEffect(() => {
-    if (!readOnly && !latitude && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (p) => {
-          const lat = p.coords.latitude;
-          const lng = p.coords.longitude;
-          setPos([lat, lng]);
+    const inside = isInsideBarangayBoundary(
+      pos,
+      barangayData as FeatureCollection,
+    );
+    setIsOutsideBoundary(!inside);
+  }, [pos]);
+
+  useEffect(() => {
+  if (!readOnly && !latitude && navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        const lat = p.coords.latitude;
+        const lng = p.coords.longitude;
+        const point: [number, number] = [lat, lng];
+
+        const isInside = isInsideBarangayBoundary(
+          point,
+          barangayData as FeatureCollection,
+        );
+
+        if (isInside) {
+          setPos(point);
           onChange(lat, lng);
-        },
-        () => {},
-      );
-    }
-  }, [readOnly, latitude, onChange]);
+        }
+        // If outside, do nothing — keep defaultCenter, no marker placed there
+      },
+      () => {},
+    );
+  }
+}, [readOnly, latitude, onChange]);
 
   const handleChange = (lat: number, lng: number) => {
     setPos([lat, lng]);
@@ -136,20 +219,47 @@ export default function MapPicker({
   };
 
   return (
-    <MapContainer
-      center={pos}
-      zoom={15}
-      style={{ height, width: "100%", borderRadius: 8 }}
-      scrollWheelZoom
-    >
-      <MapResizeHandler />
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      <Marker position={pos} icon={markerIcon} />
-      <ClickHandler onChange={handleChange} readOnly={readOnly} />
-    </MapContainer>
+    <div style={{ position: "relative" }}>
+      {isOutsideBoundary && (
+        <div
+          style={{
+            position: "absolute",
+            top: 8,
+            left: 8,
+            zIndex: 1000,
+            background: "#fef3c7",
+            color: "#92400e",
+            padding: "6px 12px",
+            borderRadius: 6,
+            fontSize: 13,
+            fontWeight: 600,
+            boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+          }}
+        >
+          ⚠️ User location is outside the barangay boundary
+        </div>
+      )}
+      <MapContainer
+        center={pos}
+        zoom={15}
+        style={{ height, width: "100%", borderRadius: 8 }}
+        scrollWheelZoom
+      >
+        <MapResizeHandler />
+        <RecenterMap position={pos} />
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <GeoJSON
+          data={barangayData as FeatureCollection}
+          style={getBarangayStyle}
+          onEachFeature={onEachBarangayFeature}
+        />
+        <Marker position={pos} icon={markerIcon} />
+        <ClickHandler onChange={handleChange} readOnly={readOnly} />
+      </MapContainer>
+    </div>
   );
 }
 
@@ -243,11 +353,11 @@ export function StaticMap({
 }: StaticMapProps) {
   return (
     <MapContainer
-  center={[latitude, longitude]} // TEMP: hardcoded barangay center instead of [latitude, longitude]
-  zoom={10}                    // TEMP: lower zoom to see a wider area
-  style={{ height, width: "100%", borderRadius: 8 }}
-  scrollWheelZoom={false}
->
+      center={[latitude, longitude]}
+      zoom={15}
+      style={{ height, width: "100%", borderRadius: 8 }}
+      scrollWheelZoom={false}
+    >
       <MapResizeHandler />
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
       {showBoundaries && (
