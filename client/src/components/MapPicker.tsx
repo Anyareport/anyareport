@@ -83,7 +83,7 @@ function isPointInPolygon(
   return inside;
 }
 
-function isInsideBarangayBoundary(
+export function isInsideBarangayBoundary(
   point: [number, number],
   data: FeatureCollection,
 ): boolean {

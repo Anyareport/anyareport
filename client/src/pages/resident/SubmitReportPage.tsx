@@ -29,7 +29,9 @@ import { useNavigate } from "react-router-dom";
 import { api, type Category } from "../../lib/api";
 import { useAuth } from "../../contexts/AuthContext";
 import MapPicker from "../../components/MapPicker";
-
+import type { FeatureCollection } from "geojson";
+import { isInsideBarangayBoundary } from "../../components/MapPicker";
+import barangayData from "../../data/DMM.json";
 const { Title, Text } = Typography;
 
 type ReportType = "text" | "photo";
@@ -150,22 +152,31 @@ export default function SubmitReportPage() {
   const goBack = () => setCurrentStep((s) => Math.max(0, s - 1));
 
   const handleUseGPS = () => {
-    if (!navigator.geolocation) {
-      message.error("GPS is not available on this device.");
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLat(pos.coords.latitude);
-        setLng(pos.coords.longitude);
-        message.success("Location detected via GPS.");
-      },
-      () =>
-        message.error(
-          "Could not get your location. Please tap the map instead.",
-        ),
-    );
-  };
+  if (!navigator.geolocation) {
+    message.error("GPS is not available on this device.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const point: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+      const isInside = isInsideBarangayBoundary(point, barangayData as FeatureCollection);
+
+      if (!isInside) {
+        message.error("Your current location is outside the barangay boundary.");
+        return;
+      }
+
+      setLat(pos.coords.latitude);
+      setLng(pos.coords.longitude);
+      message.success("Location detected via GPS.");
+    },
+    () =>
+      message.error(
+        "Could not get your location. Please tap the map instead.",
+      ),
+  );
+};
 
   if (!profile?.emailVerified) {
     return (
