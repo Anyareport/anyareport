@@ -175,60 +175,56 @@ export default function MapPicker({
   const [pos, setPos] = useState<[number, number]>(
     latitude && longitude ? [latitude, longitude] : defaultCenter,
   );
-  const [isOutsideBoundary, setIsOutsideBoundary] = useState(false);
+
+  
+  const [userIsInsideBarangay, setUserIsInsideBarangay] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (latitude && longitude) setPos([latitude, longitude]);
   }, [latitude, longitude]);
 
-  useEffect(() => {
-    const inside = isInsideBarangayBoundary(
-      pos,
-      barangayData as FeatureCollection,
-    );
-    setIsOutsideBoundary(!inside);
-  }, [pos]);
 
   useEffect(() => {
-  if (!readOnly && !latitude && navigator.geolocation) {
+    if (readOnly || !navigator.geolocation) {
+      setUserIsInsideBarangay(readOnly ? true : false);
+      return;
+    }
+
     navigator.geolocation.getCurrentPosition(
       (p) => {
-        const lat = p.coords.latitude;
-        const lng = p.coords.longitude;
-        const point: [number, number] = [lat, lng];
+        const point: [number, number] = [p.coords.latitude, p.coords.longitude];
+        const inside = isInsideBarangayBoundary(point, barangayData as FeatureCollection);
 
-        const isInside = isInsideBarangayBoundary(
-          point,
-          barangayData as FeatureCollection,
-        );
+        setUserIsInsideBarangay(inside);
 
-        if (isInside) {
+      
+        if (inside && !latitude) {
           setPos(point);
-          onChange(lat, lng);
+          onChange(point[0], point[1]);
         }
-        // If outside, do nothing — keep defaultCenter, no marker placed there
       },
-      () => {},
+      () => setUserIsInsideBarangay(false),
     );
-  }
-}, [readOnly, latitude, onChange]);
+  }, [readOnly]);
 
   const handleChange = (lat: number, lng: number) => {
     setPos([lat, lng]);
     onChange(lat, lng);
   };
 
+  const isPickingDisabled = readOnly || userIsInsideBarangay !== true;
+
   return (
     <div style={{ position: "relative" }}>
-      {isOutsideBoundary && (
+      {userIsInsideBarangay === false && (
         <div
           style={{
             position: "absolute",
             top: 8,
             left: 8,
             zIndex: 1000,
-            background: "#fef3c7",
-            color: "#92400e",
+            background: "#fee2e2",
+            color: "#991b1b",
             padding: "6px 12px",
             borderRadius: 6,
             fontSize: 13,
@@ -236,9 +232,29 @@ export default function MapPicker({
             boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
           }}
         >
-          ⚠️ User location is outside the barangay boundary
+          You must be inside the barangay to pick a location
         </div>
       )}
+
+      {userIsInsideBarangay === null && (
+        <div
+          style={{
+            position: "absolute",
+            top: 8,
+            left: 8,
+            zIndex: 1000,
+            background: "#f3f4f6",
+            color: "#374151",
+            padding: "6px 12px",
+            borderRadius: 6,
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          Checking your location…
+        </div>
+      )}
+
       <MapContainer
         center={pos}
         zoom={15}
@@ -256,8 +272,10 @@ export default function MapPicker({
           style={getBarangayStyle}
           onEachFeature={onEachBarangayFeature}
         />
-        <Marker position={pos} icon={markerIcon} />
-        <ClickHandler onChange={handleChange} readOnly={readOnly} />
+        {userIsInsideBarangay === true && (
+          <Marker position={pos} icon={markerIcon} />
+        )}
+        <ClickHandler onChange={handleChange} readOnly={isPickingDisabled} />
       </MapContainer>
     </div>
   );
@@ -371,34 +389,4 @@ export function StaticMap({
     </MapContainer>
   );
 }
-// interface BarangayMapProps {
-//   center?: [number, number];
-//   zoom?: number;
-//   height?: number;
-// }
 
-// export function BarangayMap({
-//   center = [16.482, 121.1557],
-//   zoom = 16,
-//   height = 500,
-// }: BarangayMapProps) {
-//   return (
-//     <MapContainer
-//       center={center}
-//       zoom={zoom}
-//       style={{ height, width: "100%", borderRadius: 8 }}
-//       scrollWheelZoom
-//     >
-//       <MapResizeHandler />
-//       <TileLayer
-//         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-//         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-//       />
-//       <GeoJSON
-//         data={barangayData as FeatureCollection}
-//         style={getBarangayStyle}
-//         onEachFeature={onEachBarangayFeature}
-//       />
-//     </MapContainer>
-//   );
-// }
