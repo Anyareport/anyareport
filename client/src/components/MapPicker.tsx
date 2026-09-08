@@ -176,34 +176,39 @@ export default function MapPicker({
     latitude && longitude ? [latitude, longitude] : defaultCenter,
   );
 
-  
-  const [userIsInsideBarangay, setUserIsInsideBarangay] = useState<boolean | null>(null);
+  const [locationStatus, setLocationStatus] = useState<"checking" | "inside" | "outside" | "unavailable">("checking");
 
   useEffect(() => {
     if (latitude && longitude) setPos([latitude, longitude]);
   }, [latitude, longitude]);
 
-
   useEffect(() => {
-    if (readOnly || !navigator.geolocation) {
-      setUserIsInsideBarangay(readOnly ? true : false);
+    if (readOnly) {
+      setLocationStatus("inside");
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setLocationStatus("unavailable");
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (p) => {
         const point: [number, number] = [p.coords.latitude, p.coords.longitude];
-        const inside = isInsideBarangayBoundary(point, barangayData as FeatureCollection);
+        const inside = isInsideBarangayBoundary(
+          point,
+          barangayData as FeatureCollection,
+        );
 
-        setUserIsInsideBarangay(inside);
+        setLocationStatus(inside ? "inside" : "outside");
 
-      
         if (inside && !latitude) {
           setPos(point);
           onChange(point[0], point[1]);
         }
       },
-      () => setUserIsInsideBarangay(false),
+      () => setLocationStatus("unavailable"),
     );
   }, [readOnly]);
 
@@ -212,11 +217,12 @@ export default function MapPicker({
     onChange(lat, lng);
   };
 
-  const isPickingDisabled = readOnly || userIsInsideBarangay !== true;
+  const isPickingDisabled =
+    readOnly || locationStatus === "outside" || locationStatus === "checking";
 
   return (
     <div style={{ position: "relative" }}>
-      {userIsInsideBarangay === false && (
+      {locationStatus === "outside" && (
         <div
           style={{
             position: "absolute",
@@ -236,7 +242,27 @@ export default function MapPicker({
         </div>
       )}
 
-      {userIsInsideBarangay === null && (
+      {locationStatus === "unavailable" && (
+        <div
+          style={{
+            position: "absolute",
+            top: 8,
+            left: 8,
+            zIndex: 1000,
+            background: "#fef3c7",
+            color: "#92400e",
+            padding: "6px 12px",
+            borderRadius: 6,
+            fontSize: 13,
+            fontWeight: 600,
+            boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+          }}
+        >
+          Location unavailable — tap the map to pin your location manually
+        </div>
+      )}
+
+      {locationStatus === "checking" && (
         <div
           style={{
             position: "absolute",
@@ -272,7 +298,7 @@ export default function MapPicker({
           style={getBarangayStyle}
           onEachFeature={onEachBarangayFeature}
         />
-        {userIsInsideBarangay === true && (
+        {locationStatus !== "outside" && locationStatus !== "checking" && (
           <Marker position={pos} icon={markerIcon} />
         )}
         <ClickHandler onChange={handleChange} readOnly={isPickingDisabled} />
@@ -389,4 +415,3 @@ export function StaticMap({
     </MapContainer>
   );
 }
-
