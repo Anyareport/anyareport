@@ -5,14 +5,13 @@ import Category from '../models/Category.js';
 import { classifyReport } from '../services/gemini.js';
 import { notifyOnVerification } from '../services/notifications.js';
 import { antiAbuseConfig } from '../config/antiAbuse.js';
+import { uploadImage } from '../services/cloudinary.js';
 import {
   scopeToCommittee,
   assertCommitteeAccess,
   canUpdateStatus,
   canVerifyReports,
 } from '../middleware/rbac.js';
-import fs from 'fs';
-import path from 'path';
 
 // Resolves a Firebase UID to the user's display name, falling back to the UID
 // so statusHistory doesn't become an empty string.
@@ -20,10 +19,6 @@ async function resolveActorName(uid) {
   const user = await User.findOne({ firebaseUid: uid }).select('name').lean();
   return user?.name || uid;
 }
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 async function getCommitteeForCategory(categoryName) {
   const cat = await Category.findOne({ name: categoryName });
   return cat?.committee || null;
@@ -64,13 +59,18 @@ export async function createReport(req, res) {
     }
 
     const committee = await getCommitteeForCategory(category);
-    const photos = req.files?.map((f) => `/uploads/${f.filename}`) || [];
+    const uploadedPhotos = await Promise.all(
+      (req.files || []).map((file) => uploadImage(file.buffer, file.mimetype)),
+    );
+    const photos = uploadedPhotos.map((photo) => photo.secure_url);
 
     let aiSuggestedCategory = null;
     if (req.files?.length > 0) {
-      const filePath = req.files[0].path;
-      const imageBuffer = fs.readFileSync(filePath);
-      const result = await classifyReport(description, imageBuffer, req.files[0].mimetype);
+      const result = await classifyReport(
+        description,
+        req.files[0].buffer,
+        req.files[0].mimetype,
+      );
       aiSuggestedCategory = result.category;
     } else {
       const result = await classifyReport(description, null, null);
@@ -392,7 +392,7 @@ export async function classifyReportHandler(req, res) {
     let mimeType = null;
 
     if (req.file) {
-      imageBuffer = fs.readFileSync(req.file.path);
+      imageBuffer = req.file.buffer;
       mimeType = req.file.mimetype;
     }
 

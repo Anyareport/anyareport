@@ -5,9 +5,6 @@ import helmet from "helmet";
 import morgan from "morgan";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import path from "path";
-import { fileURLToPath } from "url";
-import fs from "fs";
 
 import { connectDB } from "./config/db.js";
 import { initFirebase } from "./config/firebase.js";
@@ -21,10 +18,6 @@ import {
   notificationRoutes,
   exportRoutes,
 } from "./routes/notificationRoutes.js";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const uploadsDir = path.join(__dirname, "../uploads");
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 function normalizeOrigin(value) {
   const trimmed = value.trim();
@@ -71,7 +64,6 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(cors({ origin: corsOrigin, credentials: true }));
 app.use(morgan("dev"));
 app.use(express.json());
-app.use("/uploads", express.static(uploadsDir));
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
