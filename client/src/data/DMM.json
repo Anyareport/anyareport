@@ -172,7 +172,7 @@
     },
     {
       "type": "Feature",
-      "properties": { "name": "Purok 6 Lower B" },
+      "properties": { "name": "Purok 06 Lower B" },
       "geometry": {
         "type": "Polygon",
         "coordinates": [

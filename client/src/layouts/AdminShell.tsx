@@ -2,7 +2,6 @@ import { Layout, Menu, Button, Drawer, Grid, Badge } from 'antd';
 import {
   DashboardOutlined,
   UnorderedListOutlined,
-  EnvironmentOutlined,
   HeatMapOutlined,
   BarChartOutlined,
   AuditOutlined,
@@ -52,7 +51,6 @@ export default function AdminShell() {
     const items = [
       { key: '/admin', icon: <DashboardOutlined />, label: 'Dashboard' },
       { key: '/admin/incidents', icon: <UnorderedListOutlined />, label: 'Incidents' },
-      { key: '/admin/map', icon: <EnvironmentOutlined />, label: 'Map View' },
       { key: '/admin/heatmap', icon: <HeatMapOutlined />, label: 'Safety Heatmap' },
       { key: '/admin/analytics', icon: <BarChartOutlined />, label: 'Analytics' },
       {
