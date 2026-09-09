@@ -5,7 +5,7 @@ const reportSchema = new mongoose.Schema(
     submittedBy: { type: String, required: true, index: true },
     category: { type: String, required: true },
     committee: { type: String, default: null },
-    description: { type: String, required: true },
+    description: { type: String, default: '' },
     photos: [{ type: String }],
     location: {
       type: { type: String, enum: ['Point'], default: 'Point' },
@@ -20,6 +20,7 @@ const reportSchema = new mongoose.Schema(
     subcategory: { type: String, default: null },
     severity: { type: String, enum: ['Low', 'Medium', 'High', 'Critical'], default: null },
     aiSuggestedCategory: { type: String, default: null },
+    aiSummary: { type: String, default: null },
     verifiedBy: { type: String, default: null },
     acknowledgedBy: { type: String, default: null },
     statusHistory: [

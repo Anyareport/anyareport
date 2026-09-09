@@ -14,7 +14,9 @@ export default function AdminAuditLogPage() {
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Card className="soft-card page-hero">
-        <Title level={2} style={{ color: '#fff', marginTop: 0 }}>Audit log</Title>
+        <Title level={2} style={{ color: '#fff', marginTop: 0 }}>
+          Audit log
+        </Title>
         <Paragraph style={{ color: 'rgba(255,255,255,0.82)' }}>
           Read-only access is enforced server-side according to the role matrix.
         </Paragraph>
@@ -26,7 +28,12 @@ export default function AdminAuditLogPage() {
           renderItem={(log) => (
             <List.Item>
               <List.Item.Meta
-                title={<Space><Text strong>{log.action}</Text><Tag>{log.actorUid || 'system'}</Tag></Space>}
+                title={
+                  <Space>
+                    <Text strong>{log.action}</Text>
+                    <Tag>{log.actorName || log.actorUid || 'system'}</Tag>
+                  </Space>
+                }
                 description={
                   <Space direction="vertical" size={2}>
                     <Text type="secondary">{new Date(log.timestamp).toLocaleString()}</Text>

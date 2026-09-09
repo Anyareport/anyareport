@@ -138,6 +138,15 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                 </Space>
               )}
 
+              {report.aiSummary && (
+                <>
+                  <Text strong style={{ color: '#722ed1' }}>
+                    AI Summary
+                  </Text>
+                  <Paragraph style={{ marginBottom: 16 }}>{report.aiSummary}</Paragraph>
+                </>
+              )}
+
               <Paragraph>{report.description}</Paragraph>
 
               <Text type="secondary">Submitted: {new Date(report.createdAt).toLocaleString()}</Text>

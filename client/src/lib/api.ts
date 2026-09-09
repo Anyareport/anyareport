@@ -78,6 +78,7 @@ export interface Report {
   subcategory: string | null;
   severity: 'Low' | 'Medium' | 'High' | 'Critical' | null;
   aiSuggestedCategory: string | null;
+  aiSummary: string | null;
   verifiedBy: string | null;
   acknowledgedBy: string | null;
   statusHistory: { status: string; updatedBy: string; timestamp: string }[];
@@ -109,6 +110,7 @@ export interface AuditLog {
   _id: string;
   action: string;
   actorUid: string | null;
+  actorName: string | null;
   reportId: string | null;
   ip: string | null;
   userAgent: string | null;

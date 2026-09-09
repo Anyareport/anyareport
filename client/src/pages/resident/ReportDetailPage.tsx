@@ -61,6 +61,13 @@ export default function ReportDetailPage() {
           </div>
         )}
 
+        {report.aiSummary && (
+          <div style={{ marginBottom: 16 }}>
+            <Text strong style={{ color: '#722ed1' }}>AI Summary</Text>
+            <Paragraph style={{ marginTop: 4, marginBottom: 0 }}>{report.aiSummary}</Paragraph>
+          </div>
+        )}
+
         <Paragraph>{report.description}</Paragraph>
 
         <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
