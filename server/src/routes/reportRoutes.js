@@ -1,10 +1,8 @@
 import { Router } from "express";
-import multer from "multer";
-import path from "path";
-import { fileURLToPath } from "url";
 import { verifyToken } from "../middleware/verifyToken.js";
 import { requireRole } from "../middleware/rbac.js";
 import { reportSubmitLimiter } from "../middleware/rateLimiters.js";
+import upload from "../middleware/upload.js";
 import {
   createReport,
   getMyReports,
@@ -19,24 +17,6 @@ import {
   getHeatmapData,
   classifyReportHandler,
 } from "../controllers/reportController.js";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const storage = multer.diskStorage({
-  destination: path.join(__dirname, "../../uploads"),
-  filename: (_req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  },
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
-    if (file.mimetype.startsWith("image/")) cb(null, true);
-    else cb(new Error("Only image files allowed"));
-  },
-});
 
 const router = Router();
 
