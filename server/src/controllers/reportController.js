@@ -75,6 +75,7 @@ export async function createReport(req, res) {
     const photos = uploadedPhotos.map((photo) => photo.secure_url);
 
     let aiSuggestedCategory = null;
+    let aiSummary = null;
     if (req.files?.length > 0) {
       const result = await classifyReport(
         trimmedDescription,
@@ -82,9 +83,11 @@ export async function createReport(req, res) {
         req.files[0].mimetype
       );
       aiSuggestedCategory = result.category;
+      aiSummary = result.summary;
     } else {
       const result = await classifyReport(trimmedDescription, null, null);
       aiSuggestedCategory = result.category;
+      aiSummary = result.summary;
     }
 
     const report = await Report.create({
@@ -101,6 +104,7 @@ export async function createReport(req, res) {
         address: address || '',
       },
       aiSuggestedCategory,
+      aiSummary,
       statusHistory: [
         {
           status: 'pending',
