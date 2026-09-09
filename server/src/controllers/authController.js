@@ -95,6 +95,12 @@ export async function syncClaims(req, res) {
       return res.status(404).json({ error: 'Profile not found' });
     }
 
+    // Sync emailVerified from the Firebase token on every claims sync
+    if (req.firebaseUser.email_verified && !profile.emailVerified) {
+      profile.emailVerified = true;
+      await profile.save();
+    }
+
     const admin = getFirebaseAdmin();
     if (admin) {
       await admin.auth().setCustomUserClaims(profile.firebaseUid, {
