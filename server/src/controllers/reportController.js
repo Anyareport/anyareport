@@ -41,9 +41,12 @@ export async function createReport(req, res) {
       return res.status(403).json({ error: 'Account suspended — cannot submit reports' });
     }
 
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
     const reportCount = await Report.countDocuments({
       submittedBy: req.firebaseUser.uid,
-      createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      createdAt: { $gte: startOfDay },
     });
 
     if (reportCount >= antiAbuseConfig.maxReportsPerDay) {
