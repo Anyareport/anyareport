@@ -47,7 +47,7 @@ export default function ResponderAlertsPage() {
                 <Tag color={report.category === 'Emergency Situations' ? 'red' : 'blue'}>
                   {report.category === 'Emergency Situations'
                     ? 'Urgent response'
-                    : 'Verified alert'}
+                    : 'Standard alert'}
                 </Tag>
                 <Text type="secondary">{report.location?.address || 'Location unknown'}</Text>
               </Space>
