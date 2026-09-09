@@ -22,6 +22,7 @@ import {
 } from '@ant-design/icons';
 import { api, type Report } from '../../lib/api';
 import StatusTag from '../../components/StatusTag';
+import SeverityTag from '../../components/SeverityTag';
 import { StaticMap, RouteMap } from '../../components/MapPicker';
 import { useAuth } from '../../contexts/AuthContext';
 import { getRoleLabel } from '../../lib/roles';
@@ -133,21 +134,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                   {report.subcategory && report.subcategory !== 'undefined' && (
                     <Tag>{report.subcategory}</Tag>
                   )}
-                  {report.severity && (
-                    <Tag
-                      color={
-                        report.severity === 'Critical'
-                          ? 'red'
-                          : report.severity === 'High'
-                            ? 'orange'
-                            : report.severity === 'Medium'
-                              ? 'gold'
-                              : 'default'
-                      }
-                    >
-                      Severity: {report.severity}
-                    </Tag>
-                  )}
+                  <SeverityTag severity={report.severity} />
                 </Space>
               )}
 

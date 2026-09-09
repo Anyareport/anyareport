@@ -2,6 +2,7 @@ import { Table, Card, Grid, Typography, Space } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import type { Report } from '../lib/api';
 import StatusTag from './StatusTag';
+import SeverityTag from './SeverityTag';
 
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
@@ -34,8 +35,13 @@ export default function IncidentList({
         {reports.map((r) => (
           <Card key={r._id} hoverable onClick={() => handleClick(r._id)} size="small">
             <Space direction="vertical" size={4} style={{ width: '100%' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <StatusTag status={r.status} />
+              <div
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
+                <Space size={4}>
+                  <StatusTag status={r.status} />
+                  <SeverityTag severity={r.severity} />
+                </Space>
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   {new Date(r.createdAt).toLocaleDateString()}
                 </Text>
@@ -64,6 +70,12 @@ export default function IncidentList({
       dataIndex: 'status',
       key: 'status',
       render: (s: string) => <StatusTag status={s} />,
+    },
+    {
+      title: 'Severity',
+      dataIndex: 'severity',
+      key: 'severity',
+      render: (s: string | null) => <SeverityTag severity={s} />,
     },
     { title: 'Category', dataIndex: 'category', key: 'category' },
     {

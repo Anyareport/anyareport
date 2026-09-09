@@ -4,6 +4,7 @@ import { Card, Typography, Timeline, Tag, Spin, Button, Image } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { api, type Report } from '../../lib/api';
 import StatusTag from '../../components/StatusTag';
+import SeverityTag from '../../components/SeverityTag';
 import { StaticMap } from '../../components/MapPicker';
 
 const { Title, Paragraph, Text } = Typography;
@@ -56,21 +57,7 @@ export default function ReportDetailPage() {
             {report.subcategory && report.subcategory !== 'undefined' && (
               <Tag>{report.subcategory}</Tag>
             )}
-            {report.severity && (
-              <Tag
-                color={
-                  report.severity === 'Critical'
-                    ? 'red'
-                    : report.severity === 'High'
-                      ? 'orange'
-                      : report.severity === 'Medium'
-                        ? 'gold'
-                        : 'default'
-                }
-              >
-                Severity: {report.severity}
-              </Tag>
-            )}
+            <SeverityTag severity={report.severity} />
           </div>
         )}
 
