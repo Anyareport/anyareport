@@ -114,7 +114,18 @@ export default function AdminShell() {
   return (
     <Layout style={{ minHeight: '100vh' }}>
       {screens.md ? (
-        <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} width={240}>
+        <Sider
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+          width={240}
+          style={{
+            position: 'sticky',
+            top: 0,
+            height: '100vh',
+            overflow: 'auto',
+          }}
+        >
           <div style={{ padding: '16px 12px', textAlign: 'center' }}>
             <Logo light size="sm" showIcon={!collapsed} />
           </div>
