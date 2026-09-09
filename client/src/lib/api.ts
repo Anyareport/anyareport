@@ -36,7 +36,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body?: unknown) =>
-    request<T>(path, { method: 'POST', body: body instanceof FormData ? body : JSON.stringify(body) }),
+    request<T>(path, {
+      method: 'POST',
+      body: body instanceof FormData ? body : JSON.stringify(body),
+    }),
   patch: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
@@ -81,6 +84,8 @@ export interface Report {
     address: string;
   };
   status: string;
+  subcategory: string | null;
+  severity: 'Low' | 'Medium' | 'High' | 'Critical' | null;
   aiSuggestedCategory: string | null;
   verifiedBy: string | null;
   acknowledgedBy: string | null;

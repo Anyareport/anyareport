@@ -17,6 +17,8 @@ const reportSchema = new mongoose.Schema(
       enum: ['pending', 'verified', 'en_route', 'on_scene', 'resolved', 'flagged'],
       default: 'pending',
     },
+    subcategory: { type: String, default: null },
+    severity: { type: String, enum: ['Low', 'Medium', 'High', 'Critical'], default: null },
     aiSuggestedCategory: { type: String, default: null },
     verifiedBy: { type: String, default: null },
     acknowledgedBy: { type: String, default: null },
