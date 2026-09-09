@@ -53,7 +53,14 @@ export default function ProfilePage({ title }: ProfilePageProps) {
             Account details and contact information for {getRoleLabel(profile.role)}.
           </Paragraph>
 
-          <Form form={form} layout="vertical" onFinish={(values) => updateMutation.mutate(values)}>
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={(values) => {
+              if (!editing) return;
+              updateMutation.mutate(values);
+            }}
+          >
             <Form.Item name="name" label="Full name" rules={[{ required: true }]}>
               <Input disabled={!editing} />
             </Form.Item>
@@ -69,10 +76,20 @@ export default function ProfilePage({ title }: ProfilePageProps) {
                   <Button type="primary" htmlType="submit" loading={updateMutation.isPending}>
                     Save changes
                   </Button>
-                  <Button onClick={() => setEditing(false)}>Cancel</Button>
+                  <Button htmlType="button" onClick={() => setEditing(false)}>
+                    Cancel
+                  </Button>
                 </>
               ) : (
-                <Button type="primary" onClick={() => setEditing(true)}>
+                <Button
+                  type="primary"
+                  htmlType="button"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setEditing(true);
+                  }}
+                >
                   Edit profile
                 </Button>
               )}
