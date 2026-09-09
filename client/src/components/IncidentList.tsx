@@ -1,8 +1,10 @@
 import { Table, Card, Grid, Typography, Space } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
 import type { Report } from '../lib/api';
 import StatusTag from './StatusTag';
 import SeverityTag from './SeverityTag';
+import { compareSeverity, compareStatus, compareCreatedAt } from '../lib/sortUtils';
 
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
@@ -64,17 +66,22 @@ export default function IncidentList({
     );
   }
 
-  const columns = [
+  const columns: ColumnsType<Report> = [
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
+      sorter: compareStatus,
+      sortDirections: ['ascend', 'descend'],
       render: (s: string) => <StatusTag status={s} />,
     },
     {
       title: 'Severity',
       dataIndex: 'severity',
       key: 'severity',
+      sorter: compareSeverity,
+      defaultSortOrder: 'ascend',
+      sortDirections: ['ascend', 'descend'],
       render: (s: string | null) => <SeverityTag severity={s} />,
     },
     { title: 'Category', dataIndex: 'category', key: 'category' },
@@ -92,6 +99,9 @@ export default function IncidentList({
       title: 'Submitted',
       dataIndex: 'createdAt',
       key: 'createdAt',
+      sorter: compareCreatedAt,
+      sortDirections: ['descend', 'ascend'],
+      defaultSortOrder: 'descend',
       render: (d: string) => new Date(d).toLocaleString(),
     },
     {

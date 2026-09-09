@@ -1,10 +1,16 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, Col, Row, Statistic, Typography, Button, Space } from 'antd';
-import { AlertOutlined, ArrowRightOutlined, EnvironmentOutlined, FireOutlined } from '@ant-design/icons';
+import {
+  AlertOutlined,
+  ArrowRightOutlined,
+  EnvironmentOutlined,
+  FireOutlined,
+} from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import { api, type Report } from '../../lib/api';
 import IncidentList from '../../components/IncidentList';
+import { compareIncidentPriority } from '../../lib/sortUtils';
 
 const { Title, Paragraph } = Typography;
 
@@ -16,38 +22,60 @@ export default function ResponderDashboardPage() {
   });
 
   const activeReports = useMemo(
-    () => reports.filter((report) => ['verified', 'en_route', 'on_scene'].includes(report.status)),
-    [reports],
+    () =>
+      reports
+        .filter((report) => ['verified', 'en_route', 'on_scene'].includes(report.status))
+        .sort(compareIncidentPriority),
+    [reports]
   );
 
-  const urgentReports = activeReports.filter((report) => report.category === 'Emergency Situations');
+  const urgentReports = activeReports.filter(
+    (report) => report.category === 'Emergency Situations'
+  );
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Card className="soft-card page-hero">
-        <Title level={2} style={{ color: '#fff', marginTop: 0 }}>Responder Command</Title>
+        <Title level={2} style={{ color: '#fff', marginTop: 0 }}>
+          Responder Command
+        </Title>
         <Paragraph style={{ color: 'rgba(255,255,255,0.82)' }}>
-          Field responders monitor verified incidents, route to active scenes, and close reports in the field.
+          Field responders monitor verified incidents, route to active scenes, and close reports in
+          the field.
         </Paragraph>
         <Button type="primary" icon={<ArrowRightOutlined />}>
-          <Link to="/responder/alerts" style={{ color: 'inherit' }}>View alerts</Link>
+          <Link to="/responder/alerts" style={{ color: 'inherit' }}>
+            View alerts
+          </Link>
         </Button>
       </Card>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} md={8}>
           <Card className="soft-card">
-            <Statistic title="Active incidents" value={activeReports.length} prefix={<AlertOutlined />} />
+            <Statistic
+              title="Active incidents"
+              value={activeReports.length}
+              prefix={<AlertOutlined />}
+            />
           </Card>
         </Col>
         <Col xs={24} md={8}>
           <Card className="soft-card">
-            <Statistic title="Urgent emergency calls" value={urgentReports.length} prefix={<FireOutlined />} />
+            <Statistic
+              title="Urgent emergency calls"
+              value={urgentReports.length}
+              prefix={<FireOutlined />}
+            />
           </Card>
         </Col>
         <Col xs={24} md={8}>
           <Card className="soft-card">
-            <Statistic title="Scene-ready" value={activeReports.filter((report) => report.status === 'on_scene').length} prefix={<EnvironmentOutlined />} />
+            <Statistic
+              title="Scene-ready"
+              value={activeReports.filter((report) => report.status === 'on_scene').length}
+              prefix={<EnvironmentOutlined />}
+            />
           </Card>
         </Col>
       </Row>
