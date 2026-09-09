@@ -1,16 +1,8 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useCallback,
-  type ReactNode,
-} from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
-import { auth, isDemoMode } from '../lib/firebase';
+import { auth } from '../lib/firebase';
 import { api, type UserProfile } from '../lib/api';
 import { getSocket, disconnectSocket } from '../lib/socket';
-import { getDemoProfile, getDemoSession } from '../lib/demoStore';
 
 interface AuthContextType {
   firebaseUser: FirebaseUser | null;
@@ -44,25 +36,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (isDemoMode) {
-      const syncDemo = () => {
-        const session = getDemoSession();
-        const profile = getDemoProfile();
-        setFirebaseUser(session ? ({ uid: session.firebaseUid, email: session.email } as FirebaseUser) : null);
-        setProfile(profile);
-        if (profile?.role) {
-          getSocket(profile.role);
-        } else {
-          disconnectSocket();
-        }
-        setLoading(false);
-      };
-
-      syncDemo();
-      window.addEventListener('anyareport-demo-auth-changed', syncDemo);
-      return () => window.removeEventListener('anyareport-demo-auth-changed', syncDemo);
-    }
-
     const unsub = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
       if (user) {

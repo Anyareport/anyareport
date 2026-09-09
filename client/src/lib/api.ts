@@ -1,14 +1,8 @@
 import { getIdToken } from './firebase';
-import { isDemoMode } from './mode';
-import { demoRequest } from './demoApi';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  if (isDemoMode) {
-    return demoRequest<T>(path, options);
-  }
-
   const token = await getIdToken();
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string>),
@@ -44,10 +38,6 @@ export const api = {
     request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
   download: async (path: string) => {
-    if (isDemoMode) {
-      return demoRequest<Blob>(path, {});
-    }
-
     const token = await getIdToken();
     const res = await fetch(`${API_URL}${path}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
