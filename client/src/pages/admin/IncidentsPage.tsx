@@ -3,6 +3,7 @@ import { Card, Space, Typography, Segmented } from 'antd';
 import { useMemo, useState } from 'react';
 import { api, type Report } from '../../lib/api';
 import IncidentList from '../../components/IncidentList';
+import { formatStatus } from '../../components/StatusTag';
 
 const { Title, Paragraph } = Typography;
 
@@ -19,7 +20,9 @@ export default function AdminIncidentsPage() {
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Card className="soft-card page-hero">
-        <Title level={2} style={{ color: '#fff', marginTop: 0 }}>Incidents</Title>
+        <Title level={2} style={{ color: '#fff', marginTop: 0 }}>
+          Incidents
+        </Title>
         <Paragraph style={{ color: 'rgba(255,255,255,0.82)' }}>
           Desktop table on larger screens, card-per-incident layout below tablet width.
         </Paragraph>
@@ -28,7 +31,15 @@ export default function AdminIncidentsPage() {
       <Card className="soft-card">
         <Segmented
           value={status}
-          options={['all', 'pending', 'verified', 'en_route', 'on_scene', 'resolved', 'flagged']}
+          options={[
+            { value: 'all', label: 'All' },
+            { value: 'pending', label: formatStatus('pending') },
+            { value: 'verified', label: formatStatus('verified') },
+            { value: 'en_route', label: formatStatus('en_route') },
+            { value: 'on_scene', label: formatStatus('on_scene') },
+            { value: 'resolved', label: formatStatus('resolved') },
+            { value: 'flagged', label: formatStatus('flagged') },
+          ]}
           onChange={(value) => setStatus(value as string)}
         />
       </Card>
