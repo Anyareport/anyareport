@@ -415,3 +415,38 @@ export function StaticMap({
     </MapContainer>
   );
 }
+export function findContainingPurok(
+  point: [number, number],
+  data: FeatureCollection,
+): string | null {
+  let purokName: string | null = null;
+  let barangayName: string | null = null;
+
+  for (const feature of data.features) {
+    const name = feature.properties?.name;
+    if (!name) continue;
+
+    const isBoundary = name.toLowerCase().includes("don mariano marcos");
+    const geometry = feature.geometry;
+
+    const matches =
+      geometry.type === "Polygon"
+        ? isPointInPolygon(point, geometry.coordinates[0])
+        : geometry.type === "MultiPolygon"
+          ? geometry.coordinates.some((polygon) => isPointInPolygon(point, polygon[0]))
+          : false;
+
+    if (!matches) continue;
+
+    if (isBoundary) {
+      barangayName = name;
+    } else {
+      purokName = name;
+    }
+  }
+
+  if (purokName && barangayName) return `${purokName}, ${barangayName}`;
+  if (purokName) return purokName;
+  if (barangayName) return barangayName;
+  return null;
+}

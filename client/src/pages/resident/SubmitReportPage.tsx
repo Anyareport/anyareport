@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback } from 'react';
 import {
   Form,
   Select,
@@ -17,32 +17,32 @@ import {
   Spin,
   Space,
   Tag,
-} from "antd";
+} from 'antd';
 import {
   UploadOutlined,
   EnvironmentOutlined,
   CameraOutlined,
   FileTextOutlined,
-} from "@ant-design/icons";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import { api, type Category } from "../../lib/api";
-import { useAuth } from "../../contexts/AuthContext";
-import MapPicker from "../../components/MapPicker";
-import type { FeatureCollection } from "geojson";
-import { isInsideBarangayBoundary } from "../../components/MapPicker";
-import barangayData from "../../data/DMM.json";
+} from '@ant-design/icons';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { api, type Category } from '../../lib/api';
+import { useAuth } from '../../contexts/AuthContext';
+import MapPicker from '../../components/MapPicker';
+import type { FeatureCollection } from 'geojson';
+import { isInsideBarangayBoundary, findContainingPurok } from '../../components/MapPicker';
+import barangayData from '../../data/DMM.json';
 const { Title, Text } = Typography;
 
-type ReportType = "text" | "photo";
-type Severity = "Low" | "Medium" | "High" | "Critical";
+type ReportType = 'text' | 'photo';
+type Severity = 'Low' | 'Medium' | 'High' | 'Critical';
 
-const SEVERITY_OPTIONS: Severity[] = ["Low", "Medium", "High", "Critical"];
+const SEVERITY_OPTIONS: Severity[] = ['Low', 'Medium', 'High', 'Critical'];
 
 const SUBCATEGORY_MAP: Record<string, string[]> = {
-  "Public Concerns": ["Sanitation", "Infrastructure"],
-  "Blotter Cases": ["Civil", "Criminal"],
-  "Emergency Situations": ["Public", "Private"],
+  'Public Concerns': ['Sanitation', 'Infrastructure'],
+  'Blotter Cases': ['Civil', 'Criminal'],
+  'Emergency Situations': ['Public', 'Private'],
 };
 
 interface ClassificationResult {
@@ -69,33 +69,31 @@ export default function SubmitReportPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [maxStepReached, setMaxStepReached] = useState(0);
 
-  const [reportType, setReportType] = useState<ReportType>("text");
+  const [reportType, setReportType] = useState<ReportType>('text');
   const [lat, setLat] = useState<number>();
   const [lng, setLng] = useState<number>();
-  const [fileList, setFileList] = useState<
-    { originFileObj: File; thumbUrl?: string }[]
-  >([]);
+  const [fileList, setFileList] = useState<{ originFileObj: File; thumbUrl?: string }[]>([]);
 
   const [classification, setClassification] = useState<ClassificationResult>();
   const [manuallyEdited, setManuallyEdited] = useState(false);
 
   const { data: categories = [] } = useQuery({
-    queryKey: ["categories"],
-    queryFn: () => api.get<Category[]>("/api/reports/categories"),
+    queryKey: ['categories'],
+    queryFn: () => api.get<Category[]>('/api/reports/categories'),
   });
 
   const classifyMutation = useMutation({
     mutationFn: async () => {
       const values = form.getFieldsValue();
-      const description = values.description || "";
+      const description = values.description || '';
       const formData = new FormData();
-      formData.append("description", description);
+      formData.append('description', description);
       // Only send the photo when description is too vague to classify on its own
       const descriptionIsTooShort = description.trim().length < 20;
       if (descriptionIsTooShort && fileList[0]?.originFileObj) {
-        formData.append("photo", fileList[0].originFileObj);
+        formData.append('photo', fileList[0].originFileObj);
       }
-      return api.post<ClassificationResult>("/api/reports/classify", formData);
+      return api.post<ClassificationResult>('/api/reports/classify', formData);
     },
     onSuccess: (result) => {
       setClassification(result);
@@ -108,29 +106,27 @@ export default function SubmitReportPage() {
       }
     },
     onError: () => {
-      message.warning(
-        "AI classification unavailable — please select a category manually.",
-      );
+      message.warning('AI classification unavailable — please select a category manually.');
     },
   });
 
   const submitMutation = useMutation({
     mutationFn: async (values: ReportFormValues) => {
       const formData = new FormData();
-      formData.append("category", values.category);
-      formData.append("subcategory", values.subcategory);
-      formData.append("severity", values.severity);
-      formData.append("description", values.description || "");
-      formData.append("address", values.address || "");
-      formData.append("latitude", String(lat));
-      formData.append("longitude", String(lng));
-      fileList.forEach((f) => formData.append("photos", f.originFileObj));
-      return api.post("/api/reports", formData);
+      formData.append('category', values.category);
+      formData.append('subcategory', values.subcategory);
+      formData.append('severity', values.severity);
+      formData.append('description', values.description || '');
+      formData.append('address', values.address || '');
+      formData.append('latitude', String(lat));
+      formData.append('longitude', String(lng));
+      fileList.forEach((f) => formData.append('photos', f.originFileObj));
+      return api.post('/api/reports', formData);
     },
     onSuccess: () => {
-      message.success("Report submitted successfully!");
-      queryClient.invalidateQueries({ queryKey: ["my-reports"] });
-      navigate("/resident/reports");
+      message.success('Report submitted successfully!');
+      queryClient.invalidateQueries({ queryKey: ['my-reports'] });
+      navigate('/resident/reports');
     },
     onError: (err: Error) => message.error(err.message),
   });
@@ -138,12 +134,12 @@ export default function SubmitReportPage() {
   const goNext = useCallback(async () => {
     try {
       if (currentStep === 0) {
-        const fieldsToCheck = reportType === "text" ? ["description"] : [];
+        const fieldsToCheck = reportType === 'text' ? ['description'] : [];
         await form.validateFields(fieldsToCheck);
       }
       if (currentStep === 1) {
         if (!lat || !lng) {
-          message.error("Please set a location on the map or use GPS.");
+          message.error('Please set a location on the map or use GPS.');
           return;
         }
         classifyMutation.mutate();
@@ -158,40 +154,29 @@ export default function SubmitReportPage() {
 
   const handleUseGPS = () => {
     if (!navigator.geolocation) {
-      message.error("GPS is not available on this device.");
+      message.error('GPS is not available on this device.');
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const point: [number, number] = [
-          pos.coords.latitude,
-          pos.coords.longitude,
-        ];
-        const isInside = isInsideBarangayBoundary(
-          point,
-          barangayData as FeatureCollection,
-        );
+        const point: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        const isInside = isInsideBarangayBoundary(point, barangayData as FeatureCollection);
 
         if (!isInside) {
-          message.error(
-            "Your current location is outside the barangay boundary.",
-          );
+          message.error('Your current location is outside the barangay boundary.');
           return;
         }
 
         setLat(pos.coords.latitude);
         setLng(pos.coords.longitude);
-        message.success("Location detected via GPS.");
+        message.success('Location detected via GPS.');
       },
-      () =>
-        message.error(
-          "Could not get your location. Please tap the map instead.",
-        ),
+      () => message.error('Could not get your location. Please tap the map instead.')
     );
   };
 
-  const selectedCategory = Form.useWatch("category", form);
+  const selectedCategory = Form.useWatch('category', form);
 
   if (!profile?.emailVerified) {
     return (
@@ -203,14 +188,11 @@ export default function SubmitReportPage() {
       />
     );
   }
-  const STEP_LABELS = ["Report Type", "Location", "Classification", "Review"];
+  const STEP_LABELS = ['Report Type', 'Location', 'Classification', 'Review'];
 
   return (
     <Card>
-      <Title
-        level={3}
-        style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}
-      >
+      <Title level={3} style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>
         SUBMIT INCIDENT REPORT
       </Title>
 
@@ -221,7 +203,7 @@ export default function SubmitReportPage() {
         onChange={(step) => {
           if (step <= maxStepReached) setCurrentStep(step);
         }}
-        style={{ marginBottom: 32, cursor: "pointer" }}
+        style={{ marginBottom: 32, cursor: 'pointer' }}
         items={[{}, {}, {}, {}]}
       />
 
@@ -236,13 +218,9 @@ export default function SubmitReportPage() {
         {STEP_LABELS[currentStep]}
       </Title>
 
-      <Form
-        form={form}
-        layout="vertical"
-        initialValues={{ reportType: "text" }}
-      >
+      <Form form={form} layout="vertical" initialValues={{ reportType: 'text' }}>
         {/* STEP 1: Report Type */}
-        <div style={{ display: currentStep === 0 ? "block" : "none" }}>
+        <div style={{ display: currentStep === 0 ? 'block' : 'none' }}>
           <Form.Item label="How would you like to report this?">
             <Segmented
               block
@@ -250,20 +228,20 @@ export default function SubmitReportPage() {
               onChange={(val) => setReportType(val as ReportType)}
               options={[
                 {
-                  label: "Text description",
-                  value: "text",
+                  label: 'Text description',
+                  value: 'text',
                   icon: <FileTextOutlined />,
                 },
                 {
-                  label: "Take a photo",
-                  value: "photo",
+                  label: 'Take a photo',
+                  value: 'photo',
                   icon: <CameraOutlined />,
                 },
               ]}
             />
           </Form.Item>
 
-          {reportType === "photo" && (
+          {reportType === 'photo' && (
             <Form.Item label="Photo (max 3)">
               <Upload
                 listType="picture-card"
@@ -286,33 +264,27 @@ export default function SubmitReportPage() {
 
           <Form.Item
             name="description"
-            label={
-              reportType === "text" ? "Description" : "Description (optional)"
-            }
+            label={reportType === 'text' ? 'Description' : 'Description (optional)'}
             rules={
-              reportType === "text"
+              reportType === 'text'
                 ? [
                     {
                       required: true,
                       min: 10,
-                      message:
-                        "Please describe the incident (min. 10 characters).",
+                      message: 'Please describe the incident (min. 10 characters).',
                     },
                   ]
                 : []
             }
           >
-            <Input.TextArea
-              rows={4}
-              placeholder="Describe the incident in detail..."
-            />
+            <Input.TextArea rows={4} placeholder="Describe the incident in detail..." />
           </Form.Item>
         </div>
 
         {/* STEP 2: Location */}
-        <div style={{ display: currentStep === 1 ? "block" : "none" }}>
+        <div style={{ display: currentStep === 1 ? 'block' : 'none' }}>
           <Form.Item label="Location (tap map or use GPS)">
-            <Space direction="vertical" style={{ width: "100%" }}>
+            <Space direction="vertical" style={{ width: '100%' }}>
               <Button icon={<EnvironmentOutlined />} onClick={handleUseGPS}>
                 Use My Current Location
               </Button>
@@ -322,6 +294,11 @@ export default function SubmitReportPage() {
                 onChange={(la, ln) => {
                   setLat(la);
                   setLng(ln);
+
+                  const purok = findContainingPurok([la, ln], barangayData as FeatureCollection);
+                  if (purok) {
+                    form.setFieldValue('address', purok);
+                  }
                 }}
               />
             </Space>
@@ -333,7 +310,7 @@ export default function SubmitReportPage() {
         </div>
 
         {/* STEP 3: Classification */}
-        <div style={{ display: currentStep === 2 ? "block" : "none" }}>
+        <div style={{ display: currentStep === 2 ? 'block' : 'none' }}>
           {classifyMutation.isPending && !classification && (
             <Alert
               style={{ marginBottom: 16 }}
@@ -357,7 +334,7 @@ export default function SubmitReportPage() {
           <Form.Item
             name="category"
             label="Category"
-            rules={[{ required: true, message: "Please select a category." }]}
+            rules={[{ required: true, message: 'Please select a category.' }]}
           >
             <Select
               placeholder="Select category"
@@ -367,7 +344,7 @@ export default function SubmitReportPage() {
               }))}
               onChange={() => {
                 setManuallyEdited(true);
-                form.setFieldValue("subcategory", undefined);
+                form.setFieldValue('subcategory', undefined);
               }}
             />
           </Form.Item>
@@ -375,9 +352,7 @@ export default function SubmitReportPage() {
           <Form.Item
             name="subcategory"
             label="Subcategory"
-            rules={[
-              { required: true, message: "Please select a subcategory." },
-            ]}
+            rules={[{ required: true, message: 'Please select a subcategory.' }]}
           >
             <Select
               placeholder="Select subcategory"
@@ -393,9 +368,7 @@ export default function SubmitReportPage() {
           <Form.Item
             name="severity"
             label="Severity"
-            rules={[
-              { required: true, message: "Please select a severity level." },
-            ]}
+            rules={[{ required: true, message: 'Please select a severity level.' }]}
           >
             <Radio.Group onChange={() => setManuallyEdited(true)}>
               {SEVERITY_OPTIONS.map((s) => (
@@ -408,10 +381,10 @@ export default function SubmitReportPage() {
         </div>
 
         {/* STEP 4: Review */}
-        <div style={{ display: currentStep === 3 ? "block" : "none" }}>
+        <div style={{ display: currentStep === 3 ? 'block' : 'none' }}>
           <Descriptions bordered column={1} size="middle">
             <Descriptions.Item label="Report Type">
-              {reportType === "text" ? "Text description" : "Photo"}
+              {reportType === 'text' ? 'Text description' : 'Photo'}
             </Descriptions.Item>
             {fileList.length > 0 && (
               <Descriptions.Item label="Photo(s)">
@@ -422,7 +395,7 @@ export default function SubmitReportPage() {
                         key={i}
                         width={64}
                         height={64}
-                        style={{ objectFit: "cover", borderRadius: 6 }}
+                        style={{ objectFit: 'cover', borderRadius: 6 }}
                         src={URL.createObjectURL(f.originFileObj)}
                       />
                     ))}
@@ -431,24 +404,20 @@ export default function SubmitReportPage() {
               </Descriptions.Item>
             )}
             <Descriptions.Item label="Description">
-              {form.getFieldValue("description") || (
-                <Text type="secondary">None provided</Text>
-              )}
+              {form.getFieldValue('description') || <Text type="secondary">None provided</Text>}
             </Descriptions.Item>
             <Descriptions.Item label="Location">
-              {lat && lng ? `${lat.toFixed(6)}, ${lng.toFixed(6)}` : "Not set"}
+              {lat && lng ? `${lat.toFixed(6)}, ${lng.toFixed(6)}` : 'Not set'}
             </Descriptions.Item>
             <Descriptions.Item label="Address">
-              {form.getFieldValue("address") || (
-                <Text type="secondary">Not provided</Text>
-              )}
+              {form.getFieldValue('address') || <Text type="secondary">Not provided</Text>}
             </Descriptions.Item>
             <Descriptions.Item label="Category">
-              <Tag color="blue">{form.getFieldValue("category")}</Tag>
-              <Tag>{form.getFieldValue("subcategory")}</Tag>
+              <Tag color="blue">{form.getFieldValue('category')}</Tag>
+              <Tag>{form.getFieldValue('subcategory')}</Tag>
             </Descriptions.Item>
             <Descriptions.Item label="Severity">
-              <Tag color="red">{form.getFieldValue("severity")}</Tag>
+              <Tag color="red">{form.getFieldValue('severity')}</Tag>
             </Descriptions.Item>
           </Descriptions>
         </div>
