@@ -13,6 +13,13 @@ import {
 } from "../middleware/rbac.js";
 import fs from "fs";
 import path from "path";
+
+// Resolves a Firebase UID to the user's display name, falling back to the UID
+// so statusHistory doesn't become an empty string.
+async function resolveActorName(uid) {
+  const user = await User.findOne({ firebaseUid: uid }).select("name").lean();
+  return user?.name || uid;
+}
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -90,7 +97,12 @@ export async function createReport(req, res) {
         address: address || "",
       },
       aiSuggestedCategory,
-      statusHistory: [{ status: "pending", updatedBy: req.firebaseUser.uid }],
+      statusHistory: [
+        {
+          status: "pending",
+          updatedBy: await resolveActorName(req.firebaseUser.uid),
+        },
+      ],
     });
 
     await logAudit("report_submitted", req, report._id, {
@@ -172,7 +184,7 @@ export async function verifyReport(req, res) {
     report.verifiedBy = req.firebaseUser.uid;
     report.statusHistory.push({
       status: "verified",
-      updatedBy: req.firebaseUser.uid,
+      updatedBy: await resolveActorName(req.firebaseUser.uid),
     });
     await report.save();
 
@@ -197,7 +209,7 @@ export async function flagReport(req, res) {
     report.status = "flagged";
     report.statusHistory.push({
       status: "flagged",
-      updatedBy: req.firebaseUser.uid,
+      updatedBy: await resolveActorName(req.firebaseUser.uid),
     });
     await report.save();
 
@@ -253,7 +265,10 @@ export async function updateReportStatus(req, res) {
     }
 
     report.status = status;
-    report.statusHistory.push({ status, updatedBy: req.firebaseUser.uid });
+    report.statusHistory.push({
+      status,
+      updatedBy: await resolveActorName(req.firebaseUser.uid),
+    });
     await report.save();
 
     await logAudit("status_updated", req, report._id, { status });
@@ -273,7 +288,7 @@ export async function acknowledgeReport(req, res) {
       report.status = "en_route";
       report.statusHistory.push({
         status: "en_route",
-        updatedBy: req.firebaseUser.uid,
+        updatedBy: await resolveActorName(req.firebaseUser.uid),
       });
     }
     await report.save();
