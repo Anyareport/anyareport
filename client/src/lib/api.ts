@@ -110,6 +110,7 @@ export interface AuditLog {
   _id: string;
   action: string;
   actorUid: string | null;
+  actorName: string | null;
   reportId: string | null;
   ip: string | null;
   userAgent: string | null;
