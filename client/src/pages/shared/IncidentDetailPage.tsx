@@ -121,7 +121,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           >
             <Space direction="vertical" size={12} style={{ width: '100%' }}>
               <Space wrap>
-                {report.verifiedBy && <Tag color="blue">Verified</Tag>}
+                {report.verifiedBy && <Tag color="geekblue">Reviewed</Tag>}
                 {report.aiSuggestedCategory && (
                   <Tag color="purple">AI: {report.aiSuggestedCategory}</Tag>
                 )}
