@@ -1,11 +1,15 @@
+import { useEffect } from "react";
 import {
   CircleMarker,
   GeoJSON,
   MapContainer,
   TileLayer,
   Tooltip,
+  useMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import "leaflet.heat";
+import L from "leaflet";
 import type { Feature, FeatureCollection, Geometry } from "geojson";
 import type { PathOptions } from "leaflet";
 import barangayData from "../data/DMM.json";
@@ -17,9 +21,12 @@ export interface HeatmapPoint {
   status?: string;
 }
 
+export type HeatmapMode = "dots" | "gradient";
+
 interface IncidentHeatmapProps {
   points: HeatmapPoint[];
   height?: number;
+  mode?: HeatmapMode;
 }
 
 function getBoundaryStyle(feature?: Feature<Geometry, any>): PathOptions {
@@ -58,9 +65,40 @@ function IncidentDots({ points }: { points: HeatmapPoint[] }) {
   );
 }
 
+function GradientLayer({ points }: { points: HeatmapPoint[] }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const heatPoints: Array<[number, number, number]> = points
+      .filter(({ lat, lng }) => Number.isFinite(lat) && Number.isFinite(lng))
+      .map(({ lat, lng }) => [lat, lng, 1]);
+    const heatLayer = L.heatLayer(heatPoints, {
+      radius: 28,
+      blur: 22,
+      maxZoom: 17,
+      max: 1,
+      minOpacity: 0.35,
+      gradient: {
+        0.2: "#3b82f6",
+        0.45: "#22c55e",
+        0.7: "#facc15",
+        0.9: "#ef4444",
+      },
+    });
+
+    heatLayer.addTo(map);
+    return () => {
+      map.removeLayer(heatLayer);
+    };
+  }, [map, points]);
+
+  return null;
+}
+
 export default function IncidentHeatmap({
   points,
   height = 460,
+  mode = "dots",
 }: IncidentHeatmapProps) {
   const center: [number, number] = [16.482, 121.1557];
 
@@ -80,7 +118,11 @@ export default function IncidentHeatmap({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <IncidentDots points={points} />
+        {mode === "gradient" ? (
+          <GradientLayer points={points} />
+        ) : (
+          <IncidentDots points={points} />
+        )}
         
       </MapContainer>
     </div>

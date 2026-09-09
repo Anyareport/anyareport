@@ -1,7 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Col, Progress, Row, Space, Typography } from 'antd';
-import IncidentHeatmap, { type HeatmapPoint } from '../../components/IncidentHeatmap';
+import { Card, Col, Progress, Row, Segmented, Space, Typography } from 'antd';
+import IncidentHeatmap, {
+  type HeatmapMode,
+  type HeatmapPoint,
+} from '../../components/IncidentHeatmap';
 import { api, type Report } from '../../lib/api';
 import type { FeatureCollection } from 'geojson';
 import barangayData from '../../data/DMM.json';
@@ -41,6 +44,8 @@ function isPointInFeature(point: HeatmapPoint, feature: FeatureCollection['featu
 }
 
 export default function AdminHeatmapPage() {
+  const [heatmapMode, setHeatmapMode] = useState<HeatmapMode>('dots');
+
   const { data: points = [] } = useQuery({
     queryKey: ['admin-heatmap-points'],
     queryFn: () => api.get<HeatmapPoint[]>('/api/reports/heatmap'),
@@ -91,7 +96,17 @@ export default function AdminHeatmapPage() {
           </Paragraph>
         </Card>
         <Card className="soft-card" title="Incident map">
-          <IncidentHeatmap points={points} height={500} />
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            <Segmented
+              value={heatmapMode}
+              onChange={(value) => setHeatmapMode(value as HeatmapMode)}
+              options={[
+                { label: 'Dots', value: 'dots' },
+                { label: 'Gradient', value: 'gradient' },
+              ]}
+            />
+            <IncidentHeatmap points={points} height={500} mode={heatmapMode} />
+          </Space>
         </Card>
       </Col>
       <Col xs={24} xl={8}>
