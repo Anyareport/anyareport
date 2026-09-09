@@ -87,9 +87,12 @@ export default function SubmitReportPage() {
   const classifyMutation = useMutation({
     mutationFn: async () => {
       const values = form.getFieldsValue();
+      const description = values.description || "";
       const formData = new FormData();
-      formData.append("description", values.description || "");
-      if (fileList[0]?.originFileObj) {
+      formData.append("description", description);
+      // Only send the photo when description is too vague to classify on its own
+      const descriptionIsTooShort = description.trim().length < 20;
+      if (descriptionIsTooShort && fileList[0]?.originFileObj) {
         formData.append("photo", fileList[0].originFileObj);
       }
       return api.post<ClassificationResult>("/api/reports/classify", formData);
@@ -137,11 +140,13 @@ export default function SubmitReportPage() {
       if (currentStep === 0) {
         const fieldsToCheck = reportType === "text" ? ["description"] : [];
         await form.validateFields(fieldsToCheck);
-        classifyMutation.mutate();
       }
-      if (currentStep === 1 && (!lat || !lng)) {
-        message.error("Please set a location on the map or use GPS.");
-        return;
+      if (currentStep === 1) {
+        if (!lat || !lng) {
+          message.error("Please set a location on the map or use GPS.");
+          return;
+        }
+        classifyMutation.mutate();
       }
       const next = currentStep + 1;
       setCurrentStep(next);
@@ -152,31 +157,39 @@ export default function SubmitReportPage() {
   const goBack = () => setCurrentStep((s) => Math.max(0, s - 1));
 
   const handleUseGPS = () => {
-  if (!navigator.geolocation) {
-    message.error("GPS is not available on this device.");
-    return;
-  }
+    if (!navigator.geolocation) {
+      message.error("GPS is not available on this device.");
+      return;
+    }
 
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      const point: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-      const isInside = isInsideBarangayBoundary(point, barangayData as FeatureCollection);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const point: [number, number] = [
+          pos.coords.latitude,
+          pos.coords.longitude,
+        ];
+        const isInside = isInsideBarangayBoundary(
+          point,
+          barangayData as FeatureCollection,
+        );
 
-      if (!isInside) {
-        message.error("Your current location is outside the barangay boundary.");
-        return;
-      }
+        if (!isInside) {
+          message.error(
+            "Your current location is outside the barangay boundary.",
+          );
+          return;
+        }
 
-      setLat(pos.coords.latitude);
-      setLng(pos.coords.longitude);
-      message.success("Location detected via GPS.");
-    },
-    () =>
-      message.error(
-        "Could not get your location. Please tap the map instead.",
-      ),
-  );
-};
+        setLat(pos.coords.latitude);
+        setLng(pos.coords.longitude);
+        message.success("Location detected via GPS.");
+      },
+      () =>
+        message.error(
+          "Could not get your location. Please tap the map instead.",
+        ),
+    );
+  };
 
   if (!profile?.emailVerified) {
     return (
