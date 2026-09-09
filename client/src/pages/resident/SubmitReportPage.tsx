@@ -191,6 +191,8 @@ export default function SubmitReportPage() {
     );
   };
 
+  const selectedCategory = Form.useWatch("category", form);
+
   if (!profile?.emailVerified) {
     return (
       <Alert
@@ -201,8 +203,6 @@ export default function SubmitReportPage() {
       />
     );
   }
-
-  const selectedCategory = Form.useWatch("category", form);
   const STEP_LABELS = ["Report Type", "Location", "Classification", "Review"];
 
   return (
