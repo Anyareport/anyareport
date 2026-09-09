@@ -1,8 +1,25 @@
 import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, Card, Col, Divider, Row, Space, Spin, Tag, Timeline, Typography, message } from 'antd';
-import { ArrowLeftOutlined, CheckOutlined, ExclamationCircleOutlined, FlagOutlined } from '@ant-design/icons';
+import {
+  Button,
+  Card,
+  Col,
+  Divider,
+  Row,
+  Space,
+  Spin,
+  Tag,
+  Timeline,
+  Typography,
+  message,
+} from 'antd';
+import {
+  ArrowLeftOutlined,
+  CheckOutlined,
+  ExclamationCircleOutlined,
+  FlagOutlined,
+} from '@ant-design/icons';
 import { api, type Report } from '../../lib/api';
 import StatusTag from '../../components/StatusTag';
 import { StaticMap, RouteMap } from '../../components/MapPicker';
@@ -67,7 +84,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
 
   const canManageStatus = useMemo(
     () => ['secretary', 'kagawad', 'tanod', 'responder'].includes(role || ''),
-    [role],
+    [role]
   );
 
   if (isLoading) {
@@ -86,25 +103,60 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
 
   return (
     <div className="page-shell">
-      <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} style={{ marginBottom: 16 }}>
+      <Button
+        icon={<ArrowLeftOutlined />}
+        onClick={() => navigate(-1)}
+        style={{ marginBottom: 16 }}
+      >
         Back
       </Button>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} xl={16}>
-          <Card className="soft-card" title={report.category} extra={<StatusTag status={report.status} />}>
+          <Card
+            className="soft-card"
+            title={report.category}
+            extra={<StatusTag status={report.status} />}
+          >
             <Space direction="vertical" size={12} style={{ width: '100%' }}>
               <Space wrap>
                 {report.verifiedBy && <Tag color="blue">Verified</Tag>}
-                {report.aiSuggestedCategory && <Tag color="purple">AI: {report.aiSuggestedCategory}</Tag>}
+                {report.aiSuggestedCategory && (
+                  <Tag color="purple">AI: {report.aiSuggestedCategory}</Tag>
+                )}
                 <Tag>{report.committee || 'No committee'}</Tag>
                 <Tag>{getRoleLabel(profile?.role)}</Tag>
               </Space>
 
+              {((report.subcategory && report.subcategory !== 'undefined') || report.severity) && (
+                <Space wrap>
+                  {report.subcategory && report.subcategory !== 'undefined' && (
+                    <Tag>{report.subcategory}</Tag>
+                  )}
+                  {report.severity && (
+                    <Tag
+                      color={
+                        report.severity === 'Critical'
+                          ? 'red'
+                          : report.severity === 'High'
+                            ? 'orange'
+                            : report.severity === 'Medium'
+                              ? 'gold'
+                              : 'default'
+                      }
+                    >
+                      Severity: {report.severity}
+                    </Tag>
+                  )}
+                </Space>
+              )}
+
               <Paragraph>{report.description}</Paragraph>
 
               <Text type="secondary">Submitted: {new Date(report.createdAt).toLocaleString()}</Text>
-              {report.location?.address && <Text type="secondary">Location: {report.location.address}</Text>}
+              {report.location?.address && (
+                <Text type="secondary">Location: {report.location.address}</Text>
+              )}
 
               {variant === 'responder' ? (
                 <Card size="small" style={{ background: '#f7f8fb' }}>
@@ -134,13 +186,26 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
               {canManageStatus && (
                 <>
                   <Text type="secondary">Status controls</Text>
-                  <Button block onClick={() => updateStatus.mutate('en_route')} loading={updateStatus.isPending}>
+                  <Button
+                    block
+                    onClick={() => updateStatus.mutate('en_route')}
+                    loading={updateStatus.isPending}
+                  >
                     Set en route
                   </Button>
-                  <Button block onClick={() => updateStatus.mutate('on_scene')} loading={updateStatus.isPending}>
+                  <Button
+                    block
+                    onClick={() => updateStatus.mutate('on_scene')}
+                    loading={updateStatus.isPending}
+                  >
                     Set on scene
                   </Button>
-                  <Button block type="primary" onClick={() => updateStatus.mutate('resolved')} loading={updateStatus.isPending}>
+                  <Button
+                    block
+                    type="primary"
+                    onClick={() => updateStatus.mutate('resolved')}
+                    loading={updateStatus.isPending}
+                  >
                     Resolve incident
                   </Button>
                 </>

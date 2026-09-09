@@ -25,33 +25,67 @@ export default function ReportDetailPage() {
 
   return (
     <div>
-      <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} style={{ marginBottom: 16 }}>
+      <Button
+        icon={<ArrowLeftOutlined />}
+        onClick={() => navigate(-1)}
+        style={{ marginBottom: 16 }}
+      >
         Back
       </Button>
 
       <Card>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <Title level={4} style={{ margin: 0, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 16,
+          }}
+        >
+          <Title
+            level={4}
+            style={{ margin: 0, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}
+          >
             {report.category}
           </Title>
           <StatusTag status={report.status} />
         </div>
 
-        <Paragraph>{report.description}</Paragraph>
-
-        {report.aiSuggestedCategory && (
-          <Tag color="purple">AI Suggested: {report.aiSuggestedCategory}</Tag>
+        {((report.subcategory && report.subcategory !== 'undefined') || report.severity) && (
+          <div style={{ marginBottom: 12 }}>
+            {report.subcategory && report.subcategory !== 'undefined' && (
+              <Tag>{report.subcategory}</Tag>
+            )}
+            {report.severity && (
+              <Tag
+                color={
+                  report.severity === 'Critical'
+                    ? 'red'
+                    : report.severity === 'High'
+                      ? 'orange'
+                      : report.severity === 'Medium'
+                        ? 'gold'
+                        : 'default'
+                }
+              >
+                Severity: {report.severity}
+              </Tag>
+            )}
+          </div>
         )}
+
+        <Paragraph>{report.description}</Paragraph>
 
         <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
           Submitted: {new Date(report.createdAt).toLocaleString()}
         </Text>
-
         {report.location && (
           <div style={{ marginTop: 16 }}>
             <StaticMap latitude={lat} longitude={lng} />
             {report.location.address && (
-              <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>{report.location.address}</Text>
+              <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
+                {report.location.address}
+              </Text>
             )}
           </div>
         )}
@@ -60,7 +94,16 @@ export default function ReportDetailPage() {
           <div style={{ marginTop: 16 }}>
             <Image.PreviewGroup>
               {report.photos.map((p, i) => (
-                <Image key={i} src={p.startsWith('http') || p.startsWith('data:') ? p : `${import.meta.env.VITE_API_URL || ''}${p}`} width={120} style={{ marginRight: 8 }} />
+                <Image
+                  key={i}
+                  src={
+                    p.startsWith('http') || p.startsWith('data:')
+                      ? p
+                      : `${import.meta.env.VITE_API_URL || ''}${p}`
+                  }
+                  width={120}
+                  style={{ marginRight: 8 }}
+                />
               ))}
             </Image.PreviewGroup>
           </div>
