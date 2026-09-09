@@ -80,7 +80,6 @@ export default function IncidentList({
       dataIndex: 'severity',
       key: 'severity',
       sorter: compareSeverity,
-      defaultSortOrder: 'ascend',
       sortDirections: ['ascend', 'descend'],
       render: (s: string | null) => <SeverityTag severity={s} />,
     },
@@ -101,7 +100,6 @@ export default function IncidentList({
       key: 'createdAt',
       sorter: compareCreatedAt,
       sortDirections: ['descend', 'ascend'],
-      defaultSortOrder: 'descend',
       render: (d: string) => new Date(d).toLocaleString(),
     },
     {
