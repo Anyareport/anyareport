@@ -5,7 +5,7 @@ const reportSchema = new mongoose.Schema(
     submittedBy: { type: String, required: true, index: true },
     category: { type: String, required: true },
     committee: { type: String, default: null },
-    description: { type: String, required: true },
+    description: { type: String, default: '' },
     photos: [{ type: String }],
     location: {
       type: { type: String, enum: ['Point'], default: 'Point' },

@@ -56,27 +56,34 @@ export async function createReport(req, res) {
     }
 
     const { category, subcategory, description, latitude, longitude, address, severity } = req.body;
+    const trimmedDescription = (description || '').trim();
+    const hasPhoto = Array.isArray(req.files) && req.files.length > 0;
 
-    if (!category || !description || !latitude || !longitude) {
-      return res.status(400).json({ error: 'Category, description, and location are required' });
+    if (!category || !latitude || !longitude) {
+      return res.status(400).json({ error: 'Category and location are required' });
+    }
+    if (!hasPhoto && trimmedDescription.length < 10) {
+      return res
+        .status(400)
+        .json({ error: 'Provide a description (min. 10 characters) or attach a photo' });
     }
 
     const committee = await getCommitteeForCategory(category);
     const uploadedPhotos = await Promise.all(
-      (req.files || []).map((file) => uploadImage(file.buffer, file.mimetype)),
+      (req.files || []).map((file) => uploadImage(file.buffer, file.mimetype))
     );
     const photos = uploadedPhotos.map((photo) => photo.secure_url);
 
     let aiSuggestedCategory = null;
     if (req.files?.length > 0) {
       const result = await classifyReport(
-        description,
+        trimmedDescription,
         req.files[0].buffer,
-        req.files[0].mimetype,
+        req.files[0].mimetype
       );
       aiSuggestedCategory = result.category;
     } else {
-      const result = await classifyReport(description, null, null);
+      const result = await classifyReport(trimmedDescription, null, null);
       aiSuggestedCategory = result.category;
     }
 
@@ -86,7 +93,7 @@ export async function createReport(req, res) {
       subcategory: subcategory || null,
       severity: severity || null,
       committee,
-      description,
+      description: trimmedDescription,
       photos,
       location: {
         type: 'Point',
