@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { api, type Report } from '../../lib/api';
 import IncidentList from '../../components/IncidentList';
 import { formatStatus } from '../../components/StatusTag';
+import { compareIncidentPriority } from '../../lib/sortUtils';
 
 const { Title, Paragraph } = Typography;
 
@@ -15,7 +16,9 @@ export default function AdminIncidentsPage() {
     refetchInterval: 30000,
   });
 
-  const filtered = useMemo(() => reports, [reports]);
+  const filtered = useMemo(() => {
+    return [...reports].sort(compareIncidentPriority);
+  }, [reports]);
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>

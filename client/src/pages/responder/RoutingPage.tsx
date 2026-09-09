@@ -1,7 +1,9 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, Col, Row, Space, Typography } from 'antd';
 import { api, type Report } from '../../lib/api';
 import { RouteMap } from '../../components/MapPicker';
+import { compareIncidentPriority } from '../../lib/sortUtils';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -12,7 +14,12 @@ export default function ResponderRoutingPage() {
     refetchInterval: 30000,
   });
 
-  const incident = reports[0];
+  const sortedReports = useMemo(
+    () => [...reports].sort(compareIncidentPriority),
+    [reports],
+  );
+
+  const incident = sortedReports[0];
   const [lng, lat] = incident?.location?.coordinates || [121.3708, 16.4833];
 
   return (
@@ -33,7 +40,7 @@ export default function ResponderRoutingPage() {
         <Col xs={24} xl={8}>
           <Card className="soft-card" title="Dispatch queue">
             <Space direction="vertical" size={12} style={{ width: '100%' }}>
-              {reports.slice(0, 6).map((report) => (
+              {sortedReports.slice(0, 6).map((report) => (
                 <Card size="small" key={report._id}>
                   <Text strong>{report.category}</Text>
                   <br />
