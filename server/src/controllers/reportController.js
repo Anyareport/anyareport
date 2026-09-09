@@ -130,7 +130,20 @@ export async function getReports(req, res) {
     if (req.query.status) query.status = req.query.status;
 
     const reports = await Report.find(query).sort({ createdAt: -1 }).limit(200);
-    res.json(reports);
+
+    // Resolve submitter names in bulk
+    const uids = [...new Set(reports.map((r) => r.submittedBy))];
+    const users = await User.find({ firebaseUid: { $in: uids } })
+      .select('firebaseUid name')
+      .lean();
+    const nameMap = Object.fromEntries(users.map((u) => [u.firebaseUid, u.name]));
+
+    const result = reports.map((r) => ({
+      ...r.toObject(),
+      submitterName: nameMap[r.submittedBy] || null,
+    }));
+
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -149,7 +162,10 @@ export async function getReportById(req, res) {
       return res.status(403).json({ error: 'Access denied — committee scope' });
     }
 
-    res.json(report);
+    const submitter = await User.findOne({ firebaseUid: report.submittedBy }).select('name').lean();
+    const result = { ...report.toObject(), submitterName: submitter?.name || null };
+
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

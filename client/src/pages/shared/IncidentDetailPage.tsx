@@ -154,6 +154,11 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
               <Paragraph>{report.description}</Paragraph>
 
               <Text type="secondary">Submitted: {new Date(report.createdAt).toLocaleString()}</Text>
+              {report.submitterName && (
+                <Text type="secondary">
+                  Reported by: <Text strong>{report.submitterName}</Text>
+                </Text>
+              )}
               {report.location?.address && (
                 <Text type="secondary">Location: {report.location.address}</Text>
               )}

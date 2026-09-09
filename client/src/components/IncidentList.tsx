@@ -13,7 +13,12 @@ interface IncidentListProps {
   basePath?: string;
 }
 
-export default function IncidentList({ reports, loading, onRowClick, basePath = '/admin/incidents' }: IncidentListProps) {
+export default function IncidentList({
+  reports,
+  loading,
+  onRowClick,
+  basePath = '/admin/incidents',
+}: IncidentListProps) {
   const screens = useBreakpoint();
   const navigate = useNavigate();
   const isMobile = !screens.md;
@@ -36,8 +41,14 @@ export default function IncidentList({ reports, loading, onRowClick, basePath = 
                 </Text>
               </div>
               <Text strong>{r.category}</Text>
+              {r.submitterName && (
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  By {r.submitterName}
+                </Text>
+              )}
               <Text type="secondary" ellipsis>
-                {r.location?.address || `${r.location?.coordinates?.[1]?.toFixed(4)}, ${r.location?.coordinates?.[0]?.toFixed(4)}`}
+                {r.location?.address ||
+                  `${r.location?.coordinates?.[1]?.toFixed(4)}, ${r.location?.coordinates?.[0]?.toFixed(4)}`}
               </Text>
               <Text ellipsis={{ tooltip: r.description }}>{r.description}</Text>
             </Space>
@@ -48,8 +59,18 @@ export default function IncidentList({ reports, loading, onRowClick, basePath = 
   }
 
   const columns = [
-    { title: 'Status', dataIndex: 'status', key: 'status', render: (s: string) => <StatusTag status={s} /> },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (s: string) => <StatusTag status={s} />,
+    },
     { title: 'Category', dataIndex: 'category', key: 'category' },
+    {
+      title: 'Submitted By',
+      key: 'submitterName',
+      render: (_: unknown, r: Report) => r.submitterName || '—',
+    },
     {
       title: 'Location',
       key: 'location',
