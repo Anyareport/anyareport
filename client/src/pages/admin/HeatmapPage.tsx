@@ -9,7 +9,7 @@ import { api, type Report } from '../../lib/api';
 import type { FeatureCollection } from 'geojson';
 import barangayData from '../../data/DMM.json';
 
-const { Title, Paragraph, Text } = Typography;
+const { Text } = Typography;
 
 function isPointInRing(lat: number, lng: number, ring: number[][]) {
   let inside = false;
