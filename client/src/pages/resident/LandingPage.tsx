@@ -9,6 +9,8 @@ export default function ResidentLanding() {
   const navigate = useNavigate();
   const { profile } = useAuth();
 
+  const isBlocked = profile?.status === "suspended" || !profile?.emailVerified;
+
   return (
     <div>
       <Card
@@ -38,8 +40,11 @@ export default function ResidentLanding() {
           type="primary"
           size="large"
           icon={<FileAddOutlined />}
-          onClick={() => navigate("/resident/submit")}
-          disabled={profile?.status === "suspended"}
+          onClick={() => !isBlocked && navigate("/resident/submit")}
+          style={{
+            opacity: isBlocked ? 0.5 : 1,
+            cursor: isBlocked ? "not-allowed" : "pointer",
+          }}
         >
           Submit Report
         </Button>
