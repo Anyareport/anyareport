@@ -94,7 +94,16 @@ export default function ResidentShell() {
 
       <Layout>
         {screens.md && (
-          <Layout.Sider width={220} style={{ background: "#fff" }}>
+          <Layout.Sider
+            width={220}
+            style={{
+              background: "#fff",
+              position: "sticky",
+              top: 64,
+              height: "calc(100vh - 64px)",
+              overflow: "auto",
+            }}
+          >
             {menu}
           </Layout.Sider>
         )}

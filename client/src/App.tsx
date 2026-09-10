@@ -21,7 +21,7 @@ import ResponderHistoryPage from './pages/responder/HistoryPage';
 import IncidentDetailPage from './pages/shared/IncidentDetailPage';
 import AdminDashboardPage from './pages/admin/DashboardPage';
 import AdminIncidentsPage from './pages/admin/IncidentsPage';
-import AdminMapPage from './pages/admin/MapPage';
+// import AdminMapPage from './pages/admin/MapPage';
 import AdminHeatmapPage from './pages/admin/HeatmapPage';
 import AdminAnalyticsPage from './pages/admin/AnalyticsPage';
 import AdminAuditLogPage from './pages/admin/AuditLogPage';
@@ -89,7 +89,7 @@ function App() {
           <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/admin/incidents" element={<AdminIncidentsPage />} />
           <Route path="/admin/incidents/:id" element={<IncidentDetailPage variant="admin" />} />
-          <Route path="/admin/map" element={<AdminMapPage />} />
+          {/* <Route path="/admin/map" element={<AdminMapPage />} /> */}
           <Route path="/admin/heatmap" element={<AdminHeatmapPage />} />
           <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
           <Route path="/admin/audit" element={<AdminAuditLogPage />} />

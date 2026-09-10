@@ -1,12 +1,15 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Col, Progress, Row, Space, Typography } from 'antd';
-import IncidentHeatmap, { type HeatmapPoint } from '../../components/IncidentHeatmap';
+import { Card, Col, Progress, Row, Segmented, Select, Space, Typography } from 'antd';
+import IncidentHeatmap, {
+  type HeatmapMode,
+  type HeatmapPoint,
+} from '../../components/IncidentHeatmap';
 import { api, type Report } from '../../lib/api';
 import type { FeatureCollection } from 'geojson';
 import barangayData from '../../data/DMM.json';
 
-const { Title, Paragraph, Text } = Typography;
+const { Text } = Typography;
 
 function isPointInRing(lat: number, lng: number, ring: number[][]) {
   let inside = false;
@@ -40,7 +43,15 @@ function isPointInFeature(point: HeatmapPoint, feature: FeatureCollection['featu
   return false;
 }
 
+function getPurokNumber(name: string) {
+  return Number(name.match(/purok\s*(\d+)/i)?.[1] || Number.MAX_SAFE_INTEGER);
+}
+
 export default function AdminHeatmapPage() {
+  const [heatmapMode, setHeatmapMode] = useState<HeatmapMode>('dots');
+  const [selectedPurok, setSelectedPurok] = useState<string>();
+  const [selectedCategory, setSelectedCategory] = useState<string>();
+
   const { data: points = [] } = useQuery({
     queryKey: ['admin-heatmap-points'],
     queryFn: () => api.get<HeatmapPoint[]>('/api/reports/heatmap'),
@@ -53,20 +64,42 @@ export default function AdminHeatmapPage() {
     refetchInterval: 30000,
   });
 
+  const purokFeatures = useMemo(() => {
+    const data = barangayData as FeatureCollection;
+    return data.features
+      .filter((feature) => feature.properties?.name?.toLowerCase().startsWith('purok'))
+      .sort((left, right) =>
+        getPurokNumber(left.properties?.name || '') -
+          getPurokNumber(right.properties?.name || '') ||
+        (left.properties?.name || '').localeCompare(right.properties?.name || '', undefined, {
+          numeric: true,
+        }),
+      );
+  }, []);
+
+  const filteredPoints = useMemo(() => {
+    const selectedFeature = purokFeatures.find(
+      (feature) => feature.properties?.name === selectedPurok,
+    );
+
+    return points.filter((point) => {
+      const matchesCategory = !selectedCategory || point.category === selectedCategory;
+      const matchesPurok = !selectedFeature || isPointInFeature(point, selectedFeature);
+      return matchesCategory && matchesPurok;
+    });
+  }, [points, purokFeatures, selectedCategory, selectedPurok]);
+
   const counts = useMemo(() => {
     const map = new Map<string, number>();
-    reports.forEach((report) => map.set(report.category, (map.get(report.category) || 0) + 1));
+    filteredPoints.forEach((point) => {
+      if (point.category) map.set(point.category, (map.get(point.category) || 0) + 1);
+    });
     return Array.from(map.entries()).sort((left, right) => right[1] - left[1]);
-  }, [reports]);
+  }, [filteredPoints]);
 
   const top = counts[0]?.[1] || 1;
 
   const purokCounts = useMemo(() => {
-    const data = barangayData as FeatureCollection;
-    const purokFeatures = data.features.filter((feature) =>
-      feature.properties?.name?.toLowerCase().startsWith('purok')
-    );
-
     return purokFeatures
       .map((feature) => {
         const name = feature.properties?.name || 'Unnamed purok';
@@ -75,23 +108,56 @@ export default function AdminHeatmapPage() {
       })
       .sort(
         (left, right) =>
-          right[1] - left[1] || left[0].localeCompare(right[0], undefined, { numeric: true })
+          getPurokNumber(left[0]) - getPurokNumber(right[0]) ||
+          left[0].localeCompare(right[0], undefined, { numeric: true })
       );
-  }, [points]);
+  }, [points, purokFeatures]);
+
+  const categoryOptions = useMemo(
+    () => Array.from(new Set(reports.map((report) => report.category))).sort(),
+    [reports],
+  );
 
   return (
     <Row gutter={[16, 16]}>
       <Col xs={24} xl={16}>
-        <Card className="soft-card page-hero" style={{ marginBottom: 16 }}>
-          <Title level={2} style={{ color: '#fff', marginTop: 0 }}>
-            Heatmap
-          </Title>
-          <Paragraph style={{ color: 'rgba(255,255,255,0.82)' }}>
-            Category concentration visualized as a responsive intensity map.
-          </Paragraph>
-        </Card>
+        
         <Card className="soft-card" title="Incident map">
-          <IncidentHeatmap points={points} height={500} />
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            <Space wrap>
+              <Select
+                allowClear
+                placeholder="Filter by purok"
+                value={selectedPurok}
+                onChange={setSelectedPurok}
+                options={purokFeatures.map((feature) => ({
+                  label: feature.properties?.name,
+                  value: feature.properties?.name,
+                }))}
+                style={{ minWidth: 180 }}
+              />
+              <Select
+                allowClear
+                placeholder="Filter by category"
+                value={selectedCategory}
+                onChange={setSelectedCategory}
+                options={categoryOptions.map((category) => ({
+                  label: category,
+                  value: category,
+                }))}
+                style={{ minWidth: 220 }}
+              />
+              <Segmented
+                value={heatmapMode}
+                onChange={(value) => setHeatmapMode(value as HeatmapMode)}
+                options={[
+                  { label: 'Dots', value: 'dots' },
+                  { label: 'Gradient', value: 'gradient' },
+                ]}
+              />
+            </Space>
+            <IncidentHeatmap points={filteredPoints} height={500} mode={heatmapMode} />
+          </Space>
         </Card>
       </Col>
       <Col xs={24} xl={8}>

@@ -2,7 +2,6 @@ import { Layout, Menu, Button, Drawer, Grid, Badge } from 'antd';
 import {
   DashboardOutlined,
   UnorderedListOutlined,
-  EnvironmentOutlined,
   HeatMapOutlined,
   BarChartOutlined,
   AuditOutlined,
@@ -52,7 +51,6 @@ export default function AdminShell() {
     const items = [
       { key: '/admin', icon: <DashboardOutlined />, label: 'Dashboard' },
       { key: '/admin/incidents', icon: <UnorderedListOutlined />, label: 'Incidents' },
-      { key: '/admin/map', icon: <EnvironmentOutlined />, label: 'Map View' },
       { key: '/admin/heatmap', icon: <HeatMapOutlined />, label: 'Safety Heatmap' },
       { key: '/admin/analytics', icon: <BarChartOutlined />, label: 'Analytics' },
       {
@@ -116,7 +114,18 @@ export default function AdminShell() {
   return (
     <Layout style={{ minHeight: '100vh' }}>
       {screens.md ? (
-        <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} width={240}>
+        <Sider
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+          width={240}
+          style={{
+            position: 'sticky',
+            top: 0,
+            height: '100vh',
+            overflow: 'auto',
+          }}
+        >
           <div style={{ padding: '16px 12px', textAlign: 'center' }}>
             <Logo light size="sm" showIcon={!collapsed} />
           </div>
