@@ -65,6 +65,13 @@ app.use(cors({ origin: corsOrigin, credentials: true }));
 app.use(morgan("dev"));
 app.use(express.json());
 
+app.use((req, _res, next) => {
+  if (req.method !== "OPTIONS" && req.headers["user-agent"]) {
+    console.log(`[UA-DEBUG] ${req.method} ${req.originalUrl} | IP=${req.ip} | UA=${req.headers["user-agent"]}`);
+  }
+  next();
+});
+
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
