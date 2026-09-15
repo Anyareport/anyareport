@@ -385,9 +385,10 @@ export async function getHeatmapData(req, res) {
       match.committee = req.userCommittee;
     }
 
-    const points = await Report.find(match).select('location category status createdAt');
+    const points = await Report.find(match).select('_id location category status createdAt');
     res.json(
       points.map((p) => ({
+        id: p._id.toString(),
         lat: p.location.coordinates[1],
         lng: p.location.coordinates[0],
         category: p.category,

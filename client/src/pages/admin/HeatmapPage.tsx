@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { Card, Col, Progress, Row, Segmented, Select, Space, Typography } from 'antd';
 import IncidentHeatmap, {
   type HeatmapMode,
@@ -48,6 +49,7 @@ function getPurokNumber(name: string) {
 }
 
 export default function AdminHeatmapPage() {
+  const navigate = useNavigate();
   const [heatmapMode, setHeatmapMode] = useState<HeatmapMode>('dots');
   const [selectedPurok, setSelectedPurok] = useState<string>();
   const [selectedCategory, setSelectedCategory] = useState<string>();
@@ -156,7 +158,12 @@ export default function AdminHeatmapPage() {
                 ]}
               />
             </Space>
-            <IncidentHeatmap points={filteredPoints} height={500} mode={heatmapMode} />
+            <IncidentHeatmap
+              points={filteredPoints}
+              height={500}
+              mode={heatmapMode}
+              onPointClick={(point) => navigate(`/admin/incidents/${point.id}`)}
+            />
           </Space>
         </Card>
       </Col>

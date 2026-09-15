@@ -15,6 +15,7 @@ import type { PathOptions } from "leaflet";
 import barangayData from "../data/DMM.json";
 
 export interface HeatmapPoint {
+  id: string;
   lat: number;
   lng: number;
   category?: string;
@@ -27,6 +28,7 @@ interface IncidentHeatmapProps {
   points: HeatmapPoint[];
   height?: number;
   mode?: HeatmapMode;
+  onPointClick?: (point: HeatmapPoint) => void;
 }
 
 function getBoundaryStyle(feature?: Feature<Geometry, any>): PathOptions {
@@ -38,7 +40,13 @@ function getBoundaryStyle(feature?: Feature<Geometry, any>): PathOptions {
     : { color: "#ec4899", weight: 1, fillOpacity: 0.12, fillColor: "#ec4899" };
 }
 
-function IncidentDots({ points }: { points: HeatmapPoint[] }) {
+function IncidentDots({
+  points,
+  onPointClick,
+}: {
+  points: HeatmapPoint[];
+  onPointClick?: (point: HeatmapPoint) => void;
+}) {
   return (
     <>
       {points
@@ -54,6 +62,7 @@ function IncidentDots({ points }: { points: HeatmapPoint[] }) {
               fillColor: "#ef4444",
               fillOpacity: 0.85,
             }}
+            eventHandlers={onPointClick ? { click: () => onPointClick(point) } : undefined}
           >
             <Tooltip>
               {point.category || "Incident"}
@@ -99,6 +108,7 @@ export default function IncidentHeatmap({
   points,
   height = 460,
   mode = "dots",
+  onPointClick,
 }: IncidentHeatmapProps) {
   const center: [number, number] = [16.482, 121.1557];
 
@@ -121,7 +131,7 @@ export default function IncidentHeatmap({
         {mode === "gradient" ? (
           <GradientLayer points={points} />
         ) : (
-          <IncidentDots points={points} />
+          <IncidentDots points={points} onPointClick={onPointClick} />
         )}
         
       </MapContainer>

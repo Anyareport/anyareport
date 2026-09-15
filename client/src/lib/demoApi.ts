@@ -75,6 +75,7 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
 
   if (pathname === '/api/reports/heatmap' && method === 'GET') {
     return db.reports.map((report) => ({
+      id: report._id,
       lat: report.location.coordinates[1],
       lng: report.location.coordinates[0],
       category: report.category,
