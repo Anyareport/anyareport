@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge, Button, Card, Empty, List, Space, Typography, message } from 'antd';
 import { BellOutlined, CheckOutlined } from '@ant-design/icons';
 import { api, type Notification } from '../../lib/api';
+import { getSocket } from '../../lib/socket';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -16,6 +18,18 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
     queryFn: () => api.get<Notification[]>('/api/notifications'),
     refetchInterval: 30000,
   });
+
+  useEffect(() => {
+    const socket = getSocket();
+    const handleNotification = () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    };
+
+    socket.on('notification', handleNotification);
+    return () => {
+      socket.off('notification', handleNotification);
+    };
+  }, [queryClient]);
 
   const markRead = useMutation({
     mutationFn: (id: string) => api.patch(`/api/notifications/${id}/read`, {}),

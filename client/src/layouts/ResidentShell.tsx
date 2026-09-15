@@ -1,4 +1,4 @@
-import { Layout, Menu, Button, Drawer, Grid } from "antd";
+import { Layout, Menu, Button, Drawer, Grid, Badge } from "antd";
 import {
   HomeOutlined,
   FileAddOutlined,
@@ -10,32 +10,14 @@ import {
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Logo from "../components/Logo";
 import { logout } from "../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
+import { api, type Notification } from "../lib/api";
 
 const { Header, Content, Footer } = Layout;
 const { useBreakpoint } = Grid;
-
-const menuItems = [
-  { key: "/resident", icon: <HomeOutlined />, label: "Home" },
-  {
-    key: "/resident/submit",
-    icon: <FileAddOutlined />,
-    label: "Report Incident",
-  },
-  {
-    key: "/resident/reports",
-    icon: <UnorderedListOutlined />,
-    label: "My Reports",
-  },
-  {
-    key: "/resident/notifications",
-    icon: <BellOutlined />,
-    label: "Notifications",
-  },
-  { key: "/resident/profile", icon: <UserOutlined />, label: "Profile" },
-];
 
 export default function ResidentShell() {
   const navigate = useNavigate();
@@ -43,6 +25,24 @@ export default function ResidentShell() {
   const screens = useBreakpoint();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { profile } = useAuth();
+  const { data: notifications = [] } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => api.get<Notification[]>("/api/notifications"),
+    staleTime: 30_000,
+  });
+  const unreadCount = notifications.filter((notification) => !notification.read).length;
+
+  const menuItems = [
+    { key: "/resident", icon: <HomeOutlined />, label: "Home" },
+    { key: "/resident/submit", icon: <FileAddOutlined />, label: "Report Incident" },
+    { key: "/resident/reports", icon: <UnorderedListOutlined />, label: "My Reports" },
+    {
+      key: "/resident/notifications",
+      icon: <BellOutlined />,
+      label: <Badge count={unreadCount} offset={[8, 0]}>Notifications</Badge>,
+    },
+    { key: "/resident/profile", icon: <UserOutlined />, label: "Profile" },
+  ];
 
   const handleLogout = async () => {
     await logout();

@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { auth } from '../lib/firebase';
-import { api, type UserProfile } from '../lib/api';
+import { api, type Notification, type UserProfile } from '../lib/api';
 import { getSocket, disconnectSocket } from '../lib/socket';
 
 interface AuthContextType {
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,6 +57,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refreshProfile]);
 
   const role = profile?.role || null;
+
+  useEffect(() => {
+    if (!role) return;
+
+    const socket = getSocket(role);
+    const handleNotification = (notification: Notification) => {
+      queryClient.setQueryData<Notification[]>(['notifications'], (current = []) => {
+        if (current.some((item) => item._id === notification._id)) return current;
+        return [notification, ...current];
+      });
+    };
+
+    socket.on('notification', handleNotification);
+    return () => {
+      socket.off('notification', handleNotification);
+    };
+  }, [queryClient, role]);
 
   return (
     <AuthContext.Provider value={{ firebaseUser, profile, loading, role, refreshProfile }}>

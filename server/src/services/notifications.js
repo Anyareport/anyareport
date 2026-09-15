@@ -37,7 +37,7 @@ export async function notifyOnVerification(report) {
 }
 
 export async function notifyOnStatusUpdate(report, status, updatedBy) {
-  const user = await User.findOne({ firebaseUid: report.submittedBy, status: 'active' });
+  const user = await User.findOne({ firebaseUid: report.submittedBy });
   if (!user) return null;
 
   const notification = await Notification.create({
