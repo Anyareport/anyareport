@@ -3,7 +3,7 @@ import User from '../models/User.js';
 import AuditLog from '../models/AuditLog.js';
 import Category from '../models/Category.js';
 import { classifyReport } from '../services/gemini.js';
-import { notifyOnVerification } from '../services/notifications.js';
+import { notifyOnStatusUpdate, notifyOnVerification } from '../services/notifications.js';
 import { antiAbuseConfig } from '../config/antiAbuse.js';
 import { uploadImage } from '../services/cloudinary.js';
 import {
@@ -199,13 +199,12 @@ export async function verifyReport(req, res) {
 
     report.status = 'verified';
     report.verifiedBy = req.firebaseUser.uid;
-    report.statusHistory.push({
-      status: 'verified',
-      updatedBy: await resolveActorName(req.firebaseUser.uid),
-    });
+    const updatedBy = await resolveActorName(req.firebaseUser.uid);
+    report.statusHistory.push({ status: 'verified', updatedBy });
     await report.save();
 
     await notifyOnVerification(report);
+    await notifyOnStatusUpdate(report, 'verified', updatedBy);
     await logAudit('report_verified', req, report._id);
 
     res.json(report);
@@ -224,10 +223,8 @@ export async function flagReport(req, res) {
     if (!report) return res.status(404).json({ error: 'Report not found' });
 
     report.status = 'flagged';
-    report.statusHistory.push({
-      status: 'flagged',
-      updatedBy: await resolveActorName(req.firebaseUser.uid),
-    });
+    const updatedBy = await resolveActorName(req.firebaseUser.uid);
+    report.statusHistory.push({ status: 'flagged', updatedBy });
     await report.save();
 
     const submitter = await User.findOne({ firebaseUid: report.submittedBy });
@@ -238,6 +235,8 @@ export async function flagReport(req, res) {
       }
       await submitter.save();
     }
+
+    await notifyOnStatusUpdate(report, 'flagged', updatedBy);
 
     await logAudit('report_flagged', req, report._id, {
       submitterUid: report.submittedBy,
@@ -275,13 +274,15 @@ export async function updateReportStatus(req, res) {
       return res.status(403).json({ error: 'Oversight only — cannot directly update status' });
     }
 
+    const updatedBy = await resolveActorName(req.firebaseUser.uid);
+    const statusChanged = report.status !== status;
     report.status = status;
-    report.statusHistory.push({
-      status,
-      updatedBy: await resolveActorName(req.firebaseUser.uid),
-    });
+    report.statusHistory.push({ status, updatedBy });
     await report.save();
 
+    if (statusChanged) {
+      await notifyOnStatusUpdate(report, status, updatedBy);
+    }
     await logAudit('status_updated', req, report._id, { status });
     res.json(report);
   } catch (err) {
@@ -295,15 +296,19 @@ export async function acknowledgeReport(req, res) {
     if (!report) return res.status(404).json({ error: 'Report not found' });
 
     report.acknowledgedBy = req.firebaseUser.uid;
+    let statusChanged = false;
+    let updatedBy;
     if (report.status === 'verified') {
       report.status = 'en_route';
-      report.statusHistory.push({
-        status: 'en_route',
-        updatedBy: await resolveActorName(req.firebaseUser.uid),
-      });
+      updatedBy = await resolveActorName(req.firebaseUser.uid);
+      report.statusHistory.push({ status: 'en_route', updatedBy });
+      statusChanged = true;
     }
     await report.save();
 
+    if (statusChanged) {
+      await notifyOnStatusUpdate(report, 'en_route', updatedBy);
+    }
     await logAudit('report_acknowledged', req, report._id);
     res.json(report);
   } catch (err) {

@@ -36,6 +36,25 @@ export async function notifyOnVerification(report) {
   return notifications;
 }
 
+export async function notifyOnStatusUpdate(report, status, updatedBy) {
+  const user = await User.findOne({ firebaseUid: report.submittedBy, status: 'active' });
+  if (!user) return null;
+
+  const notification = await Notification.create({
+    recipientUid: user.firebaseUid,
+    recipientRole: user.role,
+    reportId: report._id,
+    type: 'report_status_updated',
+    message: `Your report status was updated to ${status.replace(/_/g, ' ')} by ${updatedBy}.`,
+  });
+
+  if (ioInstance) {
+    ioInstance.to(`role:${user.role}`).emit('notification', notification);
+  }
+
+  return notification;
+}
+
 export async function getNotificationsForUser(firebaseUid) {
   return Notification.find({ recipientUid: firebaseUid }).sort({ createdAt: -1 }).limit(50);
 }
