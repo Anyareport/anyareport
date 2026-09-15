@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Form, Input, Button, Card, Typography, message, Divider, Alert } from 'antd';
 import { GoogleOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
-import { registerWithEmail, loginWithGoogle } from '../../lib/firebase';
+import { getGoogleAuthErrorMessage, registerWithEmail, loginWithGoogle } from '../../lib/firebase';
 import { api } from '../../lib/api';
-import { useAuth } from '../../contexts/AuthContext';
+import { getRedirectPath, useAuth } from '../../contexts/AuthContext';
 import Logo from '../../components/Logo';
 
 const { Title, Text } = Typography;
@@ -44,8 +44,19 @@ async function getCaptchaToken(): Promise<string | null> {
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const { refreshProfile } = useAuth();
+  const { firebaseUser, profile, refreshProfile } = useAuth();
+  const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const completingProfile = Boolean(firebaseUser && !profile);
+
+  useEffect(() => {
+    if (completingProfile) {
+      form.setFieldsValue({
+        name: firebaseUser?.displayName || '',
+        email: firebaseUser?.email || '',
+      });
+    }
+  }, [completingProfile, firebaseUser, form]);
 
   const handleRegister = async (values: {
     name: string;
@@ -56,14 +67,17 @@ export default function RegisterPage() {
   }) => {
     setLoading(true);
     try {
-      await registerWithEmail(values.email, values.password);
+      if (!completingProfile) {
+        await registerWithEmail(values.email, values.password);
+      }
       const captchaToken = await getCaptchaToken();
       await api.post('/api/auth/register', {
         ...values,
+        email: completingProfile ? firebaseUser?.email : values.email,
         captchaToken,
       });
       await refreshProfile();
-      message.success('Account created! Please verify your email.');
+      message.success(completingProfile ? 'Profile completed.' : 'Account created! Please verify your email.');
       navigate('/resident');
     } catch (err: unknown) {
       message.error(err instanceof Error ? err.message : 'Registration failed');
@@ -75,11 +89,21 @@ export default function RegisterPage() {
   const handleGoogle = async () => {
     setLoading(true);
     try {
-      await loginWithGoogle();
-      message.info('Please complete your profile with phone number.');
-      navigate('/resident/profile');
+      const user = await loginWithGoogle();
+      try {
+        const existingProfile = await api.get<{ role: string }>('/api/auth/profile');
+        await refreshProfile();
+        navigate(getRedirectPath(existingProfile.role));
+      } catch (err: unknown) {
+        if (err instanceof Error && err.message === 'Profile not found') {
+          form.setFieldsValue({ name: user.displayName || '', email: user.email || '' });
+          message.info('Complete your profile to finish Google sign-up.');
+          return;
+        }
+        throw err;
+      }
     } catch (err: unknown) {
-      message.error(err instanceof Error ? err.message : 'Google sign-in failed');
+      message.error(getGoogleAuthErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -102,16 +126,18 @@ export default function RegisterPage() {
           showIcon
         />
 
-        <Form layout="vertical" onFinish={handleRegister}>
+        <Form form={form} layout="vertical" onFinish={handleRegister}>
           <Form.Item name="name" label="Full Name" rules={[{ required: true }]}>
             <Input size="large" />
           </Form.Item>
           <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
-            <Input size="large" />
+            <Input size="large" disabled={completingProfile} />
           </Form.Item>
-          <Form.Item name="password" label="Password" rules={[{ required: true, min: 6 }]}>
-            <Input.Password size="large" />
-          </Form.Item>
+          {!completingProfile && (
+            <Form.Item name="password" label="Password" rules={[{ required: true, min: 6 }]}>
+              <Input.Password size="large" />
+            </Form.Item>
+          )}
           <Form.Item name="phone" label="Phone Number" rules={[{ required: true, pattern: /^09\d{9}$/, message: 'Enter valid PH mobile (09XXXXXXXXX)' }]}>
             <Input size="large" placeholder="09XXXXXXXXX" />
           </Form.Item>
@@ -125,11 +151,13 @@ export default function RegisterPage() {
           </Form.Item>
         </Form>
 
-        <Divider>or</Divider>
+        {!completingProfile && <Divider>or</Divider>}
 
-        <Button icon={<GoogleOutlined />} block size="large" onClick={handleGoogle} loading={loading}>
-          Sign up with Google
-        </Button>
+        {!completingProfile && (
+          <Button icon={<GoogleOutlined />} block size="large" onClick={handleGoogle} loading={loading}>
+            Sign up with Google
+          </Button>
+        )}
 
         <div style={{ textAlign: 'center', marginTop: 16 }}>
           <Text type="secondary">Already have an account? </Text>

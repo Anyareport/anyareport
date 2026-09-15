@@ -2,7 +2,11 @@ import { useState } from "react";
 import { Form, Input, Button, Card, Typography, message, Divider } from "antd";
 import { GoogleOutlined } from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
-import { loginWithEmail, loginWithGoogle } from "../../lib/firebase";
+import {
+  getGoogleAuthErrorMessage,
+  loginWithEmail,
+  loginWithGoogle,
+} from "../../lib/firebase";
 import { api } from "../../lib/api";
 import { useAuth, getRedirectPath } from "../../contexts/AuthContext";
 import Logo from "../../components/Logo";
@@ -33,14 +37,19 @@ export default function LoginPage() {
   const handleGoogle = async () => {
     setLoading(true);
     try {
-      await loginWithGoogle();
-      await refreshProfile();
+      const user = await loginWithGoogle();
+      if (!user) return;
+      await api.post("/api/auth/sync-claims");
       const profile = await api.get<{ role: string }>("/api/auth/profile");
+      await refreshProfile();
       navigate(getRedirectPath(profile.role));
     } catch (err: unknown) {
-      message.error(
-        err instanceof Error ? err.message : "Google sign-in failed",
-      );
+      if (err instanceof Error && err.message === "Profile not found") {
+        message.info("Please complete your profile to finish Google sign-in.");
+        navigate("/register", { state: { completeGoogleProfile: true } });
+        return;
+      }
+      message.error(getGoogleAuthErrorMessage(err));
     } finally {
       setLoading(false);
     }

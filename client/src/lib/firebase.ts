@@ -57,6 +57,24 @@ export async function loginWithGoogle() {
   }
 }
 
+export function getGoogleAuthErrorMessage(err: unknown): string {
+  const code = (err as { code?: string })?.code;
+  switch (code) {
+    case 'auth/popup-closed-by-user':
+      return 'Google sign-in was cancelled.';
+    case 'auth/popup-blocked':
+      return 'Your browser blocked the Google sign-in popup. Allow popups and try again.';
+    case 'auth/unauthorized-domain':
+      return 'This site is not authorized for Google sign-in. Add its domain in Firebase Authentication settings.';
+    case 'auth/operation-not-allowed':
+      return 'Google sign-in is not enabled in Firebase Authentication settings.';
+    case 'auth/account-exists-with-different-credential':
+      return 'An account already exists with this email. Sign in with your existing method.';
+    default:
+      return err instanceof Error ? err.message : 'Google sign-in failed.';
+  }
+}
+
 export async function linkGoogleAccount() {
   const user = auth.currentUser;
   if (!user) throw new Error('Not signed in');
