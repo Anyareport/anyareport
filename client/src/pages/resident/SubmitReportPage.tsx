@@ -120,18 +120,6 @@ export default function SubmitReportPage() {
     setFileList(processedFiles);
   };
 
-  const handleFileUpload = async (file: File): Promise<boolean | string> => {
-    // Collect all files from the upload list
-    const allFiles = [...fileList.map((f) => f.originFileObj), file];
-    if (allFiles.length > 3) {
-      message.error('Maximum 3 photos allowed per report');
-      return false; // Prevent upload
-    }
-
-    handleFileChange(allFiles);
-    return false; // Prevent default upload
-  };
-
   const classifyMutation = useMutation({
     mutationFn: async () => {
       const values = form.getFieldsValue();
@@ -149,7 +137,7 @@ export default function SubmitReportPage() {
         }
       });
 
-      return api.post('/api/reports/classify', formData);
+      return api.post<ClassificationResult>('/api/reports/classify', formData);
     },
     onSuccess: (result) => {
       setClassification(result);
