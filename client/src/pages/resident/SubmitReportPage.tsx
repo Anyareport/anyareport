@@ -218,7 +218,7 @@ export default function SubmitReportPage() {
           message.error('Please set a location on the map or use GPS.');
           return;
         }
-        await ensureClassified();
+        void ensureClassified();
       }
       const next = currentStep + 1;
       setCurrentStep(next);
@@ -555,7 +555,16 @@ export default function SubmitReportPage() {
               danger
               size="large"
               loading={submitMutation.isPending}
-              onClick={() => submitMutation.mutate(form.getFieldsValue())}
+              onClick={async () => {
+                try {
+                  // fallback for incomplete classification
+                  const values = await form.validateFields(['category', 'subcategory', 'severity']);
+                  submitMutation.mutate({ ...form.getFieldsValue(), ...values });
+                } catch {
+                  message.error('Please complete the category, subcategory, and severity fields.');
+                  setCurrentStep(2);
+                }
+              }}
             >
               Confirm & Submit
             </Button>
