@@ -414,6 +414,17 @@ export async function classifyReportHandler(req, res) {
     if (req.file) {
       imageBuffer = req.file.buffer;
       mimeType = req.file.mimetype;
+    } else if (req.body.photo) {
+      // Handle Base64 from client-side compression
+      const photoData = req.body.photo;
+      if (typeof photoData === 'string' && photoData.startsWith('data:')) {
+        const base64Data = photoData.split(',')[1];
+        imageBuffer = Buffer.from(base64Data, 'base64');
+        mimeType = photoData.split(',')[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+      } else if (req.files?.photo) {
+        imageBuffer = req.files.photo.data;
+        mimeType = req.files.photo.mimetype;
+      }
     }
 
     const result = await classifyReport(description, imageBuffer, mimeType);

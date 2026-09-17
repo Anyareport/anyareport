@@ -32,6 +32,8 @@ import MapPicker from '../../components/MapPicker';
 import type { FeatureCollection } from 'geojson';
 import { isInsideBarangayBoundary, findContainingPurok } from '../../components/MapPicker';
 import barangayData from '../../data/DMM.json';
+import { compressImage } from '../../lib/imageCompressor';
+
 const { Title, Text } = Typography;
 
 type ReportType = 'text' | 'photo';
@@ -72,7 +74,9 @@ export default function SubmitReportPage() {
   const [reportType, setReportType] = useState<ReportType>('text');
   const [lat, setLat] = useState<number>();
   const [lng, setLng] = useState<number>();
-  const [fileList, setFileList] = useState<{ originFileObj: File; thumbUrl?: string }[]>([]);
+  const [fileList, setFileList] = useState<
+    { originFileObj: File; thumbUrl?: string; compressedBlob?: Blob }[]
+  >([]);
 
   const [classification, setClassification] = useState<ClassificationResult>();
   const [manuallyEdited, setManuallyEdited] = useState(false);
@@ -82,15 +86,48 @@ export default function SubmitReportPage() {
     queryFn: () => api.get<Category[]>('/api/reports/categories'),
   });
 
+  const handleFileUpload = async (file: File): Promise<boolean | string> => {
+    try {
+      // Compress for Gemini
+      const compressedBlob = await compressImage(file);
+
+      // Create a preview URL for the compressed version
+      const compressedFile = new File([compressedBlob], 'compressed.jpg', { type: 'image/jpeg' });
+      const thumbUrl = URL.createObjectURL(compressedFile);
+
+      const originalSize = file.size;
+      const compressedSize = compressedBlob.size;
+      const reduction = (((originalSize - compressedSize) / originalSize) * 100).toFixed(1);
+      console.log(
+        `Original: ${originalSize} bytes, Compressed: ${compressedSize} bytes (${reduction}% reduction)`
+      );
+
+      setFileList([{ originFileObj: file, thumbUrl, compressedBlob }]);
+      return false; // Prevent default upload
+    } catch (err) {
+      message.error('Image compression failed');
+      return true; // Allow default upload as fallback
+    }
+  };
+
   const classifyMutation = useMutation({
     mutationFn: async () => {
       const values = form.getFieldsValue();
       const description = values.description || '';
+
+      // Use compressed image for Gemini
+      if (fileList[0]?.originFileObj && fileList[0]?.compressedBlob) {
+        const compressedFile = fileList[0].compressedBlob;
+        const formData = new FormData();
+        formData.append('description', description);
+        formData.append('photo', compressedFile, 'compressed.jpg');
+        return api.post<ClassificationResult>('/api/reports/classify', formData);
+      }
+
+      // Fallback: send original if compression hasn't been done
       const formData = new FormData();
       formData.append('description', description);
-      // Only send the photo when description is too vague to classify on its own
-      const descriptionIsTooShort = description.trim().length < 20;
-      if (descriptionIsTooShort && fileList[0]?.originFileObj) {
+      if (fileList[0]?.originFileObj) {
         formData.append('photo', fileList[0].originFileObj);
       }
       return api.post<ClassificationResult>('/api/reports/classify', formData);
@@ -245,14 +282,15 @@ export default function SubmitReportPage() {
             <Form.Item label="Photo (max 3)">
               <Upload
                 listType="picture-card"
-                beforeUpload={() => false}
-                maxCount={3}
+                beforeUpload={handleFileUpload}
+                maxCount={1}
                 accept="image/*"
                 capture="environment"
                 fileList={fileList as any}
                 onChange={({ fileList: fl }) => setFileList(fl as any)}
+                onRemove={() => setFileList([])}
               >
-                {fileList.length < 3 && (
+                {fileList.length < 1 && (
                   <div>
                     <UploadOutlined />
                     <div style={{ marginTop: 8 }}>Upload</div>
