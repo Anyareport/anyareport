@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   Form,
   Select,
@@ -81,10 +81,19 @@ export default function SubmitReportPage() {
   const [classification, setClassification] = useState<ClassificationResult>();
   const [manuallyEdited, setManuallyEdited] = useState(false);
 
+  // Ref to track if classification is in progress
+  const classificationInProgressRef = useRef(false);
+
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
     queryFn: () => api.get<Category[]>('/api/reports/categories'),
   });
+
+  const resetClassificationState = useCallback(() => {
+    setClassification(undefined);
+    setManuallyEdited(false);
+    form.setFieldsValue({ category: undefined, subcategory: undefined, severity: undefined });
+  }, [form]);
 
   // Process multiple files for upload (max 3)
   const handleFileChange = async (files: File[]) => {
@@ -118,6 +127,7 @@ export default function SubmitReportPage() {
     }
 
     setFileList(processedFiles);
+    resetClassificationState();
   };
 
   const classifyMutation = useMutation({
@@ -148,9 +158,11 @@ export default function SubmitReportPage() {
           severity: result.severity,
         });
       }
+      classificationInProgressRef.current = false;
     },
     onError: () => {
       message.warning('AI classification unavailable — please select a category manually.');
+      classificationInProgressRef.current = false;
     },
   });
 
@@ -176,6 +188,19 @@ export default function SubmitReportPage() {
     onError: (err: Error) => message.error(err.message),
   });
 
+  // Runs classification if (and only if) it's missing and not already
+  // in flight. Returns a promise so callers can await it before navigating.
+  const ensureClassified = useCallback(async () => {
+    if (classification || classificationInProgressRef.current) return;
+    classificationInProgressRef.current = true;
+    try {
+      await classifyMutation.mutateAsync();
+    } catch {
+      // onError already surfaces a message; swallow here so callers can
+      // still navigate forward and let the user fill fields manually.
+    }
+  }, [classification, classifyMutation]);
+
   const goNext = useCallback(async () => {
     try {
       if (currentStep === 0) {
@@ -193,15 +218,39 @@ export default function SubmitReportPage() {
           message.error('Please set a location on the map or use GPS.');
           return;
         }
-        classifyMutation.mutate();
+        await ensureClassified();
       }
       const next = currentStep + 1;
       setCurrentStep(next);
       setMaxStepReached((m) => Math.max(m, next));
     } catch {}
-  }, [currentStep, reportType, lat, lng, classifyMutation, form, fileList]);
+  }, [currentStep, reportType, lat, lng, ensureClassified, form, fileList]);
 
   const goBack = () => setCurrentStep((s) => Math.max(0, s - 1));
+
+  // Handles clicks on the Steps header. Going backward is always safe.
+  // Going forward must re-run the same guard/classify logic as "Next" so
+  // a stale (or missing) classification can never be skipped by jumping
+  // straight to Review.
+  const handleStepClick = useCallback(
+    async (step: number) => {
+      if (step <= currentStep) {
+        setCurrentStep(step);
+        return;
+      }
+      if (step > maxStepReached) return;
+
+      if (step >= 2) {
+        if (!lat || !lng) {
+          message.error('Please set a location on the map or use GPS.');
+          return;
+        }
+        await ensureClassified();
+      }
+      setCurrentStep(step);
+    },
+    [currentStep, maxStepReached, lat, lng, ensureClassified]
+  );
 
   const handleUseGPS = () => {
     if (!navigator.geolocation) {
@@ -251,9 +300,7 @@ export default function SubmitReportPage() {
         current={currentStep}
         size="small"
         responsive={false}
-        onChange={(step) => {
-          if (step <= maxStepReached) setCurrentStep(step);
-        }}
+        onChange={handleStepClick}
         style={{ marginBottom: 32, cursor: 'pointer' }}
         items={[{}, {}, {}, {}]}
       />
@@ -306,10 +353,16 @@ export default function SubmitReportPage() {
                   handleFileChange(files);
                 }}
                 onRemove={(targetFile) => {
-                  const newFileList = fileList.filter(
-                    (f) => f.originFileObj.name !== targetFile.name
+                  const idx = fileList.findIndex(
+                    (f) => f.originFileObj === (targetFile.originFileObj as unknown as File)
                   );
+                  const newFileList =
+                    idx >= 0
+                      ? fileList.filter((_, i) => i !== idx)
+                      : fileList.filter((f) => f.originFileObj.name !== targetFile.name);
                   setFileList(newFileList);
+                  // Photo set changed — clear the now-stale classification.
+                  resetClassificationState();
                 }}
               >
                 {fileList.length < 3 && (
@@ -337,7 +390,13 @@ export default function SubmitReportPage() {
                 : []
             }
           >
-            <Input.TextArea rows={4} placeholder="Describe the incident in detail..." />
+            <Input.TextArea
+              rows={4}
+              placeholder="Describe the incident in detail..."
+              onChange={() => {
+                resetClassificationState();
+              }}
+            />
           </Form.Item>
         </div>
 
@@ -486,7 +545,7 @@ export default function SubmitReportPage() {
         <Space style={{ marginTop: 32 }}>
           {currentStep > 0 && <Button onClick={goBack}>Previous</Button>}
           {currentStep < 3 && (
-            <Button type="primary" onClick={goNext}>
+            <Button type="primary" onClick={goNext} disabled={classifyMutation.isPending}>
               Next
             </Button>
           )}
