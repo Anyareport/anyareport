@@ -59,6 +59,11 @@ export async function createReport(req, res) {
     const trimmedDescription = (description || '').trim();
     const hasPhoto = Array.isArray(req.files) && req.files.length > 0;
 
+    // Validate max 3 photos
+    if (Array.isArray(req.files) && req.files.length > 3) {
+      return res.status(400).json({ error: 'Maximum 3 photos allowed per report' });
+    }
+
     if (!category || !latitude || !longitude) {
       return res.status(400).json({ error: 'Category and location are required' });
     }
@@ -77,15 +82,11 @@ export async function createReport(req, res) {
     let aiSuggestedCategory = null;
     let aiSummary = null;
     if (req.files?.length > 0) {
-      const result = await classifyReport(
-        trimmedDescription,
-        req.files[0].buffer,
-        req.files[0].mimetype
-      );
+      const result = await classifyReport(trimmedDescription, req.files);
       aiSuggestedCategory = result.category;
       aiSummary = result.summary;
     } else {
-      const result = await classifyReport(trimmedDescription, null, null);
+      const result = await classifyReport(trimmedDescription, null);
       aiSuggestedCategory = result.category;
       aiSummary = result.summary;
     }
@@ -408,26 +409,25 @@ export async function getHeatmapData(req, res) {
 export async function classifyReportHandler(req, res) {
   try {
     const description = req.body.description || '';
-    let imageBuffer = null;
-    let mimeType = null;
 
-    if (req.file) {
-      imageBuffer = req.file.buffer;
-      mimeType = req.file.mimetype;
+    // Handle multiple photos (max 3)
+    let files = null;
+    if (Array.isArray(req.files) && req.files.length > 0) {
+      files = req.files;
+    } else if (req.file) {
+      files = [req.file];
     } else if (req.body.photo) {
       // Handle Base64 from client-side compression
       const photoData = req.body.photo;
       if (typeof photoData === 'string' && photoData.startsWith('data:')) {
         const base64Data = photoData.split(',')[1];
-        imageBuffer = Buffer.from(base64Data, 'base64');
-        mimeType = photoData.split(',')[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
-      } else if (req.files?.photo) {
-        imageBuffer = req.files.photo.data;
-        mimeType = req.files.photo.mimetype;
+        const imageBuffer = Buffer.from(base64Data, 'base64');
+        const mimeType = photoData.split(',')[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+        files = [{ buffer: imageBuffer, mimetype: mimeType }];
       }
     }
 
-    const result = await classifyReport(description, imageBuffer, mimeType);
+    const result = await classifyReport(description, files);
 
     if (result.error === 'classification_unavailable') {
       return res.status(503).json({ error: 'classification_unavailable' });

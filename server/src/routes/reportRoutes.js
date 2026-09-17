@@ -25,7 +25,7 @@ router.get('/categories', getCategories);
 router.use(verifyToken);
 
 router.post('/', reportSubmitLimiter, upload.array('photos', 3), createReport);
-router.post('/classify', upload.single('photo'), classifyReportHandler);
+router.post('/classify', upload.array('photos', 3), classifyReportHandler);
 router.get('/mine', getMyReports);
 router.get('/analytics', requireRole('admin', 'captain', 'secretary', 'kagawad'), getAnalytics);
 router.get('/heatmap', requireRole('admin', 'captain', 'secretary', 'kagawad'), getHeatmapData);

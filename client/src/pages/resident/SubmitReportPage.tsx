@@ -86,28 +86,50 @@ export default function SubmitReportPage() {
     queryFn: () => api.get<Category[]>('/api/reports/categories'),
   });
 
-  const handleFileUpload = async (file: File): Promise<boolean | string> => {
-    try {
-      // Compress for Gemini
-      const compressedBlob = await compressImage(file);
-
-      // Create a preview URL for the compressed version
-      const compressedFile = new File([compressedBlob], 'compressed.jpg', { type: 'image/jpeg' });
-      const thumbUrl = URL.createObjectURL(compressedFile);
-
-      const originalSize = file.size;
-      const compressedSize = compressedBlob.size;
-      const reduction = (((originalSize - compressedSize) / originalSize) * 100).toFixed(1);
-      console.log(
-        `Original: ${originalSize} bytes, Compressed: ${compressedSize} bytes (${reduction}% reduction)`
-      );
-
-      setFileList([{ originFileObj: file, thumbUrl, compressedBlob }]);
-      return false; // Prevent default upload
-    } catch (err) {
-      message.error('Image compression failed');
-      return true; // Allow default upload as fallback
+  // Process multiple files for upload (max 3)
+  const handleFileChange = async (files: File[]) => {
+    if (files.length > 3) {
+      message.error('Maximum 3 photos allowed per report');
+      files = files.slice(0, 3);
     }
+
+    const processedFiles = [];
+    for (const file of files) {
+      try {
+        // Compress for Gemini
+        const compressedBlob = await compressImage(file);
+
+        // Create a preview URL for the compressed version
+        const compressedFile = new File([compressedBlob], 'compressed.jpg', { type: 'image/jpeg' });
+        const thumbUrl = URL.createObjectURL(compressedFile);
+
+        const originalSize = file.size;
+        const compressedSize = compressedBlob.size;
+        const reduction = (((originalSize - compressedSize) / originalSize) * 100).toFixed(1);
+        console.log(
+          `Original: ${originalSize} bytes, Compressed: ${compressedSize} bytes (${reduction}% reduction)`
+        );
+
+        processedFiles.push({ originFileObj: file, thumbUrl, compressedBlob });
+      } catch (err) {
+        console.error('Image compression failed for', file.name, err);
+        message.warning(`Failed to compress ${file.name}`);
+      }
+    }
+
+    setFileList(processedFiles);
+  };
+
+  const handleFileUpload = async (file: File): Promise<boolean | string> => {
+    // Collect all files from the upload list
+    const allFiles = [...fileList.map((f) => f.originFileObj), file];
+    if (allFiles.length > 3) {
+      message.error('Maximum 3 photos allowed per report');
+      return false; // Prevent upload
+    }
+
+    handleFileChange(allFiles);
+    return false; // Prevent default upload
   };
 
   const classifyMutation = useMutation({
@@ -115,22 +137,19 @@ export default function SubmitReportPage() {
       const values = form.getFieldsValue();
       const description = values.description || '';
 
-      // Use compressed image for Gemini
-      if (fileList[0]?.originFileObj && fileList[0]?.compressedBlob) {
-        const compressedFile = fileList[0].compressedBlob;
-        const formData = new FormData();
-        formData.append('description', description);
-        formData.append('photo', compressedFile, 'compressed.jpg');
-        return api.post<ClassificationResult>('/api/reports/classify', formData);
-      }
-
-      // Fallback: send original if compression hasn't been done
       const formData = new FormData();
       formData.append('description', description);
-      if (fileList[0]?.originFileObj) {
-        formData.append('photo', fileList[0].originFileObj);
-      }
-      return api.post<ClassificationResult>('/api/reports/classify', formData);
+
+      // Send all compressed photos (up to 3)
+      fileList.forEach((f) => {
+        if (f.compressedBlob) {
+          formData.append('photos', f.compressedBlob, 'compressed.jpg');
+        } else if (f.originFileObj) {
+          formData.append('photos', f.originFileObj);
+        }
+      });
+
+      return api.post('/api/reports/classify', formData);
     },
     onSuccess: (result) => {
       setClassification(result);
@@ -157,6 +176,7 @@ export default function SubmitReportPage() {
       formData.append('address', values.address || '');
       formData.append('latitude', String(lat));
       formData.append('longitude', String(lng));
+      // Upload all selected files (max 3)
       fileList.forEach((f) => formData.append('photos', f.originFileObj));
       return api.post('/api/reports', formData);
     },
@@ -173,6 +193,12 @@ export default function SubmitReportPage() {
       if (currentStep === 0) {
         const fieldsToCheck = reportType === 'text' ? ['description'] : [];
         await form.validateFields(fieldsToCheck);
+
+        // Validate max 3 photos
+        if (reportType === 'photo' && fileList.length > 3) {
+          message.error('Maximum 3 photos allowed per report');
+          return;
+        }
       }
       if (currentStep === 1) {
         if (!lat || !lng) {
@@ -185,7 +211,7 @@ export default function SubmitReportPage() {
       setCurrentStep(next);
       setMaxStepReached((m) => Math.max(m, next));
     } catch {}
-  }, [currentStep, reportType, lat, lng, classifyMutation, form]);
+  }, [currentStep, reportType, lat, lng, classifyMutation, form, fileList]);
 
   const goBack = () => setCurrentStep((s) => Math.max(0, s - 1));
 
@@ -282,15 +308,23 @@ export default function SubmitReportPage() {
             <Form.Item label="Photo (max 3)">
               <Upload
                 listType="picture-card"
-                beforeUpload={handleFileUpload}
-                maxCount={1}
+                beforeUpload={() => false} // Disable default upload
+                maxCount={3}
                 accept="image/*"
                 capture="environment"
                 fileList={fileList as any}
-                onChange={({ fileList: fl }) => setFileList(fl as any)}
-                onRemove={() => setFileList([])}
+                onChange={(info) => {
+                  const files = info.fileList.map((f) => f.originFileObj as File);
+                  handleFileChange(files);
+                }}
+                onRemove={(targetFile) => {
+                  const newFileList = fileList.filter(
+                    (f) => f.originFileObj.name !== targetFile.name
+                  );
+                  setFileList(newFileList);
+                }}
               >
-                {fileList.length < 1 && (
+                {fileList.length < 3 && (
                   <div>
                     <UploadOutlined />
                     <div style={{ marginTop: 8 }}>Upload</div>

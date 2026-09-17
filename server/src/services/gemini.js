@@ -21,7 +21,7 @@ const SUBCATEGORY_MAP = {
 
 const VALID_SEVERITIES = ['Low', 'Medium', 'High', 'Critical'];
 
-export async function classifyReport(description, imageBuffer, mimeType) {
+export async function classifyReport(description, files) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey.includes('your-gemini')) {
     return {
@@ -49,18 +49,24 @@ Severity levels: ${VALID_SEVERITIES.join(', ')}
 Return this exact shape:
 {"category":"<one of the categories above>","subcategory":"<matching subcategory>","severity":"<Low|Medium|High|Critical>","summary":"<1-3 sentence brief synthesized description of the incident>"}
 
-For "summary": synthesize a concise 1-3 sentence incident description based on the user's description text and the attached image (if any). Use objective, factual language suitable for barangay officials.
+For "summary": synthesize a concise 1-3 sentence incident description based on the user's description text and the attached image(s) (if any). Use objective, factual language suitable for barangay officials.
 
 Description: ${description}`;
 
     const parts = [{ text: prompt }];
-    if (imageBuffer && mimeType) {
-      parts.push({
-        inlineData: {
-          data: imageBuffer.toString('base64'),
-          mimeType,
-        },
-      });
+
+    // Add all images (max 3)
+    if (Array.isArray(files)) {
+      for (const file of files) {
+        if (file.buffer && file.mimetype) {
+          parts.push({
+            inlineData: {
+              data: file.buffer.toString('base64'),
+              mimeType: file.mimetype,
+            },
+          });
+        }
+      }
     }
 
     const result = await model.generateContent(parts);
