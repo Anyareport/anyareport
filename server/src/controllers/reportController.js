@@ -81,14 +81,14 @@ export async function createReport(req, res) {
 
     let aiSuggestedCategory = null;
     let aiSummary = null;
-    if (req.files?.length > 0) {
-      const result = await classifyReport(trimmedDescription, req.files);
-      aiSuggestedCategory = result.category;
-      aiSummary = result.summary;
-    } else {
-      const result = await classifyReport(trimmedDescription, null);
-      aiSuggestedCategory = result.category;
-      aiSummary = result.summary;
+    try {
+      const classificationResult = await classifyReport(trimmedDescription, req.files || null);
+      if (!classificationResult.error) {
+        aiSuggestedCategory = classificationResult.category;
+        aiSummary = classificationResult.summary;
+      }
+    } catch (classifyErr) {
+      console.error('[Report Creation] AI classification failed:', classifyErr.message);
     }
 
     const report = await Report.create({
