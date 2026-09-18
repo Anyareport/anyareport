@@ -11,7 +11,6 @@ import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import LandingPage from './pages/resident/LandingPage';
 import SubmitReportPage from './pages/resident/SubmitReportPage';
 import MyReportsPage from './pages/resident/MyReportsPage';
-import ReportDetailPage from './pages/resident/ReportDetailPage';
 import NotificationsPage from './pages/shared/NotificationsPage';
 import ProfilePage from './pages/shared/ProfilePage';
 import ResponderDashboardPage from './pages/responder/DashboardPage';
@@ -68,7 +67,7 @@ function App() {
           <Route path="/resident" element={<LandingPage />} />
           <Route path="/resident/submit" element={<SubmitReportPage />} />
           <Route path="/resident/reports" element={<MyReportsPage />} />
-          <Route path="/resident/reports/:id" element={<ReportDetailPage />} />
+          <Route path="/resident/reports/:id" element={<IncidentDetailPage variant="resident" />} />
           <Route
             path="/resident/notifications"
             element={<NotificationsPage title="Resident Notifications" />}

@@ -6,6 +6,7 @@ import {
   Card,
   Col,
   Divider,
+  Image,
   Row,
   Space,
   Spin,
@@ -30,7 +31,7 @@ import { getRoleLabel } from '../../lib/roles';
 const { Paragraph, Text } = Typography;
 
 interface IncidentDetailPageProps {
-  variant: 'admin' | 'responder';
+  variant: 'admin' | 'responder' | 'resident';
 }
 
 export default function IncidentDetailPage({ variant }: IncidentDetailPageProps) {
@@ -101,7 +102,123 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   }
 
   const [lng, lat] = report.location?.coordinates || [0, 0];
+  const isResident = variant === 'resident';
 
+  // The main report card — shared across all variants
+  const reportCard = (
+    <Card
+      className="soft-card"
+      title={report.category}
+      extra={<StatusTag status={report.status} />}
+    >
+      <Space direction="vertical" size={12} style={{ width: '100%' }}>
+        {/* Tag row — admin/responder show AI category + role label; resident omits these */}
+        {!isResident && (
+          <Space wrap>
+            {report.verifiedBy && <Tag color="geekblue">Reviewed</Tag>}
+            {report.aiSuggestedCategory && (
+              <Tag color="purple">AI: {report.aiSuggestedCategory}</Tag>
+            )}
+            <Tag>{getRoleLabel(profile?.role)}</Tag>
+          </Space>
+        )}
+
+        {((report.subcategory && report.subcategory !== 'undefined') || report.severity) && (
+          <Space wrap>
+            {report.subcategory && report.subcategory !== 'undefined' && (
+              <Tag>{report.subcategory}</Tag>
+            )}
+            <SeverityTag severity={report.severity} />
+          </Space>
+        )}
+
+        {report.aiSummary && (
+          <>
+            <Text strong style={{ color: '#722ed1' }}>
+              AI Summary
+            </Text>
+            <Paragraph style={{ marginBottom: 16 }}>{report.aiSummary}</Paragraph>
+          </>
+        )}
+
+        <Paragraph>{report.description}</Paragraph>
+
+        <Text type="secondary">Submitted: {new Date(report.createdAt).toLocaleString()}</Text>
+
+        {/* Reporter name — only shown to admin/responder */}
+        {!isResident && report.submitterName && (
+          <Text type="secondary">
+            Reported by: <Text strong>{report.submitterName}</Text>
+          </Text>
+        )}
+
+        {report.location?.address && (
+          <Text type="secondary">Location: {report.location.address}</Text>
+        )}
+
+        {/* Map — responder gets route view, everyone else gets static */}
+        {variant === 'responder' ? (
+          <Card size="small" style={{ background: '#f7f8fb' }}>
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Text strong>Routing view</Text>
+              <RouteMap incidentLat={lat} incidentLng={lng} />
+            </Space>
+          </Card>
+        ) : (
+          <StaticMap latitude={lat} longitude={lng} />
+        )}
+
+        {/* Photo gallery — shown to resident (their own submission) */}
+        {report.photos?.length > 0 && (
+          <div style={{ marginTop: 8 }}>
+            <Image.PreviewGroup>
+              {report.photos.map((p, i) => (
+                <Image
+                  key={i}
+                  src={
+                    p.startsWith('http') || p.startsWith('data:')
+                      ? p
+                      : `${import.meta.env.VITE_API_URL || ''}${p}`
+                  }
+                  width={120}
+                  style={{ marginRight: 8 }}
+                />
+              ))}
+            </Image.PreviewGroup>
+          </div>
+        )}
+
+        <Divider />
+
+        {/* Timeline — resident sees "status — date"; admin/responder see "status by X at date" */}
+        <Timeline
+          items={(report.statusHistory || []).map((entry) => ({
+            children: isResident
+              ? `${entry.status.replace(/_/g, ' ')} — ${new Date(entry.timestamp).toLocaleString()}`
+              : `${entry.status.replace(/_/g, ' ')} by ${entry.updatedBy} at ${new Date(entry.timestamp).toLocaleString()}`,
+          }))}
+        />
+      </Space>
+    </Card>
+  );
+
+  // Resident: simple full-width layout, no actions panel
+  if (isResident) {
+    return (
+      <div className="page-shell">
+        <Button
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate(-1)}
+          style={{ marginBottom: 16 }}
+        >
+          Back
+        </Button>
+        {reportCard}
+      </div>
+    );
+  }
+
+  // Admin / responder: two-column layout with actions panel on the right
   return (
     <div className="page-shell">
       <Button
@@ -114,70 +231,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
 
       <Row gutter={[16, 16]}>
         <Col xs={24} xl={16}>
-          <Card
-            className="soft-card"
-            title={report.category}
-            extra={<StatusTag status={report.status} />}
-          >
-            <Space direction="vertical" size={12} style={{ width: '100%' }}>
-              <Space wrap>
-                {report.verifiedBy && <Tag color="geekblue">Reviewed</Tag>}
-                {report.aiSuggestedCategory && (
-                  <Tag color="purple">AI: {report.aiSuggestedCategory}</Tag>
-                )}
-                <Tag>{getRoleLabel(profile?.role)}</Tag>
-              </Space>
-
-              {((report.subcategory && report.subcategory !== 'undefined') || report.severity) && (
-                <Space wrap>
-                  {report.subcategory && report.subcategory !== 'undefined' && (
-                    <Tag>{report.subcategory}</Tag>
-                  )}
-                  <SeverityTag severity={report.severity} />
-                </Space>
-              )}
-
-              {report.aiSummary && (
-                <>
-                  <Text strong style={{ color: '#722ed1' }}>
-                    AI Summary
-                  </Text>
-                  <Paragraph style={{ marginBottom: 16 }}>{report.aiSummary}</Paragraph>
-                </>
-              )}
-
-              <Paragraph>{report.description}</Paragraph>
-
-              <Text type="secondary">Submitted: {new Date(report.createdAt).toLocaleString()}</Text>
-              {report.submitterName && (
-                <Text type="secondary">
-                  Reported by: <Text strong>{report.submitterName}</Text>
-                </Text>
-              )}
-              {report.location?.address && (
-                <Text type="secondary">Location: {report.location.address}</Text>
-              )}
-
-              {variant === 'responder' ? (
-                <Card size="small" style={{ background: '#f7f8fb' }}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>Routing view</Text>
-                    <RouteMap incidentLat={lat} incidentLng={lng} />
-                  </Space>
-                </Card>
-              ) : (
-                <StaticMap latitude={lat} longitude={lng} />
-              )}
-
-              <Divider />
-
-              <Timeline
-                items={(report.statusHistory || []).map((entry) => ({
-                  children: `${entry.status.replace(/_/g, ' ')} by ${entry.updatedBy} at ${new Date(entry.timestamp).toLocaleString()}`,
-                }))}
-              />
-            </Space>
-          </Card>
+          {reportCard}
         </Col>
 
         <Col xs={24} xl={8}>
