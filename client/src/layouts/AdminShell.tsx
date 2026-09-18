@@ -82,7 +82,7 @@ export default function AdminShell() {
       items.push({ key: '/admin/users', icon: <TeamOutlined />, label: 'User Management' });
     }
 
-    if (['admin', 'captain', 'secretary', 'kagawad'].includes(role || '')) {
+    if (['admin', 'captain', 'secretary'].includes(role || '')) {
       items.splice(items.length - 2, 0, {
         key: '/admin/audit',
         icon: <AuditOutlined />,
@@ -134,15 +134,20 @@ export default function AdminShell() {
       ) : null}
 
       <Layout>
-        <Header style={{ background: '#fff', padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f0f0f0' }}>
+        <Header
+          style={{
+            background: '#fff',
+            padding: '0 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid #f0f0f0',
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {!screens.md && (
-              <Button icon={<MenuOutlined />} onClick={() => setDrawerOpen(true)} />
-            )}
+            {!screens.md && <Button icon={<MenuOutlined />} onClick={() => setDrawerOpen(true)} />}
             {!screens.md && <Logo size="sm" />}
-            <span style={{ color: '#666', fontSize: 13 }}>
-              {role?.toUpperCase()} {profile?.committee ? `— ${profile.committee}` : ''}
-            </span>
+            <span style={{ color: '#666', fontSize: 13 }}>{role?.toUpperCase()}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 13 }}>{profile?.name}</span>
@@ -155,7 +160,12 @@ export default function AdminShell() {
         </Content>
       </Layout>
 
-      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} placement="left" styles={{ body: { padding: 0, background: '#282F49' } }}>
+      <Drawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        placement="left"
+        styles={{ body: { padding: 0, background: '#282F49' } }}
+      >
         <div style={{ padding: 16 }}>
           <Logo light size="sm" />
         </div>

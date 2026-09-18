@@ -27,21 +27,13 @@ router.use(verifyToken);
 router.post('/', reportSubmitLimiter, upload.array('photos', 3), createReport);
 router.post('/classify', upload.array('photos', 3), classifyReportHandler);
 router.get('/mine', getMyReports);
-router.get('/analytics', requireRole('admin', 'captain', 'secretary', 'kagawad'), getAnalytics);
-router.get('/heatmap', requireRole('admin', 'captain', 'secretary', 'kagawad'), getHeatmapData);
-router.get(
-  '/',
-  requireRole('admin', 'captain', 'secretary', 'kagawad', 'tanod', 'responder'),
-  getReports
-);
+router.get('/analytics', requireRole('admin', 'captain', 'secretary'), getAnalytics);
+router.get('/heatmap', requireRole('admin', 'captain', 'secretary'), getHeatmapData);
+router.get('/', requireRole('admin', 'captain', 'secretary', 'tanod', 'responder'), getReports);
 router.get('/:id', getReportById);
 router.post('/:id/verify', requireRole('secretary'), verifyReport);
 router.post('/:id/flag', requireRole('secretary'), flagReport);
-router.patch(
-  '/:id/status',
-  requireRole('secretary', 'kagawad', 'tanod', 'responder'),
-  updateReportStatus
-);
+router.patch('/:id/status', requireRole('secretary', 'tanod', 'responder'), updateReportStatus);
 router.patch(
   '/:id/acknowledge',
   requireRole('tanod', 'responder', 'captain', 'secretary'),

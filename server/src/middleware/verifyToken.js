@@ -11,14 +11,15 @@ export async function verifyToken(req, res, next) {
   const admin = getFirebaseAdmin();
 
   if (!admin) {
-    return res.status(503).json({ error: 'Auth service unavailable — configure Firebase Admin SDK' });
+    return res
+      .status(503)
+      .json({ error: 'Auth service unavailable — configure Firebase Admin SDK' });
   }
 
   try {
     const decoded = await admin.auth().verifyIdToken(token);
     req.firebaseUser = decoded;
     req.userRole = decoded.role || 'resident';
-    req.userCommittee = decoded.committee || null;
 
     const profile = await User.findOne({ firebaseUid: decoded.uid });
     req.userProfile = profile;

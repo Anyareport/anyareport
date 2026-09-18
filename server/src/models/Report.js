@@ -4,7 +4,6 @@ const reportSchema = new mongoose.Schema(
   {
     submittedBy: { type: String, required: true, index: true },
     category: { type: String, required: true },
-    committee: { type: String, default: null },
     description: { type: String, default: '' },
     photos: [{ type: String }],
     location: {
@@ -35,6 +34,5 @@ const reportSchema = new mongoose.Schema(
 );
 
 reportSchema.index({ location: '2dsphere' });
-reportSchema.index({ committee: 1, status: 1 });
 
 export default mongoose.model('Report', reportSchema);

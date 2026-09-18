@@ -48,7 +48,11 @@ export default function ProfilePage({ title }: ProfilePageProps) {
   return (
     <Row gutter={[16, 16]}>
       <Col xs={24} lg={16}>
-        <Card className="soft-card" title={title} extra={<Tag color={profile.status === 'active' ? 'green' : 'red'}>{profile.status}</Tag>}>
+        <Card
+          className="soft-card"
+          title={title}
+          extra={<Tag color={profile.status === 'active' ? 'green' : 'red'}>{profile.status}</Tag>}
+        >
           <Paragraph type="secondary" style={{ marginTop: -4 }}>
             Account details and contact information for {getRoleLabel(profile.role)}.
           </Paragraph>
@@ -103,7 +107,6 @@ export default function ProfilePage({ title }: ProfilePageProps) {
           <Space direction="vertical" size={8}>
             <Text strong>{profile.email}</Text>
             <Text type="secondary">Role: {getRoleLabel(profile.role)}</Text>
-            <Text type="secondary">Committee: {profile.committee || 'N/A'}</Text>
             <Text type="secondary">Email verified: {profile.emailVerified ? 'Yes' : 'No'}</Text>
             <Text type="secondary">Flagged reports: {profile.flaggedReportCount}</Text>
           </Space>

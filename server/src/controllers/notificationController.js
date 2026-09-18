@@ -1,18 +1,11 @@
 import Report from '../models/Report.js';
 import { exportToCSV, exportToPDF } from '../services/export.js';
-import { scopeToCommittee } from '../middleware/rbac.js';
-import {
-  getNotificationsForUser,
-  markNotificationRead,
-} from '../services/notifications.js';
+import { getNotificationsForUser, markNotificationRead } from '../services/notifications.js';
 
 export async function exportReports(req, res) {
   try {
     const format = req.query.format || 'csv';
-    let query = {};
-    query = scopeToCommittee(query, req.userRole, req.userCommittee);
-
-    const reports = await Report.find(query).sort({ createdAt: -1 });
+    const reports = await Report.find({}).sort({ createdAt: -1 });
 
     if (format === 'pdf') {
       const pdf = await exportToPDF(reports);

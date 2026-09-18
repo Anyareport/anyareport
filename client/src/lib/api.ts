@@ -55,7 +55,6 @@ export interface UserProfile {
   phone: string;
   address: string;
   role: string;
-  committee: string | null;
   status: string;
   emailVerified: boolean;
   flaggedReportCount: number;
@@ -66,7 +65,6 @@ export interface Report {
   submittedBy: string;
   submitterName: string | null;
   category: string;
-  committee: string | null;
   description: string;
   photos: string[];
   location: {
@@ -89,7 +87,6 @@ export interface Report {
 export interface Category {
   _id: string;
   name: string;
-  committee: string | null;
   description: string;
 }
 

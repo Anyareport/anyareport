@@ -2,12 +2,10 @@ import { useState } from 'react';
 import { Button, Card, Space, Typography, message } from 'antd';
 import { DownloadOutlined, FilePdfOutlined } from '@ant-design/icons';
 import { api } from '../../lib/api';
-import { useAuth } from '../../contexts/AuthContext';
 
 const { Title, Paragraph, Text } = Typography;
 
 export default function AdminExportPage() {
-  const { profile } = useAuth();
   const [loading, setLoading] = useState<'csv' | 'pdf' | null>(null);
 
   const download = async (format: 'csv' | 'pdf') => {
@@ -29,15 +27,25 @@ export default function AdminExportPage() {
 
   return (
     <Card className="soft-card page-hero">
-      <Title level={2} style={{ color: '#fff', marginTop: 0 }}>Export</Title>
+      <Title level={2} style={{ color: '#fff', marginTop: 0 }}>
+        Export
+      </Title>
       <Paragraph style={{ color: 'rgba(255,255,255,0.82)' }}>
-        Generate committee-scoped CSV or PDF exports for reports assigned to {profile?.committee || 'all visible data'}.
+        Download a CSV or PDF of all incident reports.
       </Paragraph>
       <Space wrap>
-        <Button icon={<DownloadOutlined />} loading={loading === 'csv'} onClick={() => download('csv')}>
+        <Button
+          icon={<DownloadOutlined />}
+          loading={loading === 'csv'}
+          onClick={() => download('csv')}
+        >
           CSV export
         </Button>
-        <Button icon={<FilePdfOutlined />} loading={loading === 'pdf'} onClick={() => download('pdf')}>
+        <Button
+          icon={<FilePdfOutlined />}
+          loading={loading === 'pdf'}
+          onClick={() => download('pdf')}
+        >
           PDF export
         </Button>
       </Space>

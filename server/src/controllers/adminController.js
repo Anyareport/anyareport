@@ -12,19 +12,15 @@ export async function listUsers(req, res) {
 
 export async function createOfficial(req, res) {
   try {
-    const { email, password, name, phone, address, role, committee } = req.body;
+    const { email, password, name, phone, address, role } = req.body;
 
     if (!email || !password || !name || !phone || !role) {
       return res.status(400).json({ error: 'Email, password, name, phone, and role are required' });
     }
 
-    const validRoles = ['tanod', 'responder', 'captain', 'secretary', 'kagawad', 'admin'];
+    const validRoles = ['tanod', 'responder', 'captain', 'secretary', 'admin'];
     if (!validRoles.includes(role)) {
       return res.status(400).json({ error: 'Invalid official role' });
-    }
-
-    if (role === 'kagawad' && !committee) {
-      return res.status(400).json({ error: 'Committee required for Kagawad' });
     }
 
     const admin = getFirebaseAdmin();
@@ -39,10 +35,7 @@ export async function createOfficial(req, res) {
       emailVerified: true,
     });
 
-    await admin.auth().setCustomUserClaims(firebaseUser.uid, {
-      role,
-      committee: committee || null,
-    });
+    await admin.auth().setCustomUserClaims(firebaseUser.uid, { role });
 
     const user = await User.create({
       firebaseUid: firebaseUser.uid,
@@ -51,7 +44,6 @@ export async function createOfficial(req, res) {
       phone,
       address: address || '',
       role,
-      committee: committee || null,
       emailVerified: true,
     });
 
@@ -74,20 +66,16 @@ export async function updateUserStatus(req, res) {
 
 export async function updateUserRole(req, res) {
   try {
-    const { role, committee } = req.body;
+    const { role } = req.body;
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     user.role = role || user.role;
-    user.committee = committee !== undefined ? committee : user.committee;
     await user.save();
 
     const admin = getFirebaseAdmin();
     if (admin) {
-      await admin.auth().setCustomUserClaims(user.firebaseUid, {
-        role: user.role,
-        committee: user.committee,
-      });
+      await admin.auth().setCustomUserClaims(user.firebaseUid, { role: user.role });
     }
 
     res.json(user);

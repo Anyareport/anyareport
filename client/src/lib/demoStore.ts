@@ -29,14 +29,13 @@ type DemoAuditLog = {
 const SESSION_KEY = 'anyareport-demo-session';
 const DB_KEY = 'anyareport-demo-db';
 
-type DemoRole = 'resident' | 'tanod' | 'responder' | 'captain' | 'secretary' | 'kagawad' | 'admin';
+type DemoRole = 'resident' | 'tanod' | 'responder' | 'captain' | 'secretary' | 'admin';
 
 interface DemoSession {
   firebaseUid: string;
   email: string;
   name: string;
   role: DemoRole;
-  committee: string | null;
 }
 
 interface DemoDb {
@@ -48,12 +47,20 @@ interface DemoDb {
 }
 
 const categorySeed: Category[] = [
-  { _id: 'cat-1', name: 'Public Concerns', committee: 'Peace and Order', description: 'General public safety concerns' },
-  { _id: 'cat-2', name: 'Blotter Cases', committee: 'Peace and Order', description: 'Formal blotter entries' },
-  { _id: 'cat-3', name: 'Emergency Situations', committee: null, description: 'Medical, fire, and other emergencies' },
-  { _id: 'cat-4', name: 'Infrastructure Damage', committee: 'Infrastructure', description: 'Roads, bridges, public facilities' },
-  { _id: 'cat-5', name: 'Health and Sanitation', committee: 'Health and Sanitation', description: 'Health hazards and sanitation issues' },
-  { _id: 'cat-6', name: 'Environmental', committee: 'Environmental Protection', description: 'Environmental concerns and pollution' },
+  { _id: 'cat-1', name: 'Public Concerns', description: 'General public safety concerns' },
+  { _id: 'cat-2', name: 'Blotter Cases', description: 'Formal blotter entries' },
+  {
+    _id: 'cat-3',
+    name: 'Emergency Situations',
+    description: 'Medical, fire, and other emergencies',
+  },
+  { _id: 'cat-4', name: 'Infrastructure Damage', description: 'Roads, bridges, public facilities' },
+  {
+    _id: 'cat-5',
+    name: 'Health and Sanitation',
+    description: 'Health hazards and sanitation issues',
+  },
+  { _id: 'cat-6', name: 'Environmental', description: 'Environmental concerns and pollution' },
 ];
 
 const demoUsers: UserProfile[] = [
@@ -65,7 +72,6 @@ const demoUsers: UserProfile[] = [
     phone: '09171234567',
     address: 'Purok 1, Demo Barangay',
     role: 'resident',
-    committee: null,
     status: 'active',
     emailVerified: true,
     flaggedReportCount: 0,
@@ -78,7 +84,6 @@ const demoUsers: UserProfile[] = [
     phone: '09211234567',
     address: 'Barangay Hall',
     role: 'secretary',
-    committee: null,
     status: 'active',
     emailVerified: true,
     flaggedReportCount: 0,
@@ -91,7 +96,6 @@ const demoUsers: UserProfile[] = [
     phone: '09251234567',
     address: 'Barangay Hall',
     role: 'responder',
-    committee: null,
     status: 'active',
     emailVerified: true,
     flaggedReportCount: 0,
@@ -104,7 +108,6 @@ const demoUsers: UserProfile[] = [
     phone: '09191234567',
     address: 'Barangay Hall',
     role: 'admin',
-    committee: null,
     status: 'active',
     emailVerified: true,
     flaggedReportCount: 0,
@@ -117,20 +120,6 @@ const demoUsers: UserProfile[] = [
     phone: '09201234567',
     address: 'Barangay Hall',
     role: 'captain',
-    committee: null,
-    status: 'active',
-    emailVerified: true,
-    flaggedReportCount: 0,
-  },
-  {
-    _id: 'user-kagawad-1',
-    firebaseUid: 'demo-kagawad-1',
-    email: 'kagawad.po@demo.local',
-    name: 'Demo Kagawad',
-    phone: '09221234567',
-    address: 'Barangay Hall',
-    role: 'kagawad',
-    committee: 'Peace and Order',
     status: 'active',
     emailVerified: true,
     flaggedReportCount: 0,
@@ -141,29 +130,45 @@ const reportSeed: Report[] = [
   {
     _id: 'report-1',
     submittedBy: 'demo-resident-1',
+    submitterName: 'Demo Resident',
     category: 'Public Concerns',
-    committee: 'Peace and Order',
     description: 'Loud karaoke party past midnight at Purok 3',
     photos: [],
-    location: { type: 'Point', coordinates: [121.3708, 16.4833], address: 'Purok 3, Demo Barangay' },
+    location: {
+      type: 'Point',
+      coordinates: [121.3708, 16.4833],
+      address: 'Purok 3, Demo Barangay',
+    },
     status: 'pending',
+    subcategory: null,
+    severity: null,
     aiSuggestedCategory: 'Public Concerns',
+    aiSummary: null,
     verifiedBy: null,
     acknowledgedBy: null,
-    statusHistory: [{ status: 'pending', updatedBy: 'demo-resident-1', timestamp: new Date().toISOString() }],
+    statusHistory: [
+      { status: 'pending', updatedBy: 'demo-resident-1', timestamp: new Date().toISOString() },
+    ],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   {
     _id: 'report-2',
     submittedBy: 'demo-resident-1',
+    submitterName: 'Demo Resident',
     category: 'Emergency Situations',
-    committee: null,
     description: 'Elderly resident collapsed, needs medical assistance',
     photos: [],
-    location: { type: 'Point', coordinates: [121.3718, 16.4843], address: 'Purok 1, Demo Barangay' },
+    location: {
+      type: 'Point',
+      coordinates: [121.3718, 16.4843],
+      address: 'Purok 1, Demo Barangay',
+    },
     status: 'en_route',
+    subcategory: null,
+    severity: null,
     aiSuggestedCategory: 'Emergency Situations',
+    aiSummary: null,
     verifiedBy: 'demo-secretary-1',
     acknowledgedBy: 'demo-responder-1',
     statusHistory: [
@@ -177,19 +182,22 @@ const reportSeed: Report[] = [
   {
     _id: 'report-3',
     submittedBy: 'demo-resident-1',
+    submitterName: 'Demo Resident',
     category: 'Infrastructure Damage',
-    committee: 'Infrastructure',
     description: 'Broken streetlight on path to barangay hall',
     photos: [],
     location: { type: 'Point', coordinates: [121.3698, 16.4823], address: 'Barangay Hall road' },
     status: 'resolved',
+    subcategory: null,
+    severity: null,
     aiSuggestedCategory: 'Infrastructure Damage',
+    aiSummary: null,
     verifiedBy: 'demo-secretary-1',
-    acknowledgedBy: 'demo-kagawad-1',
+    acknowledgedBy: 'demo-responder-1',
     statusHistory: [
       { status: 'pending', updatedBy: 'demo-resident-1', timestamp: new Date().toISOString() },
       { status: 'verified', updatedBy: 'demo-secretary-1', timestamp: new Date().toISOString() },
-      { status: 'resolved', updatedBy: 'demo-kagawad-1', timestamp: new Date().toISOString() },
+      { status: 'resolved', updatedBy: 'demo-responder-1', timestamp: new Date().toISOString() },
     ],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -279,7 +287,6 @@ function getRoleFromEmail(email: string): DemoRole {
   if (lowered.includes('admin')) return 'admin';
   if (lowered.includes('captain')) return 'captain';
   if (lowered.includes('secretary')) return 'secretary';
-  if (lowered.includes('kagawad')) return 'kagawad';
   if (lowered.includes('responder')) return 'responder';
   if (lowered.includes('tanod')) return 'tanod';
   return 'resident';
@@ -287,20 +294,23 @@ function getRoleFromEmail(email: string): DemoRole {
 
 function sessionToProfile(session: DemoSession): UserProfile {
   const db = readDb();
-  const existing = db.users.find((user) => user.firebaseUid === session.firebaseUid || user.email === session.email);
-  return existing || {
-    _id: session.firebaseUid,
-    firebaseUid: session.firebaseUid,
-    email: session.email,
-    name: session.name,
-    phone: '09170000000',
-    address: 'Demo Barangay',
-    role: session.role,
-    committee: session.committee,
-    status: 'active',
-    emailVerified: true,
-    flaggedReportCount: 0,
-  };
+  const existing = db.users.find(
+    (user) => user.firebaseUid === session.firebaseUid || user.email === session.email
+  );
+  return (
+    existing || {
+      _id: session.firebaseUid,
+      firebaseUid: session.firebaseUid,
+      email: session.email,
+      name: session.name,
+      phone: '09170000000',
+      address: 'Demo Barangay',
+      role: session.role,
+      status: 'active',
+      emailVerified: true,
+      flaggedReportCount: 0,
+    }
+  );
 }
 
 export function getDemoProfile(): UserProfile | null {
@@ -315,7 +325,6 @@ export function demoLogin(email: string, name = 'Demo User') {
     email,
     name,
     role,
-    committee: role === 'kagawad' ? 'Peace and Order' : null,
   };
   setDemoSession(session);
   return sessionToProfile(session);
@@ -364,9 +373,15 @@ export function getDemoAnalytics(): Analytics {
     resolved,
     pending,
     resolutionRate: total > 0 ? Math.round((resolved / total) * 100) : 0,
-    byCategory: Array.from(byCategoryMap.entries()).map(([key, value]) => ({ _id: key, count: value })),
+    byCategory: Array.from(byCategoryMap.entries()).map(([key, value]) => ({
+      _id: key,
+      count: value,
+    })),
     byStatus: Array.from(byStatusMap.entries()).map(([key, value]) => ({ _id: key, count: value })),
-    last30Days: Array.from(last30DaysMap.entries()).map(([key, value]) => ({ _id: key, count: value })),
+    last30Days: Array.from(last30DaysMap.entries()).map(([key, value]) => ({
+      _id: key,
+      count: value,
+    })),
   };
 }
 

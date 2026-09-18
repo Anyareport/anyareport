@@ -1,20 +1,17 @@
-import { getDemoAnalytics, getDemoDbSnapshot, getDemoProfile, getDemoSession, setDemoDbSnapshot, createReportId, createNotificationId, createAuditId } from './demoStore';
+import {
+  getDemoAnalytics,
+  getDemoDbSnapshot,
+  getDemoProfile,
+  getDemoSession,
+  setDemoDbSnapshot,
+  createReportId,
+  createNotificationId,
+  createAuditId,
+} from './demoStore';
 import type { Report, UserProfile } from './api';
 
 function now() {
   return new Date().toISOString();
-}
-
-function pickCommittee(category: string) {
-  const map: Record<string, string | null> = {
-    'Public Concerns': 'Peace and Order',
-    'Blotter Cases': 'Peace and Order',
-    'Emergency Situations': null,
-    'Infrastructure Damage': 'Infrastructure',
-    'Health and Sanitation': 'Health and Sanitation',
-    Environmental: 'Environmental Protection',
-  };
-  return map[category] ?? null;
 }
 
 function normalizePath(path: string) {
@@ -27,11 +24,12 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
   const method = (options.method || 'GET').toUpperCase();
   const db = getDemoDbSnapshot();
   const session = getDemoSession();
-  const body = options.body instanceof FormData
-    ? Object.fromEntries(options.body.entries())
-    : options.body
-      ? JSON.parse(String(options.body))
-      : {};
+  const body =
+    options.body instanceof FormData
+      ? Object.fromEntries(options.body.entries())
+      : options.body
+        ? JSON.parse(String(options.body))
+        : {};
 
   if (pathname === '/api/auth/profile' && method === 'GET') {
     return getDemoProfile() as T;
@@ -46,7 +44,6 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
       phone: body.phone || '09170000000',
       address: body.address || '',
       role: 'resident',
-      committee: null,
       status: 'active',
       emailVerified: true,
       flaggedReportCount: 0,
@@ -57,7 +54,7 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
   }
 
   if (pathname === '/api/auth/sync-claims' && method === 'POST') {
-    return { role: getDemoProfile()?.role || 'resident', committee: getDemoProfile()?.committee || null } as T;
+    return { role: getDemoProfile()?.role || 'resident' } as T;
   }
 
   if (pathname === '/api/reports/categories' && method === 'GET') {
@@ -66,7 +63,9 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
 
   if (pathname === '/api/reports/mine' && method === 'GET') {
     const uid = session?.firebaseUid || 'demo-resident-1';
-    return db.reports.filter((report) => report.submittedBy === uid).sort((a, b) => b.createdAt.localeCompare(a.createdAt)) as T;
+    return db.reports
+      .filter((report) => report.submittedBy === uid)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt)) as T;
   }
 
   if (pathname === '/api/reports/analytics' && method === 'GET') {
@@ -86,13 +85,12 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
   if (pathname === '/api/reports' && method === 'GET') {
     const status = searchParams.get('status');
     const role = getDemoProfile()?.role || 'resident';
-    const committee = getDemoProfile()?.committee;
 
     let reports = db.reports;
     if (role === 'resident') {
-      reports = reports.filter((report) => report.submittedBy === (session?.firebaseUid || 'demo-resident-1'));
-    } else if (role === 'kagawad' && committee) {
-      reports = reports.filter((report) => report.committee === committee);
+      reports = reports.filter(
+        (report) => report.submittedBy === (session?.firebaseUid || 'demo-resident-1')
+      );
     }
 
     if (status) {
@@ -107,8 +105,8 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
     const report: Report = {
       _id: createReportId(),
       submittedBy: session?.firebaseUid || 'demo-resident-1',
+      submitterName: session?.name || 'Demo Resident',
       category,
-      committee: pickCommittee(category),
       description: String(body.description || ''),
       photos: [],
       location: {
@@ -117,32 +115,46 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
         address: String(body.address || ''),
       },
       status: 'pending',
+      subcategory: null,
+      severity: null,
       aiSuggestedCategory: category,
+      aiSummary: null,
       verifiedBy: null,
       acknowledgedBy: null,
-      statusHistory: [{ status: 'pending', updatedBy: session?.firebaseUid || 'demo-resident-1', timestamp: now() }],
+      statusHistory: [
+        {
+          status: 'pending',
+          updatedBy: session?.firebaseUid || 'demo-resident-1',
+          timestamp: now(),
+        },
+      ],
       createdAt: now(),
       updatedAt: now(),
     };
 
     db.reports = [report, ...db.reports];
-    db.auditLogs = [{
-      _id: createAuditId(),
-      action: 'report_submitted',
-      actorUid: report.submittedBy,
-      reportId: report._id,
-      ip: '127.0.0.1',
-      userAgent: 'Demo mode',
-      metadata: { category },
-      timestamp: now(),
-      createdAt: now(),
-      updatedAt: now(),
-    }, ...db.auditLogs];
+    db.auditLogs = [
+      {
+        _id: createAuditId(),
+        action: 'report_submitted',
+        actorUid: report.submittedBy,
+        reportId: report._id,
+        ip: '127.0.0.1',
+        userAgent: 'Demo mode',
+        metadata: { category },
+        timestamp: now(),
+        createdAt: now(),
+        updatedAt: now(),
+      },
+      ...db.auditLogs,
+    ];
     setDemoDbSnapshot(db);
     return report as T;
   }
 
-  const reportMatch = pathname.match(/^\/api\/reports\/([^/]+)(?:\/(verify|flag|status|acknowledge))?$/);
+  const reportMatch = pathname.match(
+    /^\/api\/reports\/([^/]+)(?:\/(verify|flag|status|acknowledge))?$/
+  );
   if (reportMatch) {
     const reportId = reportMatch[1];
     const action = reportMatch[2] || null;
@@ -159,7 +171,11 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
     if (method === 'POST' && action === 'verify') {
       report.status = 'verified';
       report.verifiedBy = getDemoProfile()?.firebaseUid || 'demo-secretary-1';
-      report.statusHistory.push({ status: 'verified', updatedBy: report.verifiedBy, timestamp: now() });
+      report.statusHistory.push({
+        status: 'verified',
+        updatedBy: report.verifiedBy,
+        timestamp: now(),
+      });
       db.notifications.unshift({
         _id: createNotificationId(),
         recipientUid: 'demo-responder-1',
@@ -190,7 +206,11 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
 
     if (method === 'POST' && action === 'flag') {
       report.status = 'flagged';
-      report.statusHistory.push({ status: 'flagged', updatedBy: getDemoProfile()?.firebaseUid || 'demo-secretary-1', timestamp: now() });
+      report.statusHistory.push({
+        status: 'flagged',
+        updatedBy: getDemoProfile()?.firebaseUid || 'demo-secretary-1',
+        timestamp: now(),
+      });
       setDemoDbSnapshot(db);
       return report as T;
     }
@@ -198,7 +218,11 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
     if (method === 'PATCH' && action === 'status') {
       const nextStatus = String(body.status || 'en_route') as Report['status'];
       report.status = nextStatus;
-      report.statusHistory.push({ status: nextStatus, updatedBy: getDemoProfile()?.firebaseUid || 'demo-responder-1', timestamp: now() });
+      report.statusHistory.push({
+        status: nextStatus,
+        updatedBy: getDemoProfile()?.firebaseUid || 'demo-responder-1',
+        timestamp: now(),
+      });
       setDemoDbSnapshot(db);
       return report as T;
     }
@@ -207,7 +231,11 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
       report.acknowledgedBy = getDemoProfile()?.firebaseUid || 'demo-responder-1';
       if (report.status === 'verified') {
         report.status = 'en_route';
-        report.statusHistory.push({ status: 'en_route', updatedBy: report.acknowledgedBy, timestamp: now() });
+        report.statusHistory.push({
+          status: 'en_route',
+          updatedBy: report.acknowledgedBy,
+          timestamp: now(),
+        });
       }
       setDemoDbSnapshot(db);
       return report as T;
@@ -216,7 +244,9 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
 
   if (pathname === '/api/notifications' && method === 'GET') {
     const uid = getDemoProfile()?.firebaseUid || 'demo-responder-1';
-    return db.notifications.filter((notification) => notification.recipientUid === uid).sort((a, b) => b.createdAt.localeCompare(a.createdAt)) as T;
+    return db.notifications
+      .filter((notification) => notification.recipientUid === uid)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt)) as T;
   }
 
   const notificationMatch = pathname.match(/^\/api\/notifications\/([^/]+)\/read$/);
@@ -247,7 +277,6 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
       phone: String(body.phone || ''),
       address: String(body.address || ''),
       role: role as UserProfile['role'],
-      committee: body.committee ? String(body.committee) : null,
       status: 'active',
       emailVerified: true,
       flaggedReportCount: 0,
@@ -271,7 +300,6 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
     const user = db.users.find((entry) => entry._id === userRoleMatch[1]);
     if (!user) throw new Error('User not found');
     user.role = String(body.role || user.role) as UserProfile['role'];
-    user.committee = body.committee !== undefined ? (body.committee ? String(body.committee) : null) : user.committee;
     setDemoDbSnapshot(db);
     return user as T;
   }
@@ -279,22 +307,27 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
   if (pathname === '/api/export' && method === 'GET') {
     const format = searchParams.get('format') || 'csv';
     if (format === 'pdf') {
-      const content = db.reports.map((report, index) => `${index + 1}. [${report.status}] ${report.category}`).join('\n');
+      const content = db.reports
+        .map((report, index) => `${index + 1}. [${report.status}] ${report.category}`)
+        .join('\n');
       return new Blob([content], { type: 'application/pdf' }) as T;
     }
 
-    const rows = ['id,category,committee,status,description,latitude,longitude,submittedAt'];
+    const rows = ['id,category,status,description,latitude,longitude,submittedAt'];
     db.reports.forEach((report) => {
-      rows.push([
-        report._id,
-        report.category,
-        report.committee || '',
-        report.status,
-        report.description.replace(/"/g, '""'),
-        report.location.coordinates[1],
-        report.location.coordinates[0],
-        report.createdAt,
-      ].map((value) => `"${String(value)}"`).join(','));
+      rows.push(
+        [
+          report._id,
+          report.category,
+          report.status,
+          report.description.replace(/"/g, '""'),
+          report.location.coordinates[1],
+          report.location.coordinates[0],
+          report.createdAt,
+        ]
+          .map((value) => `"${String(value)}"`)
+          .join(',')
+      );
     });
     return new Blob([rows.join('\n')], { type: 'text/csv' }) as T;
   }

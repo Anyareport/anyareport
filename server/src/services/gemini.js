@@ -1,22 +1,12 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // ASSUMPTION: Unified category list reconciles two manuscript lists
-const VALID_CATEGORIES = [
-  'Public Concerns',
-  'Blotter Cases',
-  'Emergency Situations',
-  'Infrastructure Damage',
-  'Health and Sanitation',
-  'Environmental',
-];
+const VALID_CATEGORIES = ['Public Concerns', 'Blotter Cases', 'Emergency Situations'];
 
 const SUBCATEGORY_MAP = {
   'Public Concerns': ['Sanitation', 'Infrastructure'],
   'Blotter Cases': ['Civil', 'Criminal'],
   'Emergency Situations': ['Public', 'Private'],
-  'Infrastructure Damage': ['Roads', 'Buildings', 'Utilities'],
-  'Health and Sanitation': ['Waste', 'Water', 'Disease'],
-  Environmental: ['Flooding', 'Pollution', 'Deforestation'],
 };
 
 const VALID_SEVERITIES = ['Low', 'Medium', 'High', 'Critical'];

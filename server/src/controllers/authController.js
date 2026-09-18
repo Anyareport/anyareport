@@ -42,7 +42,7 @@ export async function registerProfile(req, res) {
 
     const admin = getFirebaseAdmin();
     if (admin) {
-      await admin.auth().setCustomUserClaims(uid, { role: 'resident', committee: null });
+      await admin.auth().setCustomUserClaims(uid, { role: 'resident' });
     }
 
     res.status(201).json(user);
@@ -105,11 +105,10 @@ export async function syncClaims(req, res) {
     if (admin) {
       await admin.auth().setCustomUserClaims(profile.firebaseUid, {
         role: profile.role,
-        committee: profile.committee,
       });
     }
 
-    res.json({ role: profile.role, committee: profile.committee });
+    res.json({ role: profile.role });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

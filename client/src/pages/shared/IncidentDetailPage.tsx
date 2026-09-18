@@ -84,7 +84,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   });
 
   const canManageStatus = useMemo(
-    () => ['secretary', 'kagawad', 'tanod', 'responder'].includes(role || ''),
+    () => ['secretary', 'tanod', 'responder'].includes(role || ''),
     [role]
   );
 
@@ -125,7 +125,6 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                 {report.aiSuggestedCategory && (
                   <Tag color="purple">AI: {report.aiSuggestedCategory}</Tag>
                 )}
-                <Tag>{report.committee || 'No committee'}</Tag>
                 <Tag>{getRoleLabel(profile?.role)}</Tag>
               </Space>
 

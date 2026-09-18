@@ -16,7 +16,7 @@ router.patch('/:id/read', markRead);
 
 const exportRouter = Router();
 exportRouter.use(verifyToken);
-exportRouter.use(requireRole('admin', 'captain', 'secretary', 'kagawad'));
+exportRouter.use(requireRole('admin', 'captain', 'secretary'));
 exportRouter.get('/', exportReports);
 
 export { router as notificationRoutes, exportRouter as exportRoutes };

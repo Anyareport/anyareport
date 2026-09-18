@@ -69,7 +69,10 @@ function App() {
           <Route path="/resident/submit" element={<SubmitReportPage />} />
           <Route path="/resident/reports" element={<MyReportsPage />} />
           <Route path="/resident/reports/:id" element={<ReportDetailPage />} />
-          <Route path="/resident/notifications" element={<NotificationsPage title="Resident Notifications" />} />
+          <Route
+            path="/resident/notifications"
+            element={<NotificationsPage title="Resident Notifications" />}
+          />
           <Route path="/resident/profile" element={<ProfilePage title="Resident Profile" />} />
         </Route>
       </Route>
@@ -80,11 +83,14 @@ function App() {
           <Route path="/responder/alerts" element={<ResponderAlertsPage />} />
           <Route path="/responder/routing" element={<ResponderRoutingPage />} />
           <Route path="/responder/history" element={<ResponderHistoryPage />} />
-          <Route path="/responder/incidents/:id" element={<IncidentDetailPage variant="responder" />} />
+          <Route
+            path="/responder/incidents/:id"
+            element={<IncidentDetailPage variant="responder" />}
+          />
         </Route>
       </Route>
 
-      <Route element={<ProtectedRoute allowedRoles={['admin', 'captain', 'secretary', 'kagawad']} />}>
+      <Route element={<ProtectedRoute allowedRoles={['admin', 'captain', 'secretary']} />}>
         <Route element={<AdminShell />}>
           <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/admin/incidents" element={<AdminIncidentsPage />} />
@@ -96,7 +102,10 @@ function App() {
           <Route path="/admin/export" element={<AdminExportPage />} />
           <Route path="/admin/intake" element={<SecretaryIntakePage />} />
           <Route path="/admin/users" element={<AdminUsersPage />} />
-          <Route path="/admin/notifications" element={<NotificationsPage title="Official Notifications" />} />
+          <Route
+            path="/admin/notifications"
+            element={<NotificationsPage title="Official Notifications" />}
+          />
           <Route path="/admin/profile" element={<ProfilePage title="Official Profile" />} />
         </Route>
       </Route>

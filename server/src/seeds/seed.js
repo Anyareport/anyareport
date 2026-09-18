@@ -7,55 +7,135 @@ import Category from '../models/Category.js';
 import Notification from '../models/Notification.js';
 import AuditLog from '../models/AuditLog.js';
 
-// ASSUMPTION: Unified category list reconciles two manuscript lists
 const CATEGORIES = [
-  { name: 'Public Concerns', committee: 'Peace and Order', description: 'General public safety concerns' },
-  { name: 'Blotter Cases', committee: 'Peace and Order', description: 'Formal blotter entries' },
-  { name: 'Emergency Situations', committee: null, description: 'Medical, fire, and other emergencies' },
-  { name: 'Infrastructure Damage', committee: 'Infrastructure', description: 'Roads, bridges, public facilities' },
-  { name: 'Health and Sanitation', committee: 'Health and Sanitation', description: 'Health hazards and sanitation issues' },
-  { name: 'Environmental', committee: 'Environmental Protection', description: 'Environmental concerns and pollution' },
+  { name: 'Public Concerns', description: 'General public safety concerns' },
+  { name: 'Blotter Cases', description: 'Formal blotter entries' },
+  { name: 'Emergency Situations', description: 'Medical, fire, and other emergencies' },
 ];
 
 const BARANGAY_CENTER = [121.3708, 16.4833]; // Don Mariano Marcos, Nueva Vizcaya approx
 
 const SEED_USERS = [
-  { firebaseUid: 'seed-resident-1', email: 'juan.delacruz@example.com', name: 'Juan Dela Cruz', phone: '09171234567', role: 'resident', address: 'Purok 1, Brgy. Don Mariano Marcos' },
-  { firebaseUid: 'seed-resident-2', email: 'maria.santos@example.com', name: 'Maria Santos', phone: '09181234567', role: 'resident', address: 'Purok 2, Brgy. Don Mariano Marcos' },
-  { firebaseUid: 'seed-admin-1', email: 'admin@anyareport.local', name: 'System Admin', phone: '09191234567', role: 'admin', address: 'Barangay Hall' },
-  { firebaseUid: 'seed-captain-1', email: 'captain@anyareport.local', name: 'Barangay Captain', phone: '09201234567', role: 'captain', address: 'Barangay Hall' },
-  { firebaseUid: 'seed-secretary-1', email: 'secretary@anyareport.local', name: 'Barangay Secretary', phone: '09211234567', role: 'secretary', address: 'Barangay Hall' },
-  { firebaseUid: 'seed-kagawad-po', email: 'kagawad.po@anyareport.local', name: 'Kagawad Peace & Order', phone: '09221234567', role: 'kagawad', committee: 'Peace and Order', address: 'Barangay Hall' },
-  { firebaseUid: 'seed-kagawad-infra', email: 'kagawad.infra@anyareport.local', name: 'Kagawad Infrastructure', phone: '09231234567', role: 'kagawad', committee: 'Infrastructure', address: 'Barangay Hall' },
-  { firebaseUid: 'seed-tanod-1', email: 'tanod@anyareport.local', name: 'Tanod Officer', phone: '09241234567', role: 'tanod', address: 'Barangay Hall' },
-  { firebaseUid: 'seed-responder-1', email: 'responder@anyareport.local', name: 'Emergency Responder', phone: '09251234567', role: 'responder', address: 'Barangay Hall' },
+  {
+    firebaseUid: 'seed-resident-1',
+    email: 'juan.delacruz@example.com',
+    name: 'Juan Dela Cruz',
+    phone: '09171234567',
+    role: 'resident',
+    address: 'Purok 1, Brgy. Don Mariano Marcos',
+  },
+  {
+    firebaseUid: 'seed-resident-2',
+    email: 'maria.santos@example.com',
+    name: 'Maria Santos',
+    phone: '09181234567',
+    role: 'resident',
+    address: 'Purok 2, Brgy. Don Mariano Marcos',
+  },
+  {
+    firebaseUid: 'seed-admin-1',
+    email: 'admin@anyareport.local',
+    name: 'System Admin',
+    phone: '09191234567',
+    role: 'admin',
+    address: 'Barangay Hall',
+  },
+  {
+    firebaseUid: 'seed-captain-1',
+    email: 'captain@anyareport.local',
+    name: 'Barangay Captain',
+    phone: '09201234567',
+    role: 'captain',
+    address: 'Barangay Hall',
+  },
+  {
+    firebaseUid: 'seed-secretary-1',
+    email: 'secretary@anyareport.local',
+    name: 'Barangay Secretary',
+    phone: '09211234567',
+    role: 'secretary',
+    address: 'Barangay Hall',
+  },
+  {
+    firebaseUid: 'seed-tanod-1',
+    email: 'tanod@anyareport.local',
+    name: 'Tanod Officer',
+    phone: '09241234567',
+    role: 'tanod',
+    address: 'Barangay Hall',
+  },
+  {
+    firebaseUid: 'seed-responder-1',
+    email: 'responder@anyareport.local',
+    name: 'Emergency Responder',
+    phone: '09251234567',
+    role: 'responder',
+    address: 'Barangay Hall',
+  },
 ];
 
 const REPORT_TEMPLATES = [
-  { category: 'Public Concerns', description: 'Loud karaoke party past midnight at Purok 3', status: 'pending', offset: [0.002, 0.001] },
-  { category: 'Blotter Cases', description: 'Neighbor dispute over property boundary fence', status: 'verified', offset: [-0.001, 0.002] },
-  { category: 'Emergency Situations', description: 'Elderly resident collapsed, needs medical assistance', status: 'en_route', offset: [0.003, -0.001] },
-  { category: 'Infrastructure Damage', description: 'Large pothole on main barangay road causing accidents', status: 'pending', offset: [-0.002, -0.002] },
-  { category: 'Health and Sanitation', description: 'Open drainage clogged, stagnant water breeding mosquitoes', status: 'verified', offset: [0.001, 0.003] },
-  { category: 'Environmental', description: 'Illegal dumping of garbage near the creek', status: 'on_scene', offset: [-0.003, 0.001] },
-  { category: 'Public Concerns', description: 'Stray dogs causing concern near elementary school', status: 'resolved', offset: [0.004, 0.002] },
-  { category: 'Infrastructure Damage', description: 'Broken streetlight on path to barangay hall', status: 'pending', offset: [-0.001, -0.003] },
-  { category: 'Emergency Situations', description: 'Grass fire reported near rice fields', status: 'resolved', offset: [0.002, -0.002] },
-  { category: 'Health and Sanitation', description: 'Uncollected garbage for over a week in Purok 4', status: 'flagged', offset: [0.001, -0.001] },
-  { category: 'Environmental', description: 'Smoke from burning plastics affecting residents', status: 'verified', offset: [-0.002, 0.003] },
-  { category: 'Blotter Cases', description: 'Theft of motorcycle parts reported', status: 'pending', offset: [0.003, 0.001] },
-  { category: 'Public Concerns', description: 'Suspicious individuals loitering near chapel at night', status: 'verified', offset: [-0.003, -0.001] },
-  { category: 'Infrastructure Damage', description: 'Damaged footbridge over irrigation canal', status: 'en_route', offset: [0.001, 0.002] },
-  { category: 'Health and Sanitation', description: 'Contaminated water source reported by residents', status: 'on_scene', offset: [-0.001, 0.001] },
-  { category: 'Environmental', description: 'Trees being cut without permit near watershed', status: 'pending', offset: [0.002, 0.003] },
-  { category: 'Emergency Situations', description: 'Child missing, last seen near basketball court', status: 'verified', offset: [-0.002, 0.002] },
-  { category: 'Public Concerns', description: 'Illegal gambling operation reported', status: 'resolved', offset: [0.003, -0.003] },
+  {
+    category: 'Public Concerns',
+    description: 'Loud karaoke party past midnight at Purok 3',
+    status: 'pending',
+    offset: [0.002, 0.001],
+  },
+  {
+    category: 'Blotter Cases',
+    description: 'Neighbor dispute over property boundary fence',
+    status: 'verified',
+    offset: [-0.001, 0.002],
+  },
+  {
+    category: 'Emergency Situations',
+    description: 'Elderly resident collapsed, needs medical assistance',
+    status: 'en_route',
+    offset: [0.003, -0.001],
+  },
+  {
+    category: 'Public Concerns',
+    description: 'Stray dogs causing concern near elementary school',
+    status: 'resolved',
+    offset: [0.004, 0.002],
+  },
+  {
+    category: 'Emergency Situations',
+    description: 'Grass fire reported near rice fields',
+    status: 'resolved',
+    offset: [0.002, -0.002],
+  },
+  {
+    category: 'Blotter Cases',
+    description: 'Theft of motorcycle parts reported',
+    status: 'pending',
+    offset: [0.003, 0.001],
+  },
+  {
+    category: 'Public Concerns',
+    description: 'Suspicious individuals loitering near chapel at night',
+    status: 'verified',
+    offset: [-0.003, -0.001],
+  },
+  {
+    category: 'Blotter Cases',
+    description: 'Noise complaint escalated after repeated warnings',
+    status: 'flagged',
+    offset: [0.001, -0.001],
+  },
+  {
+    category: 'Emergency Situations',
+    description: 'Child missing, last seen near basketball court',
+    status: 'verified',
+    offset: [-0.002, 0.002],
+  },
+  {
+    category: 'Public Concerns',
+    description: 'Illegal gambling operation reported',
+    status: 'resolved',
+    offset: [0.003, -0.003],
+  },
 ];
-
-function getCommittee(categoryName) {
-  const cat = CATEGORIES.find((c) => c.name === categoryName);
-  return cat?.committee || null;
-}
 
 async function seed() {
   const connected = await connectDB();
@@ -87,7 +167,6 @@ async function seed() {
     const report = await Report.create({
       submittedBy: submitter,
       category: t.category,
-      committee: getCommittee(t.category),
       description: t.description,
       photos: [],
       location: {

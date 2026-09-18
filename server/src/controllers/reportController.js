@@ -6,22 +6,13 @@ import { classifyReport } from '../services/gemini.js';
 import { notifyOnStatusUpdate, notifyOnVerification } from '../services/notifications.js';
 import { antiAbuseConfig } from '../config/antiAbuse.js';
 import { uploadImage } from '../services/cloudinary.js';
-import {
-  scopeToCommittee,
-  assertCommitteeAccess,
-  canUpdateStatus,
-  canVerifyReports,
-} from '../middleware/rbac.js';
+import { canUpdateStatus, canVerifyReports } from '../middleware/rbac.js';
 
 // Resolves a Firebase UID to the user's display name, falling back to the UID
 // so statusHistory doesn't become an empty string.
 async function resolveActorName(uid) {
   const user = await User.findOne({ firebaseUid: uid }).select('name').lean();
   return user?.name || uid;
-}
-async function getCommitteeForCategory(categoryName) {
-  const cat = await Category.findOne({ name: categoryName });
-  return cat?.committee || null;
 }
 
 async function logAudit(action, req, reportId, metadata = {}) {
@@ -73,7 +64,6 @@ export async function createReport(req, res) {
         .json({ error: 'Provide a description (min. 10 characters) or attach a photo' });
     }
 
-    const committee = await getCommitteeForCategory(category);
     const uploadedPhotos = await Promise.all(
       (req.files || []).map((file) => uploadImage(file.buffer, file.mimetype))
     );
@@ -96,7 +86,6 @@ export async function createReport(req, res) {
       category,
       subcategory: subcategory || null,
       severity: severity || null,
-      committee,
       description: trimmedDescription,
       photos,
       location: {
@@ -140,7 +129,6 @@ export async function getMyReports(req, res) {
 export async function getReports(req, res) {
   try {
     let query = {};
-    query = scopeToCommittee(query, req.userRole, req.userCommittee);
 
     if (req.query.status) query.status = req.query.status;
 
@@ -171,10 +159,6 @@ export async function getReportById(req, res) {
 
     if (req.userRole === 'resident' && report.submittedBy !== req.firebaseUser.uid) {
       return res.status(403).json({ error: 'Access denied' });
-    }
-
-    if (!assertCommitteeAccess(req, report.committee)) {
-      return res.status(403).json({ error: 'Access denied — committee scope' });
     }
 
     const submitter = await User.findOne({ firebaseUid: report.submittedBy }).select('name').lean();
@@ -260,10 +244,6 @@ export async function updateReportStatus(req, res) {
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ error: 'Report not found' });
 
-    if (!assertCommitteeAccess(req, report.committee)) {
-      return res.status(403).json({ error: 'Access denied — committee scope' });
-    }
-
     const isResponder = ['tanod', 'responder'].includes(req.userRole);
     const isOfficial = canUpdateStatus(req.userRole);
 
@@ -328,10 +308,7 @@ export async function getCategories(req, res) {
 
 export async function getAnalytics(req, res) {
   try {
-    let match = {};
-    if (req.userRole === 'kagawad' && req.userCommittee) {
-      match.committee = req.userCommittee;
-    }
+    const match = {};
 
     const byCategory = await Report.aggregate([
       { $match: match },
@@ -345,14 +322,8 @@ export async function getAnalytics(req, res) {
     ]);
 
     const total = await Report.countDocuments(match);
-    const resolved = await Report.countDocuments({
-      ...match,
-      status: 'resolved',
-    });
-    const pending = await Report.countDocuments({
-      ...match,
-      status: 'pending',
-    });
+    const resolved = await Report.countDocuments({ ...match, status: 'resolved' });
+    const pending = await Report.countDocuments({ ...match, status: 'pending' });
 
     const last30Days = await Report.aggregate([
       {
@@ -386,10 +357,7 @@ export async function getAnalytics(req, res) {
 
 export async function getHeatmapData(req, res) {
   try {
-    let match = { 'location.coordinates': { $exists: true } };
-    if (req.userRole === 'kagawad' && req.userCommittee) {
-      match.committee = req.userCommittee;
-    }
+    const match = { 'location.coordinates': { $exists: true } };
 
     const points = await Report.find(match).select('_id location category status createdAt');
     res.json(
