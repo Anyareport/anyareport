@@ -3,6 +3,7 @@ import {
   DashboardOutlined,
   AlertOutlined,
   HistoryOutlined,
+  EnvironmentOutlined,
   BellOutlined,
   UserOutlined,
 } from '@ant-design/icons';
@@ -14,7 +15,7 @@ import { api, type Report } from '../lib/api';
 export default function ResponderShell() {
   const { data: reports = [] } = useQuery({
     queryKey: ['responder-reports'],
-    queryFn: () => api.get<Report[]>('/api/reports?status=verified'),
+    queryFn: () => api.get<Report[]>('/api/reports'),
     refetchInterval: 30000,
   });
 
@@ -32,6 +33,7 @@ export default function ResponderShell() {
           </span>
         ),
       },
+      { key: '/responder/routing', icon: <EnvironmentOutlined />, label: 'Routing' },
       { key: '/responder/history', icon: <HistoryOutlined />, label: 'History' },
       { key: '/responder/notifications', icon: <BellOutlined />, label: 'Notifications' },
       { key: '/responder/profile', icon: <UserOutlined />, label: 'Profile' },

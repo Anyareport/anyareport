@@ -83,6 +83,11 @@ function App() {
           <Route path="/responder/routing" element={<ResponderRoutingPage />} />
           <Route path="/responder/history" element={<ResponderHistoryPage />} />
           <Route
+            path="/responder/notifications"
+            element={<NotificationsPage title="Responder Notifications" />}
+          />
+          <Route path="/responder/profile" element={<ProfilePage title="Responder Profile" />} />
+          <Route
             path="/responder/incidents/:id"
             element={<IncidentDetailPage variant="responder" />}
           />

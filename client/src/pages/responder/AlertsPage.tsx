@@ -11,7 +11,7 @@ const { Text } = Typography;
 export default function ResponderAlertsPage() {
   const { data: reports = [] } = useQuery({
     queryKey: ['responder-alerts'],
-    queryFn: () => api.get<Report[]>('/api/reports?status=verified'),
+    queryFn: () => api.get<Report[]>('/api/reports'),
     refetchInterval: 15000,
   });
 

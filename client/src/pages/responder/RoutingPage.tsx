@@ -11,11 +11,17 @@ const { Text } = Typography;
 export default function ResponderRoutingPage() {
   const { data: reports = [] } = useQuery({
     queryKey: ['responder-routing'],
-    queryFn: () => api.get<Report[]>('/api/reports?status=en_route'),
+    queryFn: () => api.get<Report[]>('/api/reports'),
     refetchInterval: 30000,
   });
 
-  const sortedReports = useMemo(() => [...reports].sort(compareIncidentPriority), [reports]);
+  const sortedReports = useMemo(
+    () =>
+      reports
+        .filter((report) => ['en_route', 'on_scene'].includes(report.status))
+        .sort(compareIncidentPriority),
+    [reports]
+  );
 
   const incident = sortedReports[0];
   const [lng, lat] = incident?.location?.coordinates || [121.3708, 16.4833];

@@ -341,6 +341,11 @@ export function RouteMap({ incidentLat, incidentLng, height = 350 }: RouteMapPro
     >
       <MapResizeHandler />
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <GeoJSON
+        data={barangayData as FeatureCollection}
+        style={getBarangayStyle}
+        onEachFeature={onEachBarangayFeature}
+      />
       <Marker position={incidentPos} icon={markerIcon} />
       {responderPos && <Marker position={responderPos} icon={markerIcon} />}
       {routeCoords && (
