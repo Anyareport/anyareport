@@ -1,13 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Space, Typography, Segmented } from 'antd';
+import { Card, Space, Segmented } from 'antd';
 import { api, type Report } from '../../lib/api';
 import IncidentList from '../../components/IncidentList';
 import { formatStatus } from '../../components/StatusTag';
 import { compareIncidentPriority } from '../../lib/sortUtils';
 import PageHero from '../../components/PageHero';
-
-const { Title, Paragraph } = Typography;
 
 export interface IncidentHistoryPageProps {
   variant?: 'admin' | 'responder';
@@ -18,17 +16,22 @@ export default function IncidentHistoryPage({ variant = 'admin' }: IncidentHisto
 
   const { data: reports = [] } = useQuery({
     queryKey: variant === 'responder' ? ['responder-history'] : ['admin-reports', status],
-    queryFn: () => api.get<Report[]>(variant === 'responder' ? '/api/reports' : `/api/reports${status === 'all' ? '' : `?status=${status}`}`),
+    queryFn: () =>
+      api.get<Report[]>(
+        variant === 'responder'
+          ? '/api/reports'
+          : `/api/reports${status === 'all' ? '' : `?status=${status}`}`
+      ),
     refetchInterval: 30000,
   });
 
   const filtered = useMemo(() => {
     const sorted = [...reports].sort(compareIncidentPriority);
-    
+
     if (variant === 'responder') {
       return sorted.filter((report) => report.status === 'resolved' || report.status === 'flagged');
     }
-    
+
     return sorted;
   }, [reports, variant]);
 

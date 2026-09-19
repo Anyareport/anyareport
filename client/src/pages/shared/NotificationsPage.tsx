@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge, Button, Card, Empty, List, Space, Typography, message } from 'antd';
-import { BellOutlined, CheckOutlined } from '@ant-design/icons';
+import { CheckOutlined } from '@ant-design/icons';
 import { api, type Notification } from '../../lib/api';
 import { getSocket } from '../../lib/socket';
 import PageHero from '../../components/PageHero';
