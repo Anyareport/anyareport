@@ -2,18 +2,19 @@ import { Parser } from 'json2csv';
 import PDFDocument from 'pdfkit';
 
 export function exportToCSV(reports) {
-  const rows = reports.map((r) => ({
-    id: r._id.toString(),
-    category: r.category,
-    status: r.status,
-    description: r.description,
-    latitude: r.location?.coordinates?.[1] ?? '',
-    longitude: r.location?.coordinates?.[0] ?? '',
-    submittedAt: r.createdAt?.toISOString() ?? '',
+  const rows = reports.map((report) => ({
+    id: report._id?.toString() ?? '',
+    category: report.category ?? '',
+    status: report.status ?? '',
+    description: report.description ?? '',
+    address: report.location?.address ?? '',
+    submittedAt: report.createdAt ? new Date(report.createdAt).toISOString() : '',
   }));
 
-  const parser = new Parser();
-  return parser.parse(rows);
+  const parser = new Parser({
+    fields: ['id', 'category', 'status', 'description', 'address', 'submittedAt'],
+  });
+  return `\uFEFF${parser.parse(rows)}`;
 }
 
 export function exportToPDF(reports) {

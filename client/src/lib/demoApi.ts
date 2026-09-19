@@ -313,7 +313,7 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
       return new Blob([content], { type: 'application/pdf' }) as T;
     }
 
-    const rows = ['id,category,status,description,latitude,longitude,submittedAt'];
+    const rows = ['id,category,status,description,address,submittedAt'];
     db.reports.forEach((report) => {
       rows.push(
         [
@@ -321,8 +321,7 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
           report.category,
           report.status,
           report.description.replace(/"/g, '""'),
-          report.location.coordinates[1],
-          report.location.coordinates[0],
+          report.location.address,
           report.createdAt,
         ]
           .map((value) => `"${String(value)}"`)

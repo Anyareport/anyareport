@@ -97,7 +97,9 @@ function App() {
           {/* <Route path="/admin/map" element={<AdminMapPage />} /> */}
           <Route path="/admin/heatmap" element={<AdminHeatmapPage />} />
           <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
-          <Route path="/admin/audit" element={<AdminAuditLogPage />} />
+          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+            <Route path="/admin/audit" element={<AdminAuditLogPage />} />
+          </Route>
           <Route path="/admin/export" element={<AdminExportPage />} />
           <Route path="/admin/intake" element={<SecretaryIntakePage />} />
           <Route path="/admin/users" element={<AdminUsersPage />} />

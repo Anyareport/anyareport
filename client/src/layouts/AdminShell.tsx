@@ -70,7 +70,7 @@ export default function AdminShell() {
       items.push({ key: '/admin/users', icon: <TeamOutlined />, label: 'User Management' });
     }
 
-    if (['admin', 'captain', 'secretary'].includes(role || '')) {
+    if (role === 'admin') {
       items.splice(items.length - 2, 0, {
         key: '/admin/audit',
         icon: <AuditOutlined />,

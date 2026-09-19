@@ -6,7 +6,7 @@ import { getAuditLogs } from '../controllers/auditController.js';
 const router = Router();
 
 router.use(verifyToken);
-router.use(requireRole('admin', 'captain', 'secretary'));
+router.use(requireRole('admin'));
 
 router.get('/', getAuditLogs);
 

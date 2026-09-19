@@ -25,9 +25,7 @@ export function canManageUsers(role) {
 }
 
 export function getAuditScope(role) {
-  // ASSUMPTION: Audit trail visibility per role
+  // Audit logs are restricted to administrators.
   if (role === 'admin') return { scope: 'full' };
-  if (role === 'captain') return { scope: 'all', readOnly: true };
-  if (role === 'secretary') return { scope: 'case', readOnly: true };
   return { scope: 'none' };
 }

@@ -49,19 +49,32 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const completingProfile = Boolean(firebaseUser && !profile);
 
+  const getNameFields = (displayName: string | null | undefined) => {
+    const parts = displayName?.trim().split(/\s+/).filter(Boolean) || [];
+    if (parts.length < 2) {
+      return { firstName: parts[0] || '', lastName: '' };
+    }
+    return {
+      firstName: parts[0],
+      lastName: parts.slice(1).join(' '),
+    };
+  };
+
   useEffect(() => {
     if (completingProfile) {
       form.setFieldsValue({
-        name: firebaseUser?.displayName || '',
+        ...getNameFields(firebaseUser?.displayName),
         email: firebaseUser?.email || '',
       });
     }
   }, [completingProfile, firebaseUser, form]);
 
   const handleRegister = async (values: {
-    name: string;
+    firstName: string;
+    lastName: string;
     email: string;
     password: string;
+    confirmPassword?: string;
     phone: string;
     address: string;
   }) => {
@@ -73,6 +86,7 @@ export default function RegisterPage() {
       const captchaToken = await getCaptchaToken();
       await api.post('/api/auth/register', {
         ...values,
+        name: [values.firstName, values.lastName].filter(Boolean).join(' '),
         email: completingProfile ? firebaseUser?.email : values.email,
         captchaToken,
       });
@@ -98,7 +112,10 @@ export default function RegisterPage() {
         navigate(getRedirectPath(existingProfile.role));
       } catch (err: unknown) {
         if (err instanceof Error && err.message === 'Profile not found') {
-          form.setFieldsValue({ name: user.displayName || '', email: user.email || '' });
+          form.setFieldsValue({
+            ...getNameFields(user.displayName),
+            email: user.email || '',
+          });
           message.info('Complete your profile to finish Google sign-up.');
           return;
         }
@@ -141,14 +158,36 @@ export default function RegisterPage() {
         />
 
         <Form form={form} layout="vertical" onFinish={handleRegister}>
-          <Form.Item name="name" label="Full Name" rules={[{ required: true }]}>
+          <Form.Item name="firstName" label="First Name" rules={[{ required: true }]}> 
             <Input size="large" />
           </Form.Item>
+          <Form.Item name="lastName" label="Last Name" rules={[{ required: true }]}> 
+            <Input size="large" />
+          </Form.Item>
+          
           <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
             <Input size="large" disabled={completingProfile} />
           </Form.Item>
           {!completingProfile && (
             <Form.Item name="password" label="Password" rules={[{ required: true, min: 6 }]}>
+              <Input.Password size="large" />
+            </Form.Item>
+          )}
+          {!completingProfile && (
+            <Form.Item
+              name="confirmPassword"
+              label="Confirm Password"
+              dependencies={['password']}
+              rules={[
+                { required: true, message: 'Please confirm your password.' },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue('password') === value) return Promise.resolve();
+                    return Promise.reject(new Error('Passwords do not match.'));
+                  },
+                }),
+              ]}
+            >
               <Input.Password size="large" />
             </Form.Item>
           )}
