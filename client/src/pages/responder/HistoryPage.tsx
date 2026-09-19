@@ -1,36 +1,5 @@
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Card, Space } from 'antd';
-import { api, type Report } from '../../lib/api';
-import IncidentList from '../../components/IncidentList';
-import { compareIncidentPriority } from '../../lib/sortUtils';
-import PageHero from '../../components/PageHero';
+import IncidentHistoryPage from '../shared/IncidentHistoryPage';
 
 export default function ResponderHistoryPage() {
-  const { data: reports = [] } = useQuery({
-    queryKey: ['responder-history'],
-    queryFn: () => api.get<Report[]>('/api/reports'),
-    refetchInterval: 60000,
-  });
-
-  const history = useMemo(
-    () =>
-      reports
-        .filter((report) => report.status === 'resolved' || report.status === 'flagged')
-        .sort(compareIncidentPriority),
-    [reports]
-  );
-
-  return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <PageHero
-        title="History"
-        description="Closed and reviewed incidents remain searchable for follow-up and after-action review."
-      />
-
-      <Card className="soft-card" title="Incident history">
-        <IncidentList reports={history} basePath="/responder/incidents" />
-      </Card>
-    </Space>
-  );
+  return <IncidentHistoryPage variant="responder" />;
 }

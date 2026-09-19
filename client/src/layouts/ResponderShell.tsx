@@ -121,7 +121,7 @@ export default function ResponderShell() {
         </Content>
       </Layout>
 
-      <Footer
+      {/* <Footer
         style={{
           textAlign: 'center',
           background: 'var(--bg-primary)',
@@ -131,7 +131,7 @@ export default function ResponderShell() {
         }}
       >
         Field Responder Interface
-      </Footer>
+      </Footer> */}
 
       <Drawer
         open={drawerOpen}

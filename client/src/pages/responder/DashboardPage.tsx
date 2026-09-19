@@ -36,10 +36,10 @@ export default function ResponderDashboardPage() {
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Card className="soft-card page-hero">
-        <Title level={2} style={{ color: '#fff', marginTop: 0 }}>
+        <Title level={2} style={{ marginTop: 0 }}>
           Responder Command
         </Title>
-        <Paragraph style={{ color: 'rgba(255,255,255,0.82)' }}>
+        <Paragraph>
           Field responders monitor verified incidents, route to active scenes, and close reports in
           the field.
         </Paragraph>
