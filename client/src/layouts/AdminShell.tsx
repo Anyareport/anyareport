@@ -1,4 +1,4 @@
-import { Layout, Menu, Button, Drawer, Grid, Badge } from 'antd';
+import { Badge } from 'antd';
 import {
   DashboardOutlined,
   UnorderedListOutlined,
@@ -10,28 +10,15 @@ import {
   InboxOutlined,
   BellOutlined,
   UserOutlined,
-  LogoutOutlined,
-  MenuOutlined,
 } from '@ant-design/icons';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import Logo from '../components/Logo';
-import ThemeToggle from '../components/ThemeToggle';
-import { logout } from '../lib/firebase';
+import AppShell from './AppShell';
 import { useAuth } from '../contexts/AuthContext';
 import { api, type Notification, type Report } from '../lib/api';
 
-const { Header, Sider, Content } = Layout;
-const { useBreakpoint } = Grid;
-
 export default function AdminShell() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const screens = useBreakpoint();
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
-  const { profile, role } = useAuth();
+  const { role } = useAuth();
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['admin-notifications'],
@@ -94,94 +81,7 @@ export default function AdminShell() {
     return items;
   }, [role, unreadCount, pendingReports.length]);
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
-
-  const menu = (
-    <Menu
-      theme="light"
-      mode="inline"
-      selectedKeys={[location.pathname]}
-      items={menuItems}
-      onClick={({ key }) => {
-        navigate(key);
-        setDrawerOpen(false);
-      }}
-    />
-  );
-
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      {screens.md ? (
-        <Sider
-          theme="light"
-          collapsible
-          collapsed={collapsed}
-          onCollapse={setCollapsed}
-          width={240}
-          style={{
-            position: 'sticky',
-            top: 0,
-            height: '100vh',
-            overflow: 'auto',
-            borderRight: '1px solid var(--border-default)',
-          }}
-        >
-          <div style={{ padding: '16px 12px', textAlign: 'center' }}>
-            <Logo light size={collapsed ? 'sm' : 'md'} />
-          </div>
-          {menu}
-        </Sider>
-      ) : null}
-
-      <Layout>
-        <Header
-          style={{
-            background: 'var(--bg-primary)',
-            padding: '0 16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderBottom: '1px solid var(--border-default)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {!screens.md && <Button icon={<MenuOutlined />} onClick={() => setDrawerOpen(true)} />}
-            {!screens.md && <Logo size="sm" />}
-            <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
-              {role?.toUpperCase()}
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 13 }}>{profile?.name}</span>
-            <ThemeToggle />
-            <Button type="text" icon={<LogoutOutlined />} onClick={handleLogout} />
-          </div>
-        </Header>
-
-        <Content
-          style={{
-            margin: screens.md ? 24 : 12,
-            minHeight: 280,
-          }}
-        >
-          <Outlet />
-        </Content>
-      </Layout>
-
-      <Drawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        placement="left"
-        styles={{ body: { padding: 0 } }}
-      >
-        <div style={{ padding: 16 }}>
-          <Logo light size="sm" />
-        </div>
-        {menu}
-      </Drawer>
-    </Layout>
+    <AppShell menuItems={menuItems} siderWidth={240} roleLabel={role?.toUpperCase()} collapsible />
   );
 }
