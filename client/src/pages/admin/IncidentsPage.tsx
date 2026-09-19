@@ -1,12 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { Card, Space, Typography, Segmented } from 'antd';
+import { Card, Space, Segmented } from 'antd';
 import { useMemo, useState } from 'react';
 import { api, type Report } from '../../lib/api';
 import IncidentList from '../../components/IncidentList';
 import { formatStatus } from '../../components/StatusTag';
 import { compareIncidentPriority } from '../../lib/sortUtils';
-
-const { Title, Paragraph } = Typography;
+import PageHero from '../../components/PageHero';
 
 export default function AdminIncidentsPage() {
   const [status, setStatus] = useState<string | 'all'>('all');
@@ -22,14 +21,10 @@ export default function AdminIncidentsPage() {
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Card className="soft-card page-hero">
-        <Title level={2} style={{ color: '#fff', marginTop: 0 }}>
-          Incidents
-        </Title>
-        <Paragraph style={{ color: 'rgba(255,255,255,0.82)' }}>
-          Desktop table on larger screens, card-per-incident layout below tablet width.
-        </Paragraph>
-      </Card>
+      <PageHero
+        title="Incidents"
+        description="Desktop table on larger screens, card-per-incident layout below tablet width."
+      />
 
       <Card className="soft-card">
         <Segmented

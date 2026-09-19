@@ -1,7 +1,12 @@
 import { ConfigProvider, theme as antdTheme } from 'antd';
 import type { ReactNode } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
-import { baseAntdTheme, darkTokenOverrides, lightTokenOverrides } from './antdTheme';
+import {
+  baseAntdTheme,
+  darkTokenOverrides,
+  lightTokenOverrides,
+  darkComponentOverrides,
+} from './antdTheme';
 
 export function AntdThemeProvider({ children }: { children: ReactNode }) {
   const { theme } = useTheme();
@@ -15,6 +20,10 @@ export function AntdThemeProvider({ children }: { children: ReactNode }) {
         token: {
           ...baseAntdTheme.token,
           ...(isDark ? darkTokenOverrides : lightTokenOverrides),
+        },
+        components: {
+          ...baseAntdTheme.components,
+          ...(isDark ? darkComponentOverrides : {}),
         },
       }}
     >

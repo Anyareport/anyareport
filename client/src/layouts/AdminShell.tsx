@@ -101,7 +101,7 @@ export default function AdminShell() {
 
   const menu = (
     <Menu
-      theme="dark"
+      theme="light"
       mode="inline"
       selectedKeys={[location.pathname]}
       items={menuItems}
@@ -116,6 +116,7 @@ export default function AdminShell() {
     <Layout style={{ minHeight: '100vh' }}>
       {screens.md ? (
         <Sider
+          theme="light"
           collapsible
           collapsed={collapsed}
           onCollapse={setCollapsed}
@@ -125,6 +126,7 @@ export default function AdminShell() {
             top: 0,
             height: '100vh',
             overflow: 'auto',
+            borderRight: '1px solid var(--border-default)',
           }}
         >
           <div style={{ padding: '16px 12px', textAlign: 'center' }}>
@@ -163,7 +165,6 @@ export default function AdminShell() {
           style={{
             margin: screens.md ? 24 : 12,
             minHeight: 280,
-            background: 'var(--bg-secondary)',
           }}
         >
           <Outlet />
@@ -174,7 +175,7 @@ export default function AdminShell() {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         placement="left"
-        styles={{ body: { padding: 0, background: 'var(--brand-navy)' } }}
+        styles={{ body: { padding: 0 } }}
       >
         <div style={{ padding: 16 }}>
           <Logo light size="sm" />

@@ -1,12 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { Card, Space, Typography, Segmented } from 'antd';
+import { Card, Space, Segmented } from 'antd';
 import { useState, useMemo } from 'react';
 import { api, type Report } from '../../lib/api';
 import IncidentList from '../../components/IncidentList';
 import { formatStatus } from '../../components/StatusTag';
 import { compareIncidentPriority } from '../../lib/sortUtils';
-
-const { Title, Paragraph } = Typography;
+import PageHero from '../../components/PageHero';
 
 export default function SecretaryIntakePage() {
   const [status, setStatus] = useState<string | 'all'>('pending');
@@ -23,14 +22,10 @@ export default function SecretaryIntakePage() {
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Card className="soft-card page-hero">
-        <Title level={2} style={{ color: '#fff', marginTop: 0 }}>
-          Intake queue
-        </Title>
-        <Paragraph style={{ color: 'rgba(255,255,255,0.82)' }}>
-          Secretary review queue for new submissions. Resolved cases are pushed to the bottom.
-        </Paragraph>
-      </Card>
+      <PageHero
+        title="Intake queue"
+        description="Secretary review queue for new submissions. Resolved cases are pushed to the bottom."
+      />
 
       <Card className="soft-card">
         <Segmented

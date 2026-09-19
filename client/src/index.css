@@ -72,18 +72,19 @@ a {
 
 .page-hero {
   border: 0;
-  background: linear-gradient(135deg, var(--brand-navy) 0%, var(--brand-navy-light) 100%);
-  color: var(--neutral-white);
+  background: var(--bg-primary);
+  /* color: var(--neutral-black); */
   overflow: hidden;
+  /* display: none; */
 }
 
-.page-hero::after {
+/* .page-hero::after {
   content: '';
   position: absolute;
   inset: 0;
   background: radial-gradient(circle at top right, rgba(230, 51, 51, 0.35), transparent 30%);
   pointer-events: none;
-}
+} */
 
 .page-hero > * {
   position: relative;

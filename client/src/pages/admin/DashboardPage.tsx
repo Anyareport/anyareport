@@ -4,8 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { api, type Analytics, type Notification, type Report } from '../../lib/api';
 import { adminDashboardRoles } from '../../lib/roles';
 import StatusTag from '../../components/StatusTag';
+import PageHero from '../../components/PageHero';
 
-const { Title, Paragraph, Text } = Typography;
+const { Text } = Typography;
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
@@ -30,15 +31,10 @@ export default function AdminDashboardPage() {
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Card className="soft-card page-hero">
-        <Title level={2} style={{ color: '#fff', marginTop: 0 }}>
-          Administrative dashboard
-        </Title>
-        <Paragraph style={{ color: 'rgba(255,255,255,0.82)' }}>
-          Shared oversight for {adminDashboardRoles.length} roles, with committee scoping enforced
-          server-side.
-        </Paragraph>
-      </Card>
+      <PageHero
+        title="Administrative dashboard"
+        description={`Shared oversight for ${adminDashboardRoles.length} roles, with committee scoping enforced server-side.`}
+      />
 
       <Row gutter={[16, 16]}>
         <Col xs={24} md={8}>
@@ -67,7 +63,11 @@ export default function AdminDashboardPage() {
             className="soft-card"
             title="Latest incidents"
             extra={
-              <Button type="link" onClick={() => navigate('/admin/incidents')}>
+              <Button
+                style={{ margin: 0, padding: 0 }}
+                type="link"
+                onClick={() => navigate('/admin/incidents')}
+              >
                 View all
               </Button>
             }

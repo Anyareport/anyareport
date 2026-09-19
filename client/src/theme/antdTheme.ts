@@ -30,14 +30,20 @@ export const darkTokenOverrides: ThemeConfig['token'] = {
   colorTextBase: '#F9FAFB',
   colorBgContainer: '#0f1115',
   colorBgElevated: '#E63333',
-  colorBgLayout: '#212125',
+  colorBgLayout: '#0f1115',
   colorBorder: '#353535',
   colorBorderSecondary: '#353535',
 };
 
 export const lightTokenOverrides: ThemeConfig['token'] = {
   colorBgBase: '#FFFFFF',
-  colorTextBase: '#282F49',
+  colorTextBase: '#3c3d41',
+};
+
+export const darkComponentOverrides: ThemeConfig['components'] = {
+  Drawer: {
+    colorBgElevated: '#0f1115',
+  },
 };
 
 export const fonts = {

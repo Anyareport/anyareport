@@ -4,8 +4,9 @@ import { Badge, Button, Card, Empty, List, Space, Typography, message } from 'an
 import { BellOutlined, CheckOutlined } from '@ant-design/icons';
 import { api, type Notification } from '../../lib/api';
 import { getSocket } from '../../lib/socket';
+import PageHero from '../../components/PageHero';
 
-const { Title, Text, Paragraph } = Typography;
+const { Text } = Typography;
 
 interface NotificationsPageProps {
   title: string;
@@ -40,18 +41,13 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
   const unreadCount = notifications.filter((notification) => !notification.read).length;
 
   return (
-    <div className="page-shell">
-      <Card className="soft-card page-hero" style={{ marginBottom: 16 }}>
-        <Space direction="vertical" size={8} style={{ width: '100%' }}>
-          <Badge count={unreadCount} offset={[14, 0]}>
-            <BellOutlined style={{ fontSize: 32, color: '#fff' }} />
-          </Badge>
-          <Title level={2} style={{ color: '#fff', margin: 0 }}>{title}</Title>
-          <Paragraph style={{ color: 'rgba(255,255,255,0.82)', margin: 0 }}>
-            Incident updates, urgent alerts, and system messages appear here.
-          </Paragraph>
-        </Space>
-      </Card>
+    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      <PageHero
+        title={title}
+        description="Incident updates, urgent alerts, and system messages appear here."
+        // icon={<BellOutlined style={{ fontSize: 32 }} />}
+        badgeCount={unreadCount}
+      />
 
       <Card className="soft-card">
         {notifications.length === 0 ? (
@@ -84,7 +80,9 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
                   description={
                     <Space direction="vertical" size={2}>
                       <Text type="secondary">{notification.type.replace(/_/g, ' ')}</Text>
-                      <Text type="secondary">{new Date(notification.createdAt).toLocaleString()}</Text>
+                      <Text type="secondary">
+                        {new Date(notification.createdAt).toLocaleString()}
+                      </Text>
                     </Space>
                   }
                 />
@@ -93,6 +91,6 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
           />
         )}
       </Card>
-    </div>
+    </Space>
   );
 }

@@ -1,11 +1,10 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Space, Typography } from 'antd';
+import { Card, Space } from 'antd';
 import { api, type Report } from '../../lib/api';
 import IncidentList from '../../components/IncidentList';
 import { compareIncidentPriority } from '../../lib/sortUtils';
-
-const { Title, Paragraph } = Typography;
+import PageHero from '../../components/PageHero';
 
 export default function ResponderHistoryPage() {
   const { data: reports = [] } = useQuery({
@@ -24,14 +23,10 @@ export default function ResponderHistoryPage() {
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Card className="soft-card page-hero">
-        <Title level={2} style={{ color: '#fff', marginTop: 0 }}>
-          History
-        </Title>
-        <Paragraph style={{ color: 'rgba(255,255,255,0.82)' }}>
-          Closed and reviewed incidents remain searchable for follow-up and after-action review.
-        </Paragraph>
-      </Card>
+      <PageHero
+        title="History"
+        description="Closed and reviewed incidents remain searchable for follow-up and after-action review."
+      />
 
       <Card className="soft-card" title="Incident history">
         <IncidentList reports={history} basePath="/responder/incidents" />

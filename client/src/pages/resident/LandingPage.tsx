@@ -1,7 +1,8 @@
-import { Button, Card, Typography, Row, Col, Alert } from 'antd';
+import { Button, Card, Typography, Row, Col, Alert, Space } from 'antd';
 import { FileAddOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import PageHero from '../../components/PageHero';
 
 const { Title, Paragraph } = Typography;
 
@@ -12,43 +13,24 @@ export default function ResidentLanding() {
   const isBlocked = profile?.status === 'suspended' || !profile?.emailVerified;
 
   return (
-    <div>
-      <Card
+    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      <PageHero
+        title="Report an incident"
+        description="Help keep Barangay Don Mariano Marcos safe. Report concerns, emergencies, and infrastructure issues directly from your phone."
         className="motion-fade-up motion-delay-1"
-        style={{
-          marginBottom: 16,
-          background: 'linear-gradient(135deg, #282F49 0%, #3d4666 100%)',
-          border: 'none',
-        }}
-      >
-        <Title
-          level={2}
-          style={{
-            color: '#fff',
-            fontFamily: "'Bebas Neue', sans-serif",
-            letterSpacing: 2,
-            margin: 0,
-          }}
-        >
-          REPORT AN INCIDENT
-        </Title>
-        <Paragraph style={{ color: 'rgba(255,255,255,0.82)', marginBottom: 16 }}>
-          Help keep Barangay Don Mariano Marcos safe. Report concerns, emergencies, and
-          infrastructure issues directly from your phone.
-        </Paragraph>
-        <Button
-          type="primary"
-          size="large"
-          icon={<FileAddOutlined />}
-          onClick={() => !isBlocked && navigate('/resident/submit')}
-          style={{
-            opacity: isBlocked ? 0.5 : 1,
-            cursor: isBlocked ? 'not-allowed' : 'pointer',
-          }}
-        >
-          Submit Report
-        </Button>
-      </Card>
+        actions={
+          !isBlocked
+            ? [
+                {
+                  type: 'primary',
+                  icon: <FileAddOutlined />,
+                  label: 'Submit Report',
+                  onClick: () => navigate('/resident/submit'),
+                },
+              ]
+            : []
+        }
+      />
 
       {!profile?.emailVerified && (
         <Alert
@@ -56,7 +38,6 @@ export default function ResidentLanding() {
           message="Please verify your email to submit reports."
           description="Check your inbox for a verification link from Firebase."
           showIcon
-          style={{ marginBottom: 16 }}
         />
       )}
 
@@ -66,7 +47,6 @@ export default function ResidentLanding() {
           message="Your account has been suspended."
           description="Contact the Barangay Secretary for assistance."
           showIcon
-          style={{ marginBottom: 16 }}
         />
       )}
 
@@ -116,6 +96,6 @@ export default function ResidentLanding() {
           </Card>
         </Col>
       </Row>
-    </div>
+    </Space>
   );
 }

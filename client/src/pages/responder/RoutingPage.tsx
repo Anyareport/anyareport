@@ -4,8 +4,9 @@ import { Card, Col, Row, Space, Typography } from 'antd';
 import { api, type Report } from '../../lib/api';
 import { RouteMap } from '../../components/MapPicker';
 import { compareIncidentPriority } from '../../lib/sortUtils';
+import PageHero from '../../components/PageHero';
 
-const { Title, Paragraph, Text } = Typography;
+const { Text } = Typography;
 
 export default function ResponderRoutingPage() {
   const { data: reports = [] } = useQuery({
@@ -14,22 +15,17 @@ export default function ResponderRoutingPage() {
     refetchInterval: 30000,
   });
 
-  const sortedReports = useMemo(
-    () => [...reports].sort(compareIncidentPriority),
-    [reports],
-  );
+  const sortedReports = useMemo(() => [...reports].sort(compareIncidentPriority), [reports]);
 
   const incident = sortedReports[0];
   const [lng, lat] = incident?.location?.coordinates || [121.3708, 16.4833];
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Card className="soft-card page-hero">
-        <Title level={2} style={{ color: '#fff', marginTop: 0 }}>Routing view</Title>
-        <Paragraph style={{ color: 'rgba(255,255,255,0.82)' }}>
-          Live positioning and dispatch context for the current response.
-        </Paragraph>
-      </Card>
+      <PageHero
+        title="Routing view"
+        description="Live positioning and dispatch context for the current response."
+      />
 
       <Row gutter={[16, 16]}>
         <Col xs={24} xl={16}>

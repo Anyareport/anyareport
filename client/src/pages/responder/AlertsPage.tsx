@@ -4,8 +4,9 @@ import { Link } from 'react-router-dom';
 import { api, type Report } from '../../lib/api';
 import StatusTag from '../../components/StatusTag';
 import { compareIncidentPriority } from '../../lib/sortUtils';
+import PageHero from '../../components/PageHero';
 
-const { Title, Paragraph, Text } = Typography;
+const { Text } = Typography;
 
 export default function ResponderAlertsPage() {
   const { data: reports = [] } = useQuery({
@@ -20,14 +21,10 @@ export default function ResponderAlertsPage() {
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Card className="soft-card page-hero">
-        <Title level={2} style={{ color: '#fff', marginTop: 0 }}>
-          Alerts
-        </Title>
-        <Paragraph style={{ color: 'rgba(255,255,255,0.82)' }}>
-          Dual-layer urgent alerts surface verified incidents and emergency calls for fast triage.
-        </Paragraph>
-      </Card>
+      <PageHero
+        title="Alerts"
+        description="Dual-layer urgent alerts surface verified incidents and emergency calls for fast triage."
+      />
 
       <Row gutter={[16, 16]}>
         {alerts.map((report) => (

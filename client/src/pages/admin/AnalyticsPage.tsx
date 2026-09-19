@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Card, Col, Row, Space, Statistic, Typography, theme } from 'antd';
+import { Card, Col, Row, Space, Statistic, theme } from 'antd';
 import {
   Pie,
   PieChart,
@@ -15,8 +15,8 @@ import {
   Line,
 } from 'recharts';
 import { api, type Analytics } from '../../lib/api';
+import PageHero from '../../components/PageHero';
 
-const { Title, Paragraph } = Typography;
 const COLORS = ['#E63333', '#5b6b9a', '#ff9f43', '#2ecc71', '#8e44ad', '#06b6d4'];
 
 export default function AdminAnalyticsPage() {
@@ -33,14 +33,10 @@ export default function AdminAnalyticsPage() {
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Card className="soft-card page-hero">
-        <Title level={2} style={{ color: '#fff', marginTop: 0 }}>
-          Analytics
-        </Title>
-        <Paragraph style={{ color: 'rgba(255,255,255,0.82)' }}>
-          Operational metrics for barangay-wide or committee-scoped oversight.
-        </Paragraph>
-      </Card>
+      <PageHero
+        title="Analytics"
+        description="Operational metrics for barangay-wide or committee-scoped oversight."
+      />
 
       <Row gutter={[16, 16]}>
         <Col xs={24} md={8}>

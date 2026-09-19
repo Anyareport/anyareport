@@ -1,21 +1,8 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  Button,
-  Card,
-  Drawer,
-  Form,
-  Input,
-  Select,
-  Space,
-  Table,
-  Tag,
-  Typography,
-  message,
-} from 'antd';
+import { Button, Card, Drawer, Form, Input, Select, Space, Table, Tag, message } from 'antd';
 import { api, type UserProfile } from '../../lib/api';
-
-const { Title, Paragraph } = Typography;
+import PageHero from '../../components/PageHero';
 
 const roleOptions = [
   { label: 'Resident', value: 'resident' },
@@ -92,14 +79,10 @@ export default function AdminUsersPage() {
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Card className="soft-card page-hero">
-        <Title level={2} style={{ color: '#fff', marginTop: 0 }}>
-          User management
-        </Title>
-        <Paragraph style={{ color: 'rgba(255,255,255,0.82)' }}>
-          Admin-only role control and official provisioning.
-        </Paragraph>
-      </Card>
+      <PageHero
+        title="User management"
+        description="Admin-only role control and official provisioning."
+      />
 
       <Card
         className="soft-card"

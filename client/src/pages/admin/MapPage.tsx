@@ -4,9 +4,10 @@ import { Card, Col, Row, Space, Typography } from 'antd';
 import { api, type Report } from '../../lib/api';
 import { StaticMap } from '../../components/MapPicker';
 import StatusTag from '../../components/StatusTag';
+import PageHero from '../../components/PageHero';
 // import {BarangayMap} from '../../components/MapPicker';
 
-const { Title, Paragraph, Text } = Typography;
+const { Text } = Typography;
 
 export default function AdminMapPage() {
   const { data: reports = [] } = useQuery({
@@ -18,29 +19,34 @@ export default function AdminMapPage() {
 
   const selected = useMemo(
     () => reports.find((report) => report._id === selectedId) || reports[0],
-    [reports, selectedId],
+    [reports, selectedId]
   );
   const [lng, lat] = selected?.location?.coordinates || [121.3708, 16.4833];
 
   return (
     <Row gutter={[16, 16]}>
       <Col xs={24} xl={16}>
-        <Card className="soft-card page-hero" style={{ marginBottom: 16 }}>
-          <Title level={2} style={{ color: '#fff', marginTop: 0 }}>Map view</Title>
-          <Paragraph style={{ color: 'rgba(255,255,255,0.82)' }}>
-            Geographic overview of report locations with responsive single-column fallback on smaller screens.
-          </Paragraph>
-        </Card>
-        <Card className="soft-card" title="Incident map">
-          <StaticMap latitude={lat} longitude={lng} height={500} />
-          {/* <BarangayMap/> */}
-        </Card>
+        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+          <PageHero
+            title="Map view"
+            description="Geographic overview of report locations with responsive single-column fallback on smaller screens."
+          />
+          <Card className="soft-card" title="Incident map">
+            <StaticMap latitude={lat} longitude={lng} height={500} />
+            {/* <BarangayMap/> */}
+          </Card>
+        </Space>
       </Col>
       <Col xs={24} xl={8}>
         <Card className="soft-card" title="Recent incidents">
           <Space direction="vertical" size={12} style={{ width: '100%' }}>
             {reports.slice(0, 8).map((report) => (
-              <Card key={report._id} size="small" onClick={() => setSelectedId(report._id)} hoverable>
+              <Card
+                key={report._id}
+                size="small"
+                onClick={() => setSelectedId(report._id)}
+                hoverable
+              >
                 <Space direction="vertical" size={4} style={{ width: '100%' }}>
                   <StatusTag status={report.status} />
                   <Text strong>{report.category}</Text>
@@ -52,6 +58,5 @@ export default function AdminMapPage() {
         </Card>
       </Col>
     </Row>
-   
   );
 }

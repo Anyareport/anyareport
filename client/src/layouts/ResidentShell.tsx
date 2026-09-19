@@ -17,7 +17,7 @@ import { logout } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { api, type Notification } from '../lib/api';
 
-const { Header, Content, Footer } = Layout;
+const { Header, Content } = Layout;
 const { useBreakpoint } = Grid;
 
 export default function ResidentShell() {

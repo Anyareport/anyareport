@@ -1,15 +1,12 @@
-import { useState } from 'react';
-import { Button, Card, Space, Typography, message } from 'antd';
+import { Typography, message } from 'antd';
 import { DownloadOutlined, FilePdfOutlined } from '@ant-design/icons';
 import { api } from '../../lib/api';
+import PageHero from '../../components/PageHero';
 
-const { Title, Paragraph, Text } = Typography;
+const { Text } = Typography;
 
 export default function AdminExportPage() {
-  const [loading, setLoading] = useState<'csv' | 'pdf' | null>(null);
-
   const download = async (format: 'csv' | 'pdf') => {
-    setLoading(format);
     try {
       const blob = await api.download(`/api/export?format=${format}`);
       const url = URL.createObjectURL(blob);
@@ -20,38 +17,31 @@ export default function AdminExportPage() {
       URL.revokeObjectURL(url);
     } catch (error) {
       message.error(error instanceof Error ? error.message : 'Export failed');
-    } finally {
-      setLoading(null);
     }
   };
 
   return (
-    <Card className="soft-card page-hero">
-      <Title level={2} style={{ color: '#fff', marginTop: 0 }}>
-        Export
-      </Title>
-      <Paragraph style={{ color: 'rgba(255,255,255,0.82)' }}>
-        Download a CSV or PDF of all incident reports.
-      </Paragraph>
-      <Space wrap>
-        <Button
-          icon={<DownloadOutlined />}
-          loading={loading === 'csv'}
-          onClick={() => download('csv')}
-        >
-          CSV export
-        </Button>
-        <Button
-          icon={<FilePdfOutlined />}
-          loading={loading === 'pdf'}
-          onClick={() => download('pdf')}
-        >
-          PDF export
-        </Button>
-      </Space>
-      <Text style={{ display: 'block', marginTop: 16, color: '#fff' }}>
+    <PageHero
+      title="Export"
+      description="Download a CSV or PDF of all incident reports."
+      actions={[
+        {
+          type: 'default',
+          icon: <DownloadOutlined />,
+          label: 'CSV export',
+          onClick: () => download('csv'),
+        },
+        {
+          type: 'default',
+          icon: <FilePdfOutlined />,
+          label: 'PDF export',
+          onClick: () => download('pdf'),
+        },
+      ]}
+    >
+      <Text style={{ display: 'block', marginTop: 16 }}>
         Server-side scope enforcement already applies to the exported result.
       </Text>
-    </Card>
+    </PageHero>
   );
 }
