@@ -291,7 +291,7 @@ export default function SubmitReportPage() {
   const STEP_LABELS = ['Report Type', 'Location', 'Classification', 'Review'];
 
   return (
-    <Card>
+    <Card className="card-container">
       <Title level={3} style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>
         SUBMIT INCIDENT REPORT
       </Title>
