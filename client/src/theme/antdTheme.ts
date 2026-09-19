@@ -21,6 +21,10 @@ export const baseAntdTheme: ThemeConfig = {
     Button: {
       primaryShadow: 'none',
     },
+    Segmented: {
+      itemSelectedBg: '#E63333',
+      itemSelectedColor: '#FFFFFF',
+    },
   },
 };
 
@@ -29,7 +33,7 @@ export const darkTokenOverrides: ThemeConfig['token'] = {
   colorBgBase: '#111827',
   colorTextBase: '#F9FAFB',
   colorBgContainer: '#0f1115',
-  colorBgElevated: '#E63333',
+  //  colorBgElevated: '#E63333',
   colorBgLayout: '#0f1115',
   colorBorder: '#353535',
   colorBorderSecondary: '#353535',
@@ -43,6 +47,10 @@ export const lightTokenOverrides: ThemeConfig['token'] = {
 export const darkComponentOverrides: ThemeConfig['components'] = {
   Drawer: {
     colorBgElevated: '#0f1115',
+  },
+  Segmented: {
+    itemSelectedBg: '#E63333',
+    itemSelectedColor: '#FFFFFF',
   },
 };
 

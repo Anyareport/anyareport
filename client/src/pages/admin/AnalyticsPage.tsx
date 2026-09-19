@@ -85,7 +85,7 @@ export default function AdminAnalyticsPage() {
                 <XAxis dataKey="_id" tick={{ fill: axisColor }} />
                 <YAxis tick={{ fill: axisColor }} />
                 <Tooltip />
-                <Bar dataKey="count" fill="#E63333" />
+                <Bar dataKey="count" fill={COLORS[0]} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
@@ -99,7 +99,7 @@ export default function AdminAnalyticsPage() {
             <XAxis dataKey="_id" tick={{ fill: axisColor }} />
             <YAxis tick={{ fill: axisColor }} />
             <Tooltip />
-            <Line type="monotone" dataKey="count" stroke="#E63333" strokeWidth={3} />
+            <Line type="monotone" dataKey="count" stroke={COLORS[0]} strokeWidth={3} />
           </LineChart>
         </ResponsiveContainer>
       </Card>

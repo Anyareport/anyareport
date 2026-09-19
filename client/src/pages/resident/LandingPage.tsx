@@ -53,7 +53,7 @@ export default function ResidentLanding() {
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12}>
           <Card className="soft-card motion-fade-up motion-delay-2">
-            <SafetyOutlined style={{ fontSize: 32, color: '#E63333' }} />
+            <SafetyOutlined style={{ fontSize: 32, color: 'var(--brand-primary)' }} />
             <Title
               level={5}
               style={{

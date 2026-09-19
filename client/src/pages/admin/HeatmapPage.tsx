@@ -70,18 +70,19 @@ export default function AdminHeatmapPage() {
     const data = barangayData as FeatureCollection;
     return data.features
       .filter((feature) => feature.properties?.name?.toLowerCase().startsWith('purok'))
-      .sort((left, right) =>
-        getPurokNumber(left.properties?.name || '') -
-          getPurokNumber(right.properties?.name || '') ||
-        (left.properties?.name || '').localeCompare(right.properties?.name || '', undefined, {
-          numeric: true,
-        }),
+      .sort(
+        (left, right) =>
+          getPurokNumber(left.properties?.name || '') -
+            getPurokNumber(right.properties?.name || '') ||
+          (left.properties?.name || '').localeCompare(right.properties?.name || '', undefined, {
+            numeric: true,
+          })
       );
   }, []);
 
   const filteredPoints = useMemo(() => {
     const selectedFeature = purokFeatures.find(
-      (feature) => feature.properties?.name === selectedPurok,
+      (feature) => feature.properties?.name === selectedPurok
     );
 
     return points.filter((point) => {
@@ -117,13 +118,12 @@ export default function AdminHeatmapPage() {
 
   const categoryOptions = useMemo(
     () => Array.from(new Set(reports.map((report) => report.category))).sort(),
-    [reports],
+    [reports]
   );
 
   return (
     <Row gutter={[16, 16]}>
       <Col xs={24} xl={16}>
-        
         <Card className="soft-card" title="Incident map">
           <Space direction="vertical" size={12} style={{ width: '100%' }}>
             <Space wrap>
@@ -184,7 +184,10 @@ export default function AdminHeatmapPage() {
               <Card key={category} size="small">
                 <Space direction="vertical" size={8} style={{ width: '100%' }}>
                   <Text strong>{category}</Text>
-                  <Progress percent={Math.round((count / top) * 100)} strokeColor="#E63333" />
+                  <Progress
+                    percent={Math.round((count / top) * 100)}
+                    strokeColor="var(--brand-primary)"
+                  />
                   <Text type="secondary">{count} reports</Text>
                 </Space>
               </Card>

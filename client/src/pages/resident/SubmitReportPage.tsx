@@ -544,7 +544,7 @@ export default function SubmitReportPage() {
               </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="Severity">
-              <Tag color="var(--severity-critical-tag)" style={{ color: 'var(--neutral-900)' }}>
+              <Tag color="var(--severity-critical-tag)" style={{ color: '#ffffff' }}>
                 {form.getFieldValue('severity')}
               </Tag>
             </Descriptions.Item>
