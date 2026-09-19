@@ -1,7 +1,7 @@
-import { Button, Card, Typography, Row, Col, Alert } from "antd";
-import { FileAddOutlined, SafetyOutlined } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
+import { Button, Card, Typography, Row, Col, Alert } from 'antd';
+import { FileAddOutlined, SafetyOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 const { Title, Paragraph } = Typography;
 
@@ -9,7 +9,7 @@ export default function ResidentLanding() {
   const navigate = useNavigate();
   const { profile } = useAuth();
 
-  const isBlocked = profile?.status === "suspended" || !profile?.emailVerified;
+  const isBlocked = profile?.status === 'suspended' || !profile?.emailVerified;
 
   return (
     <div>
@@ -17,14 +17,14 @@ export default function ResidentLanding() {
         className="motion-fade-up motion-delay-1"
         style={{
           marginBottom: 16,
-          background: "linear-gradient(135deg, #282F49 0%, #3d4666 100%)",
-          border: "none",
+          background: 'linear-gradient(135deg, #282F49 0%, #3d4666 100%)',
+          border: 'none',
         }}
       >
         <Title
           level={2}
           style={{
-            color: "#fff",
+            color: '#fff',
             fontFamily: "'Bebas Neue', sans-serif",
             letterSpacing: 2,
             margin: 0,
@@ -32,18 +32,18 @@ export default function ResidentLanding() {
         >
           REPORT AN INCIDENT
         </Title>
-        <Paragraph style={{ color: "#ccc", marginBottom: 16 }}>
-          Help keep Barangay Don Mariano Marcos safe. Report concerns,
-          emergencies, and infrastructure issues directly from your phone.
+        <Paragraph style={{ color: 'rgba(255,255,255,0.82)', marginBottom: 16 }}>
+          Help keep Barangay Don Mariano Marcos safe. Report concerns, emergencies, and
+          infrastructure issues directly from your phone.
         </Paragraph>
         <Button
           type="primary"
           size="large"
           icon={<FileAddOutlined />}
-          onClick={() => !isBlocked && navigate("/resident/submit")}
+          onClick={() => !isBlocked && navigate('/resident/submit')}
           style={{
             opacity: isBlocked ? 0.5 : 1,
-            cursor: isBlocked ? "not-allowed" : "pointer",
+            cursor: isBlocked ? 'not-allowed' : 'pointer',
           }}
         >
           Submit Report
@@ -60,7 +60,7 @@ export default function ResidentLanding() {
         />
       )}
 
-      {profile?.status === "suspended" && (
+      {profile?.status === 'suspended' && (
         <Alert
           type="error"
           message="Your account has been suspended."
@@ -72,8 +72,8 @@ export default function ResidentLanding() {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12}>
-          <Card className="motion-fade-up motion-delay-2">
-            <SafetyOutlined style={{ fontSize: 32, color: "#E63333" }} />
+          <Card className="soft-card motion-fade-up motion-delay-2">
+            <SafetyOutlined style={{ fontSize: 32, color: '#E63333' }} />
             <Title
               level={5}
               style={{
@@ -85,14 +85,14 @@ export default function ResidentLanding() {
               QUICK REPORTING
             </Title>
             <Paragraph type="secondary">
-              Use GPS and photos to report incidents on the spot. Our team
-              responds quickly to verified reports.
+              Use GPS and photos to report incidents on the spot. Our team responds quickly to
+              verified reports.
             </Paragraph>
           </Card>
         </Col>
         <Col xs={24} sm={12}>
-          <Card className="motion-fade-up motion-delay-3">
-            <FileAddOutlined style={{ fontSize: 32, color: "#282F49" }} />
+          <Card className="soft-card motion-fade-up motion-delay-3">
+            <FileAddOutlined style={{ fontSize: 32, color: 'var(--brand-primary)' }} />
             <Title
               level={5}
               style={{
@@ -104,12 +104,11 @@ export default function ResidentLanding() {
               TRACK YOUR REPORTS
             </Title>
             <Paragraph type="secondary">
-              Monitor the status of your submissions from pending verification
-              through resolution.
+              Monitor the status of your submissions from pending verification through resolution.
             </Paragraph>
             <Button
               type="link"
-              onClick={() => navigate("/resident/reports")}
+              onClick={() => navigate('/resident/reports')}
               style={{ padding: 0 }}
             >
               View My Reports →

@@ -1,10 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:wght@400;500;700;900&display=swap');
 
+@import './styles/theme.css';
+
 :root {
-  color: #282f49;
+  color: var(--text-primary);
   background:
     radial-gradient(circle at top left, rgba(230, 51, 51, 0.14), transparent 32%),
-    linear-gradient(180deg, #ffffff 0%, #f5f7fb 100%);
+    linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
   font-family: 'Roboto', sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -23,7 +25,7 @@ body {
   min-height: 100vh;
   background:
     radial-gradient(circle at top right, rgba(40, 47, 73, 0.08), transparent 25%),
-    linear-gradient(180deg, #ffffff 0%, #f2f4f8 100%);
+    linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
 }
 
 #root {
@@ -61,7 +63,7 @@ h5,
 }
 
 a {
-  color: #282f49;
+  color: var(--text-link);
 }
 
 .page-shell {
@@ -70,8 +72,8 @@ a {
 
 .page-hero {
   border: 0;
-  background: linear-gradient(135deg, #282f49 0%, #353f62 100%);
-  color: #fff;
+  background: linear-gradient(135deg, var(--brand-navy) 0%, var(--brand-navy-light) 100%);
+  color: var(--neutral-white);
   overflow: hidden;
 }
 
@@ -90,7 +92,7 @@ a {
 
 .soft-card {
   border-radius: 18px;
-  box-shadow: 0 14px 30px rgba(40, 47, 73, 0.08);
+  box-shadow: 2px 2px 2px rgba(40, 47, 73, 0.08);
 }
 
 .metric-grid {
@@ -125,7 +127,7 @@ a {
 
 .section-title {
   margin: 0 0 12px;
-  color: #282f49;
+  color: var(--text-primary);
 }
 
 .toolbar-row {

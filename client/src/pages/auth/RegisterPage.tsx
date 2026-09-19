@@ -77,7 +77,9 @@ export default function RegisterPage() {
         captchaToken,
       });
       await refreshProfile();
-      message.success(completingProfile ? 'Profile completed.' : 'Account created! Please verify your email.');
+      message.success(
+        completingProfile ? 'Profile completed.' : 'Account created! Please verify your email.'
+      );
       navigate('/resident');
     } catch (err: unknown) {
       message.error(err instanceof Error ? err.message : 'Registration failed');
@@ -110,11 +112,23 @@ export default function RegisterPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f5', padding: 16 }}>
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--bg-secondary)',
+        padding: 16,
+      }}
+    >
       <Card style={{ width: '100%', maxWidth: 480 }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <Logo size="lg" />
-          <Title level={4} style={{ marginTop: 16, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>
+          <Title
+            level={4}
+            style={{ marginTop: 16, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}
+          >
             RESIDENT REGISTRATION
           </Title>
         </div>
@@ -138,7 +152,17 @@ export default function RegisterPage() {
               <Input.Password size="large" />
             </Form.Item>
           )}
-          <Form.Item name="phone" label="Phone Number" rules={[{ required: true, pattern: /^09\d{9}$/, message: 'Enter valid PH mobile (09XXXXXXXXX)' }]}>
+          <Form.Item
+            name="phone"
+            label="Phone Number"
+            rules={[
+              {
+                required: true,
+                pattern: /^09\d{9}$/,
+                message: 'Enter valid PH mobile (09XXXXXXXXX)',
+              },
+            ]}
+          >
             <Input size="large" placeholder="09XXXXXXXXX" />
           </Form.Item>
           <Form.Item name="address" label="Address">
@@ -154,7 +178,13 @@ export default function RegisterPage() {
         {!completingProfile && <Divider>or</Divider>}
 
         {!completingProfile && (
-          <Button icon={<GoogleOutlined />} block size="large" onClick={handleGoogle} loading={loading}>
+          <Button
+            icon={<GoogleOutlined />}
+            block
+            size="large"
+            onClick={handleGoogle}
+            loading={loading}
+          >
             Sign up with Google
           </Button>
         )}

@@ -17,6 +17,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Logo from '../components/Logo';
+import ThemeToggle from '../components/ThemeToggle';
 import { logout } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { api, type Notification, type Report } from '../lib/api';
@@ -127,7 +128,7 @@ export default function AdminShell() {
           }}
         >
           <div style={{ padding: '16px 12px', textAlign: 'center' }}>
-            <Logo light size="sm" showIcon={!collapsed} />
+            <Logo light size={collapsed ? 'sm' : 'md'} />
           </div>
           {menu}
         </Sider>
@@ -136,26 +137,35 @@ export default function AdminShell() {
       <Layout>
         <Header
           style={{
-            background: '#fff',
+            background: 'var(--bg-primary)',
             padding: '0 16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            borderBottom: '1px solid #f0f0f0',
+            borderBottom: '1px solid var(--border-default)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {!screens.md && <Button icon={<MenuOutlined />} onClick={() => setDrawerOpen(true)} />}
             {!screens.md && <Logo size="sm" />}
-            <span style={{ color: '#666', fontSize: 13 }}>{role?.toUpperCase()}</span>
+            <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
+              {role?.toUpperCase()}
+            </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 13 }}>{profile?.name}</span>
+            <ThemeToggle />
             <Button type="text" icon={<LogoutOutlined />} onClick={handleLogout} />
           </div>
         </Header>
 
-        <Content style={{ margin: screens.md ? 24 : 12, minHeight: 280 }}>
+        <Content
+          style={{
+            margin: screens.md ? 24 : 12,
+            minHeight: 280,
+            background: 'var(--bg-secondary)',
+          }}
+        >
           <Outlet />
         </Content>
       </Layout>
@@ -164,7 +174,7 @@ export default function AdminShell() {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         placement="left"
-        styles={{ body: { padding: 0, background: '#282F49' } }}
+        styles={{ body: { padding: 0, background: 'var(--brand-navy)' } }}
       >
         <div style={{ padding: 16 }}>
           <Logo light size="sm" />

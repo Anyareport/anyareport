@@ -1,9 +1,9 @@
 import type { ThemeConfig } from 'antd';
 
-export const antdTheme: ThemeConfig = {
+export const baseAntdTheme: ThemeConfig = {
   token: {
     colorPrimary: '#E63333',
-    colorInfo: '#282F49',
+    colorInfo: '#1fb0ca',
     colorTextBase: '#282F49',
     colorBgBase: '#FFFFFF',
     fontFamily: 'Roboto, sans-serif',
@@ -22,6 +22,22 @@ export const antdTheme: ThemeConfig = {
       primaryShadow: 'none',
     },
   },
+};
+
+export const darkTokenOverrides: ThemeConfig['token'] = {
+  colorPrimary: '#E63333',
+  colorBgBase: '#111827',
+  colorTextBase: '#F9FAFB',
+  colorBgContainer: '#0f1115',
+  colorBgElevated: '#E63333',
+  colorBgLayout: '#212125',
+  colorBorder: '#353535',
+  colorBorderSecondary: '#353535',
+};
+
+export const lightTokenOverrides: ThemeConfig['token'] = {
+  colorBgBase: '#FFFFFF',
+  colorTextBase: '#282F49',
 };
 
 export const fonts = {

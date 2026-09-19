@@ -1,0 +1,257 @@
+/* ========================================
+   CSS Variables for Theming System
+   ======================================== */
+
+:root {
+  /* ===== Brand Colors ===== */
+  --brand-primary: #e63333;
+  --brand-primary-dark: #c92a2a;
+  --brand-primary-light: #f05252;
+  --brand-navy: #282f49;
+  --brand-navy-dark: #1f243b;
+  --brand-navy-light: #3a4166;
+
+  /* ===== Neutral Colors ===== */
+  --neutral-white: #ffffff;
+  --neutral-50: #f9fafb;
+  --neutral-100: #f3f4f6;
+  --neutral-200: #e5e7eb;
+  --neutral-300: #d1d5db;
+  --neutral-400: #9ca3af;
+  --neutral-500: #6b7280;
+  --neutral-600: #4b5563;
+  --neutral-700: #374151;
+  --neutral-800: #1f2937;
+  --neutral-900: #111827;
+  --neutral-black: #000000;
+
+  /* ===== Status Colors (Semantic) ===== */
+  --status-pending-bg: #fff7ed;
+  --status-pending-border: #ffedd5;
+  --status-pending-text: #c2410c;
+  --status-pending-tag: #ffaf40;
+
+  --status-verified-bg: #eff6ff;
+  --status-verified-border: #dbeafe;
+  --status-verified-text: #1d4ed8;
+  --status-verified-tag: #3b82f6;
+
+  --status-en-route-bg: #ecfeff;
+  --status-en-route-border: #cffafe;
+  --status-en-route-text: #155e75;
+  --status-en-route-tag: #06b6d4;
+
+  --status-on-scene-bg: #f5f3ff;
+  --status-on-scene-border: #ddd6fe;
+  --status-on-scene-text: #6b21a8;
+  --status-on-scene-tag: #a855f7;
+
+  --status-resolved-bg: #f0fdf4;
+  --status-resolved-border: #dcfce7;
+  --status-resolved-text: #15803d;
+  --status-resolved-tag: #4ade80;
+
+  --status-flagged-bg: #fef2f2;
+  --status-flagged-border: #fee2e2;
+  --status-flagged-text: #b91c1c;
+  --status-flagged-tag: #f87171;
+
+  /* ===== Severity Colors ===== */
+  --severity-critical-bg: #fef2f2;
+  --severity-critical-border: #fee2e2;
+  --severity-critical-text: #b91c1c;
+  --severity-critical-tag: #ef4444;
+
+  --severity-high-bg: #fff7ed;
+  --severity-high-border: #ffedd5;
+  --severity-high-text: #c2410c;
+  --severity-high-tag: #f97316;
+
+  --severity-medium-bg: #fffbeb;
+  --severity-medium-border: #fef3c7;
+  --severity-medium-text: #92400e;
+  --severity-medium-tag: #facc15;
+
+  --severity-low-bg: #f3f4f6;
+  --severity-low-border: #e5e7eb;
+  --severity-low-text: #4b5563;
+  --severity-low-tag: #9ca3af;
+
+  /* ===== Typography Colors ===== */
+  --text-primary: #282f49;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  --text-light: #ffffff;
+  --text-link: #2563eb;
+
+  /* ===== Background Colors ===== */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  --bg-dark: #1f2937;
+
+  /* ===== Border Colors ===== */
+  --border-light: #e5e7eb;
+  --border-default: #d1d5db;
+  --border-dark: #9ca3af;
+
+  /* ===== Shadows ===== */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* ===== Spacing ===== */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+  --spacing-3xl: 4rem;
+
+  /* ===== Border Radius ===== */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+  --radius-full: 9999px;
+
+  /* ===== Sizing ===== */
+  --size-xs: 20rem;
+  --size-sm: 24rem;
+  --size-md: 28rem;
+  --size-lg: 32rem;
+  --size-xl: 36rem;
+  --size-2xl: 42rem;
+  --size-3xl: 48rem;
+  --size-4xl: 56rem;
+  --size-5xl: 64rem;
+  --size-6xl: 72rem;
+  --size-7xl: 80rem;
+
+  /* ===== Font Sizes ===== */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --text-5xl: 3rem;
+  --text-6xl: 3.75rem;
+  --text-7xl: 4.5rem;
+  --text-8xl: 6rem;
+  --text-9xl: 8rem;
+
+  /* ===== Font Weights ===== */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --font-weight-black: 900;
+
+  /* ===== Layout ===== */
+  --header-height: 64px;
+  --footer-height: auto;
+  --sidebar-width: 240px;
+
+  /* ===== Transitions ===== */
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
+}
+
+/* ========================================
+   Dark Theme Variables
+   ======================================== */
+[data-theme='dark'] {
+  /* ===== Neutral Colors (Dark) ===== */
+  --neutral-white: #1f2937;
+  --neutral-50: #111827;
+  --neutral-100: #1f2937;
+  --neutral-200: #374151;
+  --neutral-300: #4b5563;
+  --neutral-400: #6b7280;
+  --neutral-500: #9ca3af;
+  --neutral-600: #d1d5db;
+  --neutral-700: #e5e7eb;
+  --neutral-800: #f3f4f6;
+  --neutral-900: #f9fafb;
+  --neutral-black: #ffffff;
+
+  /* ===== Typography Colors (Dark) ===== */
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-tertiary: #9ca3af;
+  --text-light: #6b7280;
+  --text-link: #60a5fa;
+
+  /* ===== Background Colors (Dark) ===== */
+  --bg-primary: #0f1115;
+  --bg-secondary: #0f1115;
+  --bg-tertiary: #374151;
+  --bg-dark: #0f1115;
+
+  /* ===== Border Colors (Dark) ===== */
+  --border-light: #374151;
+  --border-default: #353535;
+  --border-dark: #6b7280;
+
+  /* ===== Status Colors (Dark) ===== */
+  --status-pending-bg: #3f2e18;
+  --status-pending-border: #5c421e;
+  --status-pending-text: #fcd34d;
+  --status-pending-tag: #fbbf24;
+
+  --status-verified-bg: #1e3a8a;
+  --status-verified-border: #1e40af;
+  --status-verified-text: #60a5fa;
+  --status-verified-tag: #3b82f6;
+
+  --status-en-route-bg: #0e363f;
+  --status-en-route-border: #155e75;
+  --status-en-route-text: #22d3ee;
+  --status-en-route-tag: #06b6d4;
+
+  --status-on-scene-bg: #3b1e7a;
+  --status-on-scene-border: #4c1d95;
+  --status-on-scene-text: #c084fc;
+  --status-on-scene-tag: #a855f7;
+
+  --status-resolved-bg: #14532d;
+  --status-resolved-border: #166534;
+  --status-resolved-text: #4ade80;
+  --status-resolved-tag: #22c55e;
+
+  --status-flagged-bg: #7f1d1d;
+  --status-flagged-border: #991b1b;
+  --status-flagged-text: #fca5a5;
+  --status-flagged-tag: #ef4444;
+
+  /* ===== Severity Colors (Dark) ===== */
+  --severity-critical-bg: #7f1d1d;
+  --severity-critical-border: #991b1b;
+  --severity-critical-text: #fca5a5;
+  --severity-critical-tag: #f87171;
+
+  --severity-high-bg: #451a03;
+  --severity-high-border: #573805;
+  --severity-high-text: #fcd34d;
+  --severity-high-tag: #fb923c;
+
+  --severity-medium-bg: #423005;
+  --severity-medium-border: #5d4607;
+  --severity-medium-text: #fde047;
+  --severity-medium-tag: #facc15;
+
+  --severity-low-bg: #27272a;
+  --severity-low-border: #3f3f46;
+  --severity-low-text: #a1a1aa;
+  --severity-low-tag: #71717a;
+}

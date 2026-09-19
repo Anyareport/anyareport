@@ -1,71 +1,58 @@
-import { useEffect, useState } from "react";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  useMapEvents,
-  useMap,
-  Polyline,
-} from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-import { GeoJSON } from "react-leaflet";
-import type { Feature, Geometry, FeatureCollection } from "geojson";
-import type { Layer, PathOptions } from "leaflet";
-import barangayData from "../data/DMM.json";
+import { useEffect, useState } from 'react';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap, Polyline } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { GeoJSON } from 'react-leaflet';
+import type { Feature, Geometry, FeatureCollection } from 'geojson';
+import type { Layer, PathOptions } from 'leaflet';
+import barangayData from '../data/DMM.json';
 
 const defaultCenter: [number, number] = [16.482, 121.1557];
 
 const markerIcon = new L.Icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
 });
 
 function getBarangayStyle(feature?: Feature<Geometry, any>): PathOptions {
-  const name = feature?.properties?.name?.toLowerCase() || "";
-  const isBoundary = name.includes("don mariano marcos");
+  const name = feature?.properties?.name?.toLowerCase() || '';
+  const isBoundary = name.includes('don mariano marcos');
 
   return isBoundary
-    ? { color: "#eab308", weight: 3, fillOpacity: 0 }
-    : { color: "#ec4899", weight: 2, fillOpacity: 0.12, fillColor: "#ec4899" };
+    ? { color: '#eab308', weight: 3, fillOpacity: 0 }
+    : { color: '#ec4899', weight: 2, fillOpacity: 0.12, fillColor: '#ec4899' };
 }
 
 function onEachBarangayFeature(feature: Feature<Geometry, any>, layer: Layer) {
   const name = feature.properties?.name;
   if (!name) return;
 
-  const isBoundary = name.toLowerCase().includes("don mariano marcos");
+  const isBoundary = name.toLowerCase().includes('don mariano marcos');
 
   layer.bindTooltip(name, {
     permanent: false,
-    direction: "center",
-    className: isBoundary ? "barangay-label" : "purok-label",
+    direction: 'center',
+    className: isBoundary ? 'barangay-label' : 'purok-label',
     sticky: true,
   });
 
-  layer.on("mouseover", () => {
+  layer.on('mouseover', () => {
     (layer as L.Path).setStyle({
       weight: 3,
       fillOpacity: 0.35,
     });
   });
 
-  layer.on("mouseout", () => {
+  layer.on('mouseout', () => {
     (layer as L.Path).setStyle(
-      isBoundary
-        ? { weight: 3, fillOpacity: 0 }
-        : { weight: 2, fillOpacity: 0.12 },
+      isBoundary ? { weight: 3, fillOpacity: 0 } : { weight: 2, fillOpacity: 0.12 }
     );
   });
 }
-function isPointInPolygon(
-  point: [number, number],
-  polygon: number[][],
-): boolean {
+function isPointInPolygon(point: [number, number], polygon: number[][]): boolean {
   const [lat, lng] = point;
   let inside = false;
 
@@ -74,8 +61,7 @@ function isPointInPolygon(
     const [lngJ, latJ] = polygon[j];
 
     const intersects =
-      latI > lat !== latJ > lat &&
-      lng < ((lngJ - lngI) * (lat - latI)) / (latJ - latI) + lngI;
+      latI > lat !== latJ > lat && lng < ((lngJ - lngI) * (lat - latI)) / (latJ - latI) + lngI;
 
     if (intersects) inside = !inside;
   }
@@ -85,17 +71,17 @@ function isPointInPolygon(
 
 export function isInsideBarangayBoundary(
   point: [number, number],
-  data: FeatureCollection,
+  data: FeatureCollection
 ): boolean {
   for (const feature of data.features) {
-    const name = feature.properties?.name?.toLowerCase() || "";
-    if (!name.includes("don mariano marcos")) continue;
+    const name = feature.properties?.name?.toLowerCase() || '';
+    if (!name.includes('don mariano marcos')) continue;
 
     const geometry = feature.geometry;
 
-    if (geometry.type === "Polygon") {
+    if (geometry.type === 'Polygon') {
       if (isPointInPolygon(point, geometry.coordinates[0])) return true;
-    } else if (geometry.type === "MultiPolygon") {
+    } else if (geometry.type === 'MultiPolygon') {
       for (const polygon of geometry.coordinates) {
         if (isPointInPolygon(point, polygon[0])) return true;
       }
@@ -149,13 +135,10 @@ function ClickHandler({
       if (readOnly) return;
 
       const point: [number, number] = [e.latlng.lat, e.latlng.lng];
-      const isInside = isInsideBarangayBoundary(
-        point,
-        barangayData as FeatureCollection,
-      );
+      const isInside = isInsideBarangayBoundary(point, barangayData as FeatureCollection);
 
       if (!isInside) {
-        alert("Please select a location within the barangay boundary.");
+        alert('Please select a location within the barangay boundary.');
         return;
       }
 
@@ -173,10 +156,12 @@ export default function MapPicker({
   readOnly = false,
 }: MapPickerProps) {
   const [pos, setPos] = useState<[number, number]>(
-    latitude && longitude ? [latitude, longitude] : defaultCenter,
+    latitude && longitude ? [latitude, longitude] : defaultCenter
   );
 
-  const [locationStatus, setLocationStatus] = useState<"checking" | "inside" | "outside" | "unavailable">("checking");
+  const [locationStatus, setLocationStatus] = useState<
+    'checking' | 'inside' | 'outside' | 'unavailable'
+  >('checking');
 
   useEffect(() => {
     if (latitude && longitude) setPos([latitude, longitude]);
@@ -184,31 +169,28 @@ export default function MapPicker({
 
   useEffect(() => {
     if (readOnly) {
-      setLocationStatus("inside");
+      setLocationStatus('inside');
       return;
     }
 
     if (!navigator.geolocation) {
-      setLocationStatus("unavailable");
+      setLocationStatus('unavailable');
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (p) => {
         const point: [number, number] = [p.coords.latitude, p.coords.longitude];
-        const inside = isInsideBarangayBoundary(
-          point,
-          barangayData as FeatureCollection,
-        );
+        const inside = isInsideBarangayBoundary(point, barangayData as FeatureCollection);
 
-        setLocationStatus(inside ? "inside" : "outside");
+        setLocationStatus(inside ? 'inside' : 'outside');
 
         if (inside && !latitude) {
           setPos(point);
           onChange(point[0], point[1]);
         }
       },
-      () => setLocationStatus("unavailable"),
+      () => setLocationStatus('unavailable')
     );
   }, [readOnly]);
 
@@ -218,60 +200,60 @@ export default function MapPicker({
   };
 
   const isPickingDisabled =
-    readOnly || locationStatus === "outside" || locationStatus === "checking";
+    readOnly || locationStatus === 'outside' || locationStatus === 'checking';
 
   return (
-    <div style={{ position: "relative" }}>
-      {locationStatus === "outside" && (
+    <div style={{ position: 'relative' }}>
+      {locationStatus === 'outside' && (
         <div
           style={{
-            position: "absolute",
+            position: 'absolute',
             top: 8,
             left: 8,
             zIndex: 1000,
-            background: "#fee2e2",
-            color: "#991b1b",
-            padding: "6px 12px",
+            background: 'var(--status-flagged-bg)',
+            color: 'var(--status-flagged-text)',
+            padding: '6px 12px',
             borderRadius: 6,
             fontSize: 13,
             fontWeight: 600,
-            boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+            boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
           }}
         >
           You must be inside the barangay to pick a location
         </div>
       )}
 
-      {locationStatus === "unavailable" && (
+      {locationStatus === 'unavailable' && (
         <div
           style={{
-            position: "absolute",
+            position: 'absolute',
             top: 8,
             left: 8,
             zIndex: 1000,
-            background: "#fef3c7",
-            color: "#92400e",
-            padding: "6px 12px",
+            background: 'var(--status-pending-bg)',
+            color: 'var(--status-pending-text)',
+            padding: '6px 12px',
             borderRadius: 6,
             fontSize: 13,
             fontWeight: 600,
-            boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+            boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
           }}
         >
           Location unavailable — tap the map to pin your location manually
         </div>
       )}
 
-      {locationStatus === "checking" && (
+      {locationStatus === 'checking' && (
         <div
           style={{
-            position: "absolute",
+            position: 'absolute',
             top: 8,
             left: 8,
             zIndex: 1000,
-            background: "#f3f4f6",
-            color: "#374151",
-            padding: "6px 12px",
+            background: 'var(--bg-tertiary)',
+            color: 'var(--text-secondary)',
+            padding: '6px 12px',
             borderRadius: 6,
             fontSize: 13,
             fontWeight: 600,
@@ -284,7 +266,7 @@ export default function MapPicker({
       <MapContainer
         center={pos}
         zoom={15}
-        style={{ height, width: "100%", borderRadius: 8 }}
+        style={{ height, width: '100%', borderRadius: 8 }}
         scrollWheelZoom
       >
         <MapResizeHandler />
@@ -298,7 +280,7 @@ export default function MapPicker({
           style={getBarangayStyle}
           onEachFeature={onEachBarangayFeature}
         />
-        {locationStatus !== "outside" && locationStatus !== "checking" && (
+        {locationStatus !== 'outside' && locationStatus !== 'checking' && (
           <Marker position={pos} icon={markerIcon} />
         )}
         <ClickHandler onChange={handleChange} readOnly={isPickingDisabled} />
@@ -313,24 +295,16 @@ interface RouteMapProps {
   height?: number;
 }
 
-export function RouteMap({
-  incidentLat,
-  incidentLng,
-  height = 350,
-}: RouteMapProps) {
-  const [responderPos, setResponderPos] = useState<[number, number] | null>(
-    null,
-  );
-  const [routeCoords, setRouteCoords] = useState<[number, number][] | null>(
-    null,
-  );
+export function RouteMap({ incidentLat, incidentLng, height = 350 }: RouteMapProps) {
+  const [responderPos, setResponderPos] = useState<[number, number] | null>(null);
+  const [routeCoords, setRouteCoords] = useState<[number, number][] | null>(null);
   const incidentPos: [number, number] = [incidentLat, incidentLng];
 
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.watchPosition(
         (p) => setResponderPos([p.coords.latitude, p.coords.longitude]),
-        () => setResponderPos(incidentPos),
+        () => setResponderPos(incidentPos)
       );
     }
   }, [incidentLat, incidentLng]);
@@ -345,10 +319,9 @@ export function RouteMap({
       .then((res) => res.json())
       .then((data) => {
         if (data.routes && data.routes.length > 0) {
-          const coords: [number, number][] =
-            data.routes[0].geometry.coordinates.map(
-              ([lng, lat]: [number, number]) => [lat, lng],
-            );
+          const coords: [number, number][] = data.routes[0].geometry.coordinates.map(
+            ([lng, lat]: [number, number]) => [lat, lng]
+          );
           setRouteCoords(coords);
         }
       })
@@ -363,7 +336,7 @@ export function RouteMap({
     <MapContainer
       center={center}
       zoom={14}
-      style={{ height, width: "100%", borderRadius: 8 }}
+      style={{ height, width: '100%', borderRadius: 8 }}
       scrollWheelZoom
     >
       <MapResizeHandler />
@@ -371,12 +344,7 @@ export function RouteMap({
       <Marker position={incidentPos} icon={markerIcon} />
       {responderPos && <Marker position={responderPos} icon={markerIcon} />}
       {routeCoords && (
-        <Polyline
-          positions={routeCoords}
-          color="#E63333"
-          weight={4}
-          dashArray="8 8"
-        />
+        <Polyline positions={routeCoords} color="#E63333" weight={4} dashArray="8 8" />
       )}
     </MapContainer>
   );
@@ -399,7 +367,7 @@ export function StaticMap({
     <MapContainer
       center={[latitude, longitude]}
       zoom={15}
-      style={{ height, width: "100%", borderRadius: 8 }}
+      style={{ height, width: '100%', borderRadius: 8 }}
       scrollWheelZoom={false}
     >
       <MapResizeHandler />
@@ -417,7 +385,7 @@ export function StaticMap({
 }
 export function findContainingPurok(
   point: [number, number],
-  data: FeatureCollection,
+  data: FeatureCollection
 ): string | null {
   let purokName: string | null = null;
   let barangayName: string | null = null;
@@ -426,13 +394,13 @@ export function findContainingPurok(
     const name = feature.properties?.name;
     if (!name) continue;
 
-    const isBoundary = name.toLowerCase().includes("don mariano marcos");
+    const isBoundary = name.toLowerCase().includes('don mariano marcos');
     const geometry = feature.geometry;
 
     const matches =
-      geometry.type === "Polygon"
+      geometry.type === 'Polygon'
         ? isPointInPolygon(point, geometry.coordinates[0])
-        : geometry.type === "MultiPolygon"
+        : geometry.type === 'MultiPolygon'
           ? geometry.coordinates.some((polygon) => isPointInPolygon(point, polygon[0]))
           : false;
 

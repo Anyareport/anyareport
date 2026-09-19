@@ -134,7 +134,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
 
         {report.aiSummary && (
           <>
-            <Text strong style={{ color: '#722ed1' }}>
+            <Text strong style={{ color: 'var(--text-link)' }}>
               AI Summary
             </Text>
             <Paragraph style={{ marginBottom: 16 }}>{report.aiSummary}</Paragraph>
@@ -158,7 +158,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
 
         {/* Map — responder gets route view, everyone else gets static */}
         {variant === 'responder' ? (
-          <Card size="small" style={{ background: '#f7f8fb' }}>
+          <Card size="small">
             <Space direction="vertical" style={{ width: '100%' }}>
               <Text strong>Routing view</Text>
               <RouteMap incidentLat={lat} incidentLng={lng} />

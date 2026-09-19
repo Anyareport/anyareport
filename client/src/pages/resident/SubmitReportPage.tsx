@@ -292,7 +292,13 @@ export default function SubmitReportPage() {
 
   return (
     <Card className="card-container">
-      <Title level={3} style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>
+      <Title
+        level={3}
+        style={{
+          fontFamily: "'Bebas Neue', sans-serif",
+          letterSpacing: 1,
+        }}
+      >
         SUBMIT INCIDENT REPORT
       </Title>
 
@@ -532,11 +538,15 @@ export default function SubmitReportPage() {
               {form.getFieldValue('address') || <Text type="secondary">Not provided</Text>}
             </Descriptions.Item>
             <Descriptions.Item label="Category">
-              <Tag color="blue">{form.getFieldValue('category')}</Tag>
-              <Tag>{form.getFieldValue('subcategory')}</Tag>
+              <Tag color="var(--brand-navy)">{form.getFieldValue('category')}</Tag>
+              <Tag color="var(--neutral-100)" style={{ color: 'var(--text-primary)' }}>
+                {form.getFieldValue('subcategory')}
+              </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="Severity">
-              <Tag color="red">{form.getFieldValue('severity')}</Tag>
+              <Tag color="var(--severity-critical-tag)" style={{ color: 'var(--neutral-900)' }}>
+                {form.getFieldValue('severity')}
+              </Tag>
             </Descriptions.Item>
           </Descriptions>
         </div>
