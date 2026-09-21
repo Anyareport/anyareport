@@ -7,6 +7,7 @@ import {
   getProfile,
   updateProfile,
   syncClaims,
+  getUsernameByUid,
 } from '../controllers/authController.js';
 
 const router = Router();
@@ -15,5 +16,6 @@ router.post('/register', verifyToken, registerLimiter, verifyCaptcha, registerPr
 router.get('/profile', verifyToken, getProfile);
 router.patch('/profile', verifyToken, updateProfile);
 router.post('/sync-claims', verifyToken, syncClaims);
+router.get('/find-username', verifyToken, getUsernameByUid);
 
 export default router;

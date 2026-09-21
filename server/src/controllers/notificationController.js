@@ -14,7 +14,7 @@ export async function exportReports(req, res) {
       return res.send(pdf);
     }
 
-    const csv = exportToCSV(reports);
+    const csv = await exportToCSV(reports);
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename=anyareport-export.csv');
     res.send(csv);

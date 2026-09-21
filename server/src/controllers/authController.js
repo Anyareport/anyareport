@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import { getFirebaseAdmin } from '../config/firebase.js';
 import { isDisposableEmail } from '../services/disposableEmail.js';
+import { getUsernameByUid as lookupUsernameByUid } from '../services/userLookup.js';
 
 export async function registerProfile(req, res) {
   try {
@@ -109,6 +110,24 @@ export async function syncClaims(req, res) {
     }
 
     res.json({ role: profile.role });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export async function getUsernameByUid(req, res) {
+  try {
+    const firebaseUid = req.query.uid;
+    if (!firebaseUid) {
+      return res.status(400).json({ error: 'Firebase UID is required' });
+    }
+
+    const username = await lookupUsernameByUid(firebaseUid);
+    if (!username) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ username });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

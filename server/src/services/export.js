@@ -1,18 +1,21 @@
 import { Parser } from 'json2csv';
 import PDFDocument from 'pdfkit';
+import { getUsernameByUid } from './userLookup.js';
 
-export function exportToCSV(reports) {
-  const rows = reports.map((report) => ({
+
+export async function exportToCSV(reports) {
+  const rows = await Promise.all(reports.map(async (report) => ({
     id: report._id?.toString() ?? '',
+    submittedBy: await getUsernameByUid(report.submittedBy) ?? '',
     category: report.category ?? '',
     status: report.status ?? '',
     description: report.description ?? '',
     address: report.location?.address ?? '',
     submittedAt: report.createdAt ? new Date(report.createdAt).toISOString() : '',
-  }));
+  })));
 
   const parser = new Parser({
-    fields: ['id', 'category', 'status', 'description', 'address', 'submittedAt'],
+    fields: ['id','submittedBy', 'category', 'status', 'description', 'address', 'submittedAt'],
   });
   return `\uFEFF${parser.parse(rows)}`;
 }
@@ -30,7 +33,7 @@ export function exportToPDF(reports) {
     doc.moveDown();
 
     reports.forEach((r, i) => {
-      doc.fontSize(10).text(`${i + 1}. [${r.status}] ${r.category}`);
+      doc.fontSize(10).text(`${i + 1}. [${r.status}] ${r.category} (Submitted by: ${r.submittedBy})`);
       doc.fontSize(9).text(`   ${r.description.slice(0, 120)}`);
       doc.fontSize(8).text(`   ${r.createdAt?.toLocaleString() ?? ''}`);
       doc.moveDown(0.5);
