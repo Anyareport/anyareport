@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Form, Input, Button, Card, Typography, message, Divider, Alert } from 'antd';
 import { GoogleOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
-import { getGoogleAuthErrorMessage, registerWithEmail, loginWithGoogle } from '../../lib/firebase';
+import { getGoogleAuthErrorMessage, registerWithEmail, loginWithGoogle, logout } from '../../lib/firebase';
 import { api } from '../../lib/api';
 import { getRedirectPath, useAuth } from '../../contexts/AuthContext';
 import Logo from '../../components/Logo';
@@ -128,6 +128,11 @@ export default function RegisterPage() {
     }
   };
 
+  const handleUseDifferentEmail = async () => {
+    await logout();
+    form.resetFields();
+  };
+
   return (
     <div
       style={{
@@ -168,6 +173,11 @@ export default function RegisterPage() {
           <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
             <Input size="large" disabled={completingProfile} />
           </Form.Item>
+          {completingProfile && (
+            <Button type="link" onClick={handleUseDifferentEmail} style={{ padding: 0, marginTop: -8 }}>
+              Use a different email
+            </Button>
+          )}
           {!completingProfile && (
             <Form.Item name="password" label="Password" rules={[{ required: true, min: 6 }]}>
               <Input.Password size="large" />
