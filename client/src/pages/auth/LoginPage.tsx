@@ -6,6 +6,7 @@ import { getGoogleAuthErrorMessage, loginWithEmail, loginWithGoogle } from '../.
 import { api } from '../../lib/api';
 import { useAuth, getRedirectPath } from '../../contexts/AuthContext';
 import Logo from '../../components/Logo';
+import ServerStatus from '../../components/ServerStatus';
 
 const { Title, Text } = Typography;
 
@@ -78,6 +79,7 @@ export default function LoginPage() {
           >
             SIGN IN
           </Title>
+          <ServerStatus />
         </div>
 
         <Form

@@ -28,6 +28,18 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  health: async (): Promise<{ status: string; timestamp: string }> => {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 5000);
+
+    try {
+      const res = await fetch(`${API_URL}/api/health`, { signal: controller.signal });
+      if (!res.ok) throw new Error('Health check failed');
+      return res.json();
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  },
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body?: unknown) =>
     request<T>(path, {
