@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Tooltip } from 'antd';
 import { api } from '../lib/api';
 
 type ServerState = 'checking' | 'active' | 'inactive';
