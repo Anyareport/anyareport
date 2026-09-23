@@ -93,6 +93,12 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
       );
     }
 
+    if (searchParams.get('handledByMe') === 'true' && ['tanod', 'responder'].includes(role)) {
+      reports = reports.filter(
+        (report) => report.acknowledgedBy === (session?.firebaseUid || getDemoProfile()?.firebaseUid)
+      );
+    }
+
     if (status) {
       reports = reports.filter((report) => report.status === status);
     }
@@ -223,6 +229,9 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
         updatedBy: getDemoProfile()?.firebaseUid || 'demo-responder-1',
         timestamp: now(),
       });
+      if (nextStatus === 'verified') {
+        report.verifiedBy = getDemoProfile()?.firebaseUid || 'demo-responder-1';
+      }
       setDemoDbSnapshot(db);
       return report as T;
     }

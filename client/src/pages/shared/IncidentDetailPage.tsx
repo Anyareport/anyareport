@@ -47,7 +47,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   });
 
   const updateStatus = useMutation({
-    mutationFn: (status: 'en_route' | 'on_scene' | 'resolved') =>
+    mutationFn: (status: 'en_route' | 'on_scene' | 'verified') =>
       api.patch(`/api/reports/${id}/status`, { status }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['report', id] });
@@ -106,6 +106,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
 
   const [lng, lat] = report.location?.coordinates || [0, 0];
   const isResident = variant === 'resident';
+  const isFinalized = report.status === 'resolved' || report.status === 'verified';
 
   // The main report card — shared across all variants
   const reportCard = (
@@ -245,6 +246,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                   <Text type="secondary">Status controls</Text>
                   <Button
                     block
+                    disabled={isFinalized}
                     onClick={() => updateStatus.mutate('en_route')}
                     loading={updateStatus.isPending}
                   >
@@ -252,6 +254,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                   </Button>
                   <Button
                     block
+                    disabled={isFinalized}
                     onClick={() => updateStatus.mutate('on_scene')}
                     loading={updateStatus.isPending}
                   >
@@ -260,10 +263,11 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                   <Button
                     block
                     type="primary"
-                    onClick={() => updateStatus.mutate('resolved')}
+                    disabled={isFinalized}
+                    onClick={() => updateStatus.mutate('verified')}
                     loading={updateStatus.isPending}
                   >
-                    Resolve incident
+                    Verify incident
                   </Button>
                 </>
               )}
@@ -296,6 +300,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                   block
                   type="dashed"
                   icon={<ExclamationCircleOutlined />}
+                  disabled={isFinalized}
                   onClick={() => acknowledgeMutation.mutate()}
                   loading={acknowledgeMutation.isPending}
                 >

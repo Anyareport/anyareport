@@ -131,6 +131,9 @@ export async function getReports(req, res) {
     let query = {};
 
     if (req.query.status) query.status = req.query.status;
+    if (req.query.handledByMe === 'true' && ['tanod', 'responder'].includes(req.userRole)) {
+      query.acknowledgedBy = req.firebaseUser.uid;
+    }
 
     const reports = await Report.find(query).sort({ createdAt: -1 }).limit(200);
 
@@ -236,7 +239,7 @@ export async function flagReport(req, res) {
 export async function updateReportStatus(req, res) {
   try {
     const { status } = req.body;
-    const validStatuses = ['en_route', 'on_scene', 'resolved'];
+    const validStatuses = ['en_route', 'on_scene', 'resolved', 'verified'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
     }
@@ -256,8 +259,14 @@ export async function updateReportStatus(req, res) {
     }
 
     const updatedBy = await resolveActorName(req.firebaseUser.uid);
+    if (isResponder && !report.acknowledgedBy) {
+      report.acknowledgedBy = req.firebaseUser.uid;
+    }
     const statusChanged = report.status !== status;
     report.status = status;
+    if (status === 'verified' && isResponder) {
+      report.verifiedBy = req.firebaseUser.uid;
+    }
     report.statusHistory.push({ status, updatedBy });
     await report.save();
 

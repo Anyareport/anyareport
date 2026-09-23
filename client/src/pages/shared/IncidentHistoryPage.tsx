@@ -19,7 +19,7 @@ export default function IncidentHistoryPage({ variant = 'admin' }: IncidentHisto
     queryFn: () =>
       api.get<Report[]>(
         variant === 'responder'
-          ? '/api/reports'
+          ? '/api/reports?handledByMe=true'
           : `/api/reports${status === 'all' ? '' : `?status=${status}`}`
       ),
     refetchInterval: 30000,
@@ -29,7 +29,9 @@ export default function IncidentHistoryPage({ variant = 'admin' }: IncidentHisto
     const sorted = [...reports].sort(compareIncidentPriority);
 
     if (variant === 'responder') {
-      return sorted.filter((report) => report.status === 'resolved' || report.status === 'flagged');
+      return sorted.filter(
+        (report) => report.status === 'verified' || report.status === 'flagged'
+      );
     }
 
     return sorted;
