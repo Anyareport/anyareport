@@ -21,6 +21,14 @@ export default function ResponderDashboardPage() {
     refetchInterval: 30000,
   });
 
+  const { data: handledReports = [], isLoading: handledReportsLoading } = useQuery({
+    queryKey: ['responder-handled-reports'],
+    queryFn: () => api.get<Report[]>('/api/reports?handledByMe=true'),
+    refetchInterval: 30000,
+  });
+
+  const visibleHandledReports = handledReports.filter((report) => report.status !== 'verified');
+
   const activeReports = useMemo(
     () =>
       reports
@@ -35,6 +43,7 @@ export default function ResponderDashboardPage() {
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      
       <Card className="soft-card page-hero">
         <Title level={2} style={{ marginTop: 0 }}>
           Responder Command
@@ -49,6 +58,7 @@ export default function ResponderDashboardPage() {
           </Link>
         </Button>
       </Card>
+      
 
       <Row gutter={[16, 16]}>
         <Col xs={24} md={8}>
@@ -79,10 +89,19 @@ export default function ResponderDashboardPage() {
           </Card>
         </Col>
       </Row>
+       <Card className="soft-card" title="My handled incidents">
+        <IncidentList
+          reports={visibleHandledReports.slice(0, 5)}
+          loading={handledReportsLoading}
+          basePath="/responder/incidents"
+        />
+      </Card>
 
       <Card className="soft-card" title="Active incidents">
         <IncidentList reports={activeReports.slice(0, 10)} basePath="/responder/incidents" />
       </Card>
+
+     
     </Space>
   );
 }
