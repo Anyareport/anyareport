@@ -46,8 +46,10 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     enabled: !!id,
   });
 
+  
+
   const updateStatus = useMutation({
-    mutationFn: (status: 'en_route' | 'on_scene' | 'verified') =>
+    mutationFn: (status: 'en_route' | 'on_scene' | 'resolved' | 'verified') =>
       api.patch(`/api/reports/${id}/status`, { status }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['report', id] });
@@ -88,7 +90,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   });
 
   const canManageStatus = useMemo(
-    () => ['secretary', 'tanod', 'responder'].includes(role || ''),
+    () => ['captain', 'secretary', 'tanod', 'responder'].includes(role || ''),
     [role]
   );
 
@@ -107,6 +109,11 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const [lng, lat] = report.location?.coordinates || [0, 0];
   const isResident = variant === 'resident';
   const isFinalized = report.status === 'resolved' || report.status === 'verified';
+  const isResponder = ['tanod', 'responder'].includes(role || '');
+  const isReservedByAnotherResponder =
+    isResponder && !!report.acknowledgedBy && report.acknowledgedBy !== profile?.firebaseUid;
+  const isOversightRole = role === 'captain' || role === 'secretary';
+  const responseActionsDisabled = isFinalized || isReservedByAnotherResponder;
 
   // The main report card — shared across all variants
   const reportCard = (
@@ -244,31 +251,46 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
               {canManageStatus && (
                 <>
                   <Text type="secondary">Status controls</Text>
-                  <Button
-                    block
-                    disabled={isFinalized}
-                    onClick={() => updateStatus.mutate('en_route')}
-                    loading={updateStatus.isPending}
-                  >
-                    Set en route
-                  </Button>
-                  <Button
-                    block
-                    disabled={isFinalized}
-                    onClick={() => updateStatus.mutate('on_scene')}
-                    loading={updateStatus.isPending}
-                  >
-                    Set on scene
-                  </Button>
-                  <Button
-                    block
-                    type="primary"
-                    disabled={isFinalized}
-                    onClick={() => updateStatus.mutate('verified')}
-                    loading={updateStatus.isPending}
-                  >
-                    Verify incident
-                  </Button>
+                  {!isOversightRole && (
+                    <>
+                      <Button
+                        block
+                        disabled={responseActionsDisabled}
+                        onClick={() => updateStatus.mutate('en_route')}
+                        loading={updateStatus.isPending}
+                      >
+                        Set en route
+                      </Button>
+                      <Button
+                        block
+                        disabled={responseActionsDisabled}
+                        onClick={() => updateStatus.mutate('on_scene')}
+                        loading={updateStatus.isPending}
+                      >
+                        Set on scene
+                      </Button>
+                      <Button
+                        block
+                        type="primary"
+                        disabled={responseActionsDisabled}
+                        onClick={() => updateStatus.mutate('verified')}
+                        loading={updateStatus.isPending}
+                      >
+                        Verify incident
+                      </Button>
+                    </>
+                  )}
+                  {isOversightRole && (
+                    <Button
+                      block
+                      type="primary"
+                      disabled={report.status === 'resolved'}
+                      onClick={() => updateStatus.mutate('resolved')}
+                      loading={updateStatus.isPending}
+                    >
+                      Mark resolved
+                    </Button>
+                  )}
                 </>
               )}
 
@@ -295,12 +317,12 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                 </>
               )}
 
-              {['tanod', 'responder', 'captain', 'secretary'].includes(role || '') && (
+              {isResponder && (
                 <Button
                   block
                   type="dashed"
                   icon={<ExclamationCircleOutlined />}
-                  disabled={isFinalized}
+                  disabled={responseActionsDisabled}
                   onClick={() => acknowledgeMutation.mutate()}
                   loading={acknowledgeMutation.isPending}
                 >

@@ -33,10 +33,10 @@ router.get('/', requireRole('admin', 'captain', 'secretary', 'tanod', 'responder
 router.get('/:id', getReportById);
 router.post('/:id/verify', requireRole('secretary'), verifyReport);
 router.post('/:id/flag', requireRole('secretary'), flagReport);
-router.patch('/:id/status', requireRole('secretary', 'tanod', 'responder'), updateReportStatus);
+router.patch('/:id/status', requireRole('captain', 'secretary', 'tanod', 'responder'), updateReportStatus);
 router.patch(
   '/:id/acknowledge',
-  requireRole('tanod', 'responder', 'captain', 'secretary'),
+  requireRole('tanod', 'responder'),
   acknowledgeReport
 );
 

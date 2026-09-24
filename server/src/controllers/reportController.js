@@ -254,13 +254,33 @@ export async function updateReportStatus(req, res) {
       return res.status(403).json({ error: 'Insufficient permissions to update status' });
     }
 
-    if (['captain', 'admin'].includes(req.userRole)) {
+    if (['captain', 'secretary'].includes(req.userRole) && status !== 'resolved') {
+      return res.status(403).json({ error: 'Captain and Secretary can only resolve incidents' });
+    }
+
+    if (req.userRole === 'admin') {
       return res.status(403).json({ error: 'Oversight only — cannot directly update status' });
     }
 
+    if (isResponder && report.acknowledgedBy && report.acknowledgedBy !== req.firebaseUser.uid) {
+      return res.status(409).json({ error: 'Incident is already reserved by another responder' });
+    }
+
     const updatedBy = await resolveActorName(req.firebaseUser.uid);
-    if (isResponder && !report.acknowledgedBy) {
+    if (isResponder && status === 'en_route' && !report.acknowledgedBy) {
+      const reservedReport = await Report.findOneAndUpdate(
+        { _id: report._id, acknowledgedBy: null },
+        { acknowledgedBy: req.firebaseUser.uid },
+        { new: true }
+      );
+      if (!reservedReport) {
+        return res.status(409).json({ error: 'Incident was just reserved by another responder' });
+      }
       report.acknowledgedBy = req.firebaseUser.uid;
+    }
+
+    if (isResponder && !report.acknowledgedBy) {
+      return res.status(409).json({ error: 'Set en route first to reserve this incident' });
     }
     const statusChanged = report.status !== status;
     report.status = status;
@@ -282,8 +302,16 @@ export async function updateReportStatus(req, res) {
 
 export async function acknowledgeReport(req, res) {
   try {
+    if (!['tanod', 'responder'].includes(req.userRole)) {
+      return res.status(403).json({ error: 'Only responders can acknowledge incidents' });
+    }
+
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ error: 'Report not found' });
+
+    if (report.acknowledgedBy && report.acknowledgedBy !== req.firebaseUser.uid) {
+      return res.status(409).json({ error: 'Incident is already reserved by another responder' });
+    }
 
     report.acknowledgedBy = req.firebaseUser.uid;
     let statusChanged = false;

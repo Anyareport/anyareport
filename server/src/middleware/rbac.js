@@ -10,8 +10,7 @@ export function requireRole(...allowedRoles) {
 }
 
 export function canUpdateStatus(role) {
-  // ASSUMPTION: Secretary, tanod, and responder can update status; Captain/Admin oversight only
-  return ['secretary', 'tanod', 'responder'].includes(role);
+  return ['captain', 'secretary', 'tanod', 'responder'].includes(role);
 }
 
 export function canVerifyReports(role) {

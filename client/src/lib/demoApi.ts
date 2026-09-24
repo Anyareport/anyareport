@@ -223,10 +223,26 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
 
     if (method === 'PATCH' && action === 'status') {
       const nextStatus = String(body.status || 'en_route') as Report['status'];
+      const demoProfile = getDemoProfile();
+      const demoRole = demoProfile?.role || '';
+      const demoUid = demoProfile?.firebaseUid || 'demo-responder-1';
+      if (['captain', 'secretary'].includes(demoRole) && nextStatus !== 'resolved') {
+        throw new Error('Captain and Secretary can only resolve incidents');
+      }
+      if (['tanod', 'responder'].includes(demoRole)) {
+        if (report.acknowledgedBy && report.acknowledgedBy !== demoUid) {
+          throw new Error('Incident is already reserved by another responder');
+        }
+        if (nextStatus === 'en_route' && !report.acknowledgedBy) {
+          report.acknowledgedBy = demoUid;
+        } else if (!report.acknowledgedBy) {
+          throw new Error('Set en route first to reserve this incident');
+        }
+      }
       report.status = nextStatus;
       report.statusHistory.push({
         status: nextStatus,
-        updatedBy: getDemoProfile()?.firebaseUid || 'demo-responder-1',
+        updatedBy: demoUid,
         timestamp: now(),
       });
       if (nextStatus === 'verified') {
@@ -237,7 +253,15 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
     }
 
     if (method === 'PATCH' && action === 'acknowledge') {
-      report.acknowledgedBy = getDemoProfile()?.firebaseUid || 'demo-responder-1';
+      const demoProfile = getDemoProfile();
+      if (!['tanod', 'responder'].includes(demoProfile?.role || '')) {
+        throw new Error('Only responders can acknowledge incidents');
+      }
+      const demoUid = demoProfile?.firebaseUid || 'demo-responder-1';
+      if (report.acknowledgedBy && report.acknowledgedBy !== demoUid) {
+        throw new Error('Incident is already reserved by another responder');
+      }
+      report.acknowledgedBy = demoUid;
       if (report.status === 'verified') {
         report.status = 'en_route';
         report.statusHistory.push({
