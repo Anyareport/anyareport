@@ -24,7 +24,7 @@ export default function ResponderDashboardPage() {
   const activeReports = useMemo(
     () =>
       reports
-        .filter((report) => ['en_route', 'on_scene'].includes(report.status))
+        .filter((report) => ['pending', 'en_route', 'on_scene'].includes(report.status) && ['Emergency Situations', 'Public Concerns'].includes(report.category))
         .sort(compareIncidentPriority),
     [reports]
   );
