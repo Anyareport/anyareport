@@ -3,7 +3,11 @@ import User from '../models/User.js';
 import AuditLog from '../models/AuditLog.js';
 import Category from '../models/Category.js';
 import { classifyReport } from '../services/gemini.js';
-import { notifyOnStatusUpdate, notifyOnVerification } from '../services/notifications.js';
+import {
+  notifyBackupRequest,
+  notifyOnStatusUpdate,
+  notifyOnVerification,
+} from '../services/notifications.js';
 import { antiAbuseConfig } from '../config/antiAbuse.js';
 import { uploadImage } from '../services/cloudinary.js';
 import { canUpdateStatus, canVerifyReports } from '../middleware/rbac.js';
@@ -328,6 +332,36 @@ export async function acknowledgeReport(req, res) {
       await notifyOnStatusUpdate(report, 'en_route', updatedBy);
     }
     await logAudit('report_acknowledged', req, report._id);
+    res.json(report);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export async function requestBackup(req, res) {
+  try {
+    if (!['tanod', 'responder'].includes(req.userRole)) {
+      return res.status(403).json({ error: 'Only responders can request backup' });
+    }
+
+    const report = await Report.findById(req.params.id);
+    if (!report) return res.status(404).json({ error: 'Report not found' });
+    if (report.status === 'resolved') {
+      return res.status(409).json({ error: 'Resolved incidents cannot request backup' });
+    }
+    if (report.acknowledgedBy !== req.firebaseUser.uid) {
+      return res.status(403).json({ error: 'Only the assigned responder can request backup' });
+    }
+    if (report.backupRequests.some((request) => request.status === 'pending')) {
+      return res.status(409).json({ error: 'Backup has already been requested' });
+    }
+
+    report.backupRequests.push({ requestedBy: req.firebaseUser.uid });
+    await report.save();
+
+    const requesterName = await resolveActorName(req.firebaseUser.uid);
+    await notifyBackupRequest(report, requesterName);
+    await logAudit('backup_requested', req, report._id);
     res.json(report);
   } catch (err) {
     res.status(500).json({ error: err.message });

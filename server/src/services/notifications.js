@@ -55,6 +55,35 @@ export async function notifyOnStatusUpdate(report, status, updatedBy) {
   return notification;
 }
 
+export async function notifyBackupRequest(report, requesterName) {
+  const users = await User.find({
+    role: { $in: ['tanod', 'responder'] },
+    status: 'active',
+    firebaseUid: { $ne: report.acknowledgedBy },
+  });
+
+  const notifications = await Promise.all(
+    users.map((user) =>
+      Notification.create({
+        recipientUid: user.firebaseUid,
+        recipientRole: user.role,
+        reportId: report._id,
+        type: 'backup_requested',
+        message: `${requesterName} requested backup for ${report.category}.`,
+        urgent: true,
+      })
+    )
+  );
+
+  if (ioInstance) {
+    notifications.forEach((notification) => {
+      ioInstance.to(`role:${notification.recipientRole}`).emit('notification', notification);
+    });
+  }
+
+  return notifications;
+}
+
 export async function getNotificationsForUser(firebaseUid) {
   return Notification.find({ recipientUid: firebaseUid }).sort({ createdAt: -1 }).limit(50);
 }

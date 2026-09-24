@@ -27,7 +27,7 @@ export default function ResponderDashboardPage() {
     refetchInterval: 30000,
   });
 
-  const visibleHandledReports = handledReports.filter((report) => report.status !== 'verified');
+  const visibleHandledReports = handledReports.filter((report) => report.status !== 'verified' && report.status !== 'resolved');
 
   const activeReports = useMemo(
     () =>

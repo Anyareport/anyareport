@@ -159,7 +159,7 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
   }
 
   const reportMatch = pathname.match(
-    /^\/api\/reports\/([^/]+)(?:\/(verify|flag|status|acknowledge))?$/
+    /^\/api\/reports\/([^/]+)(?:\/(verify|flag|status|acknowledge|backup))?$/
   );
   if (reportMatch) {
     const reportId = reportMatch[1];
@@ -270,6 +270,39 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
           timestamp: now(),
         });
       }
+      setDemoDbSnapshot(db);
+      return report as T;
+    }
+
+    if (method === 'POST' && action === 'backup') {
+      const demoProfile = getDemoProfile();
+      const demoUid = demoProfile?.firebaseUid || 'demo-responder-1';
+      if (!['tanod', 'responder'].includes(demoProfile?.role || '')) {
+        throw new Error('Only responders can request backup');
+      }
+      if (report.status === 'resolved') {
+        throw new Error('Resolved incidents cannot request backup');
+      }
+      if (report.acknowledgedBy !== demoUid) {
+        throw new Error('Only the assigned responder can request backup');
+      }
+      report.backupRequests = report.backupRequests || [];
+      if (report.backupRequests.some((request) => request.status === 'pending')) {
+        throw new Error('Backup has already been requested');
+      }
+      report.backupRequests.push({ requestedBy: demoUid, requestedAt: now(), status: 'pending' });
+      db.notifications.unshift({
+        _id: createNotificationId(),
+        recipientUid: 'demo-responder-1',
+        recipientRole: 'responder',
+        reportId: report._id,
+        type: 'backup_requested',
+        message: `${demoProfile?.name || 'Demo Responder'} requested backup for ${report.category}.`,
+        read: false,
+        urgent: true,
+        createdAt: now(),
+        updatedAt: now(),
+      });
       setDemoDbSnapshot(db);
       return report as T;
     }

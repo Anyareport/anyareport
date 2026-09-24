@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge, Button, Card, Empty, List, Space, Typography, message } from 'antd';
 import { CheckOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { api, type Notification } from '../../lib/api';
 import { getSocket } from '../../lib/socket';
 import PageHero from '../../components/PageHero';
@@ -13,6 +14,7 @@ interface NotificationsPageProps {
 }
 
 export default function NotificationsPage({ title }: NotificationsPageProps) {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['notifications'],
@@ -58,12 +60,25 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
             dataSource={notifications}
             renderItem={(notification) => (
               <List.Item
+                onClick={() => {
+                  if (notification.type !== 'backup_requested' || !notification.reportId) return;
+                  if (!notification.read) markRead.mutate(notification._id);
+                  navigate(`/responder/incidents/${notification.reportId}`);
+                }}
+                style={
+                  notification.type === 'backup_requested' && notification.reportId
+                    ? { cursor: 'pointer' }
+                    : undefined
+                }
                 actions={[
                   <Button
                     key="read"
                     type={notification.read ? 'default' : 'primary'}
                     icon={<CheckOutlined />}
-                    onClick={() => markRead.mutate(notification._id)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      markRead.mutate(notification._id);
+                    }}
                     disabled={notification.read}
                   >
                     {notification.read ? 'Read' : 'Mark read'}

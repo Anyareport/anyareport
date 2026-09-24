@@ -12,6 +12,7 @@ import {
   flagReport,
   updateReportStatus,
   acknowledgeReport,
+  requestBackup,
   getCategories,
   getAnalytics,
   getHeatmapData,
@@ -34,6 +35,7 @@ router.get('/:id', getReportById);
 router.post('/:id/verify', requireRole('secretary'), verifyReport);
 router.post('/:id/flag', requireRole('secretary'), flagReport);
 router.patch('/:id/status', requireRole('captain', 'secretary', 'tanod', 'responder'), updateReportStatus);
+router.post('/:id/backup', requireRole('tanod', 'responder'), requestBackup);
 router.patch(
   '/:id/acknowledge',
   requireRole('tanod', 'responder'),

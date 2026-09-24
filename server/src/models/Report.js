@@ -22,6 +22,13 @@ const reportSchema = new mongoose.Schema(
     aiSummary: { type: String, default: null },
     verifiedBy: { type: String, default: null },
     acknowledgedBy: { type: String, default: null },
+    backupRequests: [
+      {
+        requestedBy: { type: String, required: true },
+        requestedAt: { type: Date, default: Date.now },
+        status: { type: String, enum: ['pending'], default: 'pending' },
+      },
+    ],
     statusHistory: [
       {
         status: String,

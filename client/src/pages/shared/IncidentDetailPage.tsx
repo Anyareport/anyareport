@@ -89,6 +89,16 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     onError: (error: Error) => message.error(error.message),
   });
 
+  const backupMutation = useMutation({
+    mutationFn: () => api.post(`/api/reports/${id}/backup`, {}),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['report', id] });
+      await queryClient.invalidateQueries({ queryKey: ['responder-handled-reports'] });
+      message.success('Backup requested from other responders');
+    },
+    onError: (error: Error) => message.error(error.message),
+  });
+
   const canManageStatus = useMemo(
     () => ['captain', 'secretary', 'tanod', 'responder'].includes(role || ''),
     [role]
@@ -318,16 +328,32 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
               )}
 
               {isResponder && (
-                <Button
-                  block
-                  type="dashed"
-                  icon={<ExclamationCircleOutlined />}
-                  disabled={responseActionsDisabled}
-                  onClick={() => acknowledgeMutation.mutate()}
-                  loading={acknowledgeMutation.isPending}
-                >
-                  Acknowledge
-                </Button>
+                <>
+                  <Button
+                    block
+                    type="dashed"
+                    icon={<ExclamationCircleOutlined />}
+                    disabled={responseActionsDisabled}
+                    onClick={() => acknowledgeMutation.mutate()}
+                    loading={acknowledgeMutation.isPending}
+                  >
+                    Acknowledge
+                  </Button>
+                  {report.acknowledgedBy === profile?.firebaseUid && (
+                    <Button
+                      block
+                      danger
+                      disabled={
+                        responseActionsDisabled ||
+                        (report.backupRequests || []).some((request) => request.status === 'pending')
+                      }
+                      onClick={() => backupMutation.mutate()}
+                      loading={backupMutation.isPending}
+                    >
+                      Request backup
+                    </Button>
+                  )}
+                </>
               )}
             </Space>
           </Card>

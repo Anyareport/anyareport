@@ -91,6 +91,7 @@ export interface Report {
   aiSummary: string | null;
   verifiedBy: string | null;
   acknowledgedBy: string | null;
+  backupRequests?: { requestedBy: string; requestedAt: string; status: 'pending' }[];
   statusHistory: { status: string; updatedBy: string; timestamp: string }[];
   createdAt: string;
   updatedAt: string;
