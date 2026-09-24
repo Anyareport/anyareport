@@ -15,8 +15,9 @@ export default function ResponderAlertsPage() {
     refetchInterval: 15000,
   });
 
+
   const alerts = reports
-    .filter((report) => ['verified', 'en_route', 'on_scene'].includes(report.status))
+    .filter((report) => ['en_route', 'on_scene'].includes(report.status))
     .sort(compareIncidentPriority);
 
   return (

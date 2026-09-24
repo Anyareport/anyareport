@@ -24,7 +24,7 @@ export default function ResponderDashboardPage() {
   const activeReports = useMemo(
     () =>
       reports
-        .filter((report) => ['verified', 'en_route', 'on_scene'].includes(report.status))
+        .filter((report) => ['en_route', 'on_scene'].includes(report.status))
         .sort(compareIncidentPriority),
     [reports]
   );
