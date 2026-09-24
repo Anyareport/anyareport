@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Badge, Button, Card, Empty, List, Space, Typography, message } from 'antd';
+import { Badge, Button, Card, Empty, Grid, List, Space, Typography, message } from 'antd';
 import { CheckOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { api, type Notification } from '../../lib/api';
@@ -16,6 +16,8 @@ interface NotificationsPageProps {
 export default function NotificationsPage({ title }: NotificationsPageProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => api.get<Notification[]>('/api/notifications'),
@@ -65,11 +67,14 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
                   if (!notification.read) markRead.mutate(notification._id);
                   navigate(`/responder/incidents/${notification.reportId}`);
                 }}
-                style={
-                  notification.type === 'backup_requested' && notification.reportId
+                style={{
+                  ...(notification.type === 'backup_requested' && notification.reportId
                     ? { cursor: 'pointer' }
-                    : undefined
-                }
+                    : {}),
+                  flexDirection: isMobile ? 'column' : 'row',
+                  alignItems: isMobile ? 'stretch' : 'center',
+                  gap: 12,
+                }}
                 actions={[
                   <Button
                     key="read"
@@ -80,6 +85,7 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
                       markRead.mutate(notification._id);
                     }}
                     disabled={notification.read}
+                    style={{ width: isMobile ? '100%' : undefined }}
                   >
                     {notification.read ? 'Read' : 'Mark read'}
                   </Button>,
@@ -87,8 +93,14 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
               >
                 <List.Item.Meta
                   title={
-                    <Space>
-                      <Text strong>{notification.message}</Text>
+                    <Space
+                      wrap
+                      size={[8, 4]}
+                      style={{ width: '100%', minWidth: 0 }}
+                    >
+                      <Text strong style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>
+                        {notification.message}
+                      </Text>
                       {notification.urgent && <Badge status="error" text="Urgent" />}
                     </Space>
                   }
