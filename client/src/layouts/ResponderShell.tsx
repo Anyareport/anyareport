@@ -10,7 +10,7 @@ import {
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import AppShell from './AppShell';
-import { api, type Report } from '../lib/api';
+import { api, type Notification, type Report } from '../lib/api';
 
 export default function ResponderShell() {
   const { data: reports = [] } = useQuery({
@@ -20,6 +20,14 @@ export default function ResponderShell() {
   });
 
   const alertCount = reports.filter((r) => ['verified', 'en_route'].includes(r.status)).length;
+
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => api.get<Notification[]>('/api/notifications'),
+    refetchInterval: 30000,
+  });
+
+  const unreadCount = notifications.filter((notification) => !notification.read).length;
 
   const menuItems = useMemo(
     () => [
@@ -35,10 +43,18 @@ export default function ResponderShell() {
       },
       { key: '/responder/routing', icon: <EnvironmentOutlined />, label: 'Routing' },
       { key: '/responder/history', icon: <HistoryOutlined />, label: 'History' },
-      { key: '/responder/notifications', icon: <BellOutlined />, label: 'Notifications' },
+      {
+        key: '/responder/notifications',
+        icon: <BellOutlined />,
+        label: (
+          <span>
+            Notifications <Badge count={unreadCount} size="small" offset={[8, 0]} />
+          </span>
+        ),
+      },
       { key: '/responder/profile', icon: <UserOutlined />, label: 'Profile' },
     ],
-    [alertCount]
+    [alertCount, unreadCount]
   );
 
   return <AppShell menuItems={menuItems} siderWidth={200} roleLabel="RESPONDER" />;

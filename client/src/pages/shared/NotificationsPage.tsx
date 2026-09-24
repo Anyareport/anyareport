@@ -74,45 +74,80 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
                   flexDirection: isMobile ? 'column' : 'row',
                   alignItems: isMobile ? 'stretch' : 'center',
                   gap: 12,
+                  width: '100%',
+                  overflow: 'hidden',
                 }}
-                actions={[
-                  <Button
-                    key="read"
-                    type={notification.read ? 'default' : 'primary'}
-                    icon={<CheckOutlined />}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      markRead.mutate(notification._id);
-                    }}
-                    disabled={notification.read}
-                    style={{ width: isMobile ? '100%' : undefined }}
-                  >
-                    {notification.read ? 'Read' : 'Mark read'}
-                  </Button>,
-                ]}
               >
-                <List.Item.Meta
-                  title={
-                    <Space
-                      wrap
-                      size={[8, 4]}
-                      style={{ width: '100%', minWidth: 0 }}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 12,
+                    width: '100%',
+                    minWidth: 0,
+                  }}
+                >
+                  <List.Item.Meta
+                    style={{ width: '100%', minWidth: 0 }}
+                    title={
+                      <Space
+                        wrap
+                        size={[8, 4]}
+                        style={{ width: '100%', minWidth: 0 }}
+                      >
+                        <Text
+                          strong
+                          style={{
+                            minWidth: 0,
+                            maxWidth: '100%',
+                            flex: '1 1 auto',
+                            whiteSpace: 'normal',
+                            overflowWrap: 'anywhere',
+                          }}
+                        >
+                          {notification.message}
+                        </Text>
+                        {notification.urgent && <Badge status="error" text="Urgent" />}
+                      </Space>
+                    }
+                    description={
+                      <Space direction="vertical" size={2} style={{ width: '100%' }}>
+                        <Text type="secondary">{notification.type.replace(/_/g, ' ')}</Text>
+                        <Text type="secondary">
+                          {new Date(notification.createdAt).toLocaleString()}
+                        </Text>
+                      </Space>
+                    }
+                  />
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'flex-start',
+                      width: '100%',
+                      marginTop: 0,
+                    }}
+                  >
+                    <Button
+                      type={notification.read ? 'default' : 'primary'}
+                      icon={<CheckOutlined />}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        markRead.mutate(notification._id);
+                      }}
+                      disabled={notification.read}
+                      style={{
+                        minHeight: 44,
+                        padding: '0 16px',
+                        borderRadius: 8,
+                        width: isMobile ? '100%' : undefined,
+                        opacity: notification.read ? 0.6 : 1,
+                        cursor: notification.read ? 'not-allowed' : 'pointer',
+                      }}
                     >
-                      <Text strong style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>
-                        {notification.message}
-                      </Text>
-                      {notification.urgent && <Badge status="error" text="Urgent" />}
-                    </Space>
-                  }
-                  description={
-                    <Space direction="vertical" size={2}>
-                      <Text type="secondary">{notification.type.replace(/_/g, ' ')}</Text>
-                      <Text type="secondary">
-                        {new Date(notification.createdAt).toLocaleString()}
-                      </Text>
-                    </Space>
-                  }
-                />
+                      {notification.read ? 'Read ✓' : 'Mark read'}
+                    </Button>
+                  </div>
+                </div>
               </List.Item>
             )}
           />
