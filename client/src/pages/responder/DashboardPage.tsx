@@ -11,11 +11,14 @@ import { Link } from 'react-router-dom';
 import { api, type Report } from '../../lib/api';
 import IncidentList from '../../components/IncidentList';
 import { compareIncidentPriority } from '../../lib/sortUtils';
+import { useAuth } from '../../contexts/AuthContext';
 
 const { Title, Paragraph } = Typography;
 
 export default function ResponderDashboardPage() {
-  const { data: reports = [] } = useQuery({
+  const { profile } = useAuth();
+
+  const { data: reports = [], isLoading: reportsLoading } = useQuery({
     queryKey: ['responder-reports'],
     queryFn: () => api.get<Report[]>('/api/reports'),
     refetchInterval: 30000,
@@ -27,9 +30,15 @@ export default function ResponderDashboardPage() {
     refetchInterval: 30000,
   });
 
-  const visibleHandledReports = handledReports.filter(
-    (report) => report.status !== 'verified' && report.status !== 'resolved'
+  const myActiveReports = useMemo(
+    () =>
+      handledReports.filter(
+        (report) => report.status !== 'resolved'
+      ),
+    [handledReports]
   );
+
+  
 
   const activeReports = useMemo(
     () =>
@@ -42,10 +51,18 @@ export default function ResponderDashboardPage() {
         .sort(compareIncidentPriority),
     [reports]
   );
-
-
-  const urgentReports = activeReports.filter(
-    (report) => report.category === 'Emergency Situations'
+  const otherIncidents = useMemo(
+    () =>
+      reports
+        .filter(
+          (report) =>
+            report.acknowledgedBy &&
+            report.acknowledgedBy !== profile?.firebaseUid &&
+            report.status !== 'resolved' &&
+            (report.backupRequests || []).some((request) => request.status === 'pending')
+        )
+        .sort(compareIncidentPriority),
+    [profile?.firebaseUid, reports]
   );
 
   return (
@@ -78,8 +95,8 @@ export default function ResponderDashboardPage() {
         <Col xs={24} md={8}>
           <Card className="soft-card">
             <Statistic
-              title="Urgent emergency calls"
-              value={urgentReports.length}
+              title="Backup requests"
+              value={otherIncidents.length}
               prefix={<FireOutlined />}
             />
           </Card>
@@ -88,7 +105,7 @@ export default function ResponderDashboardPage() {
           <Card className="soft-card">
             <Statistic
               title="Scene-ready"
-              value={activeReports.filter((report) => report.status === 'on_scene').length}
+              value={myActiveReports.filter((report) => report.status === 'on_scene').length}
               prefix={<EnvironmentOutlined />}
             />
           </Card>
@@ -97,13 +114,17 @@ export default function ResponderDashboardPage() {
 
       <Card className="soft-card" title="My handled incidents">
         <IncidentList
-          reports={visibleHandledReports.slice(0, 5)}
+          reports={myActiveReports.slice(0, 5)}
           loading={handledReportsLoading}
           basePath="/responder/incidents"
         />
       </Card>
-      <Card className="soft-card" title="Active incidents">
-        <IncidentList reports={activeReports.slice(0, 10)} basePath="/responder/incidents" />
+      <Card className="soft-card" title="Backup requests">
+        <IncidentList
+          reports={otherIncidents.slice(0, 5)}
+          loading={reportsLoading}
+          basePath="/responder/incidents"
+        />
       </Card>
     </Space>
   );
