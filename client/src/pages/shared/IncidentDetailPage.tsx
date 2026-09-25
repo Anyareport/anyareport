@@ -56,7 +56,6 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       await queryClient.invalidateQueries({ queryKey: ['admin-reports'] });
       await queryClient.invalidateQueries({ queryKey: ['responder-reports'] });
       await queryClient.invalidateQueries({ queryKey: ['responder-alerts'] });
-      await queryClient.invalidateQueries({ queryKey: ['responder-routing'] });
       await queryClient.invalidateQueries({ queryKey: ['responder-history'] });
     },
     onError: (error: Error) => message.error(error.message),

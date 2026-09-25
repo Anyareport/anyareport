@@ -3,7 +3,6 @@ import {
   DashboardOutlined,
   AlertOutlined,
   HistoryOutlined,
-  EnvironmentOutlined,
   BellOutlined,
   UserOutlined,
 } from '@ant-design/icons';
@@ -41,7 +40,6 @@ export default function ResponderShell() {
           </span>
         ),
       },
-      { key: '/responder/routing', icon: <EnvironmentOutlined />, label: 'Routing' },
       { key: '/responder/history', icon: <HistoryOutlined />, label: 'History' },
       {
         key: '/responder/notifications',

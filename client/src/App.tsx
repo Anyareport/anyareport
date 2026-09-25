@@ -15,7 +15,6 @@ import NotificationsPage from './pages/shared/NotificationsPage';
 import ProfilePage from './pages/shared/ProfilePage';
 import ResponderDashboardPage from './pages/responder/DashboardPage';
 import ResponderAlertsPage from './pages/responder/AlertsPage';
-import ResponderRoutingPage from './pages/responder/RoutingPage';
 import ResponderHistoryPage from './pages/responder/HistoryPage';
 import IncidentDetailPage from './pages/shared/IncidentDetailPage';
 import AdminDashboardPage from './pages/admin/DashboardPage';
@@ -80,7 +79,6 @@ function App() {
         <Route element={<ResponderShell />}>
           <Route path="/responder" element={<ResponderDashboardPage />} />
           <Route path="/responder/alerts" element={<ResponderAlertsPage />} />
-          <Route path="/responder/routing" element={<ResponderRoutingPage />} />
           <Route path="/responder/history" element={<ResponderHistoryPage />} />
           <Route
             path="/responder/notifications"
