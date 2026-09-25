@@ -17,7 +17,7 @@ export default function ResponderAlertsPage() {
 
 
   const alerts = reports
-    .filter((report) => ['pending', 'en_route', 'on_scene'].includes(report.status) && ['Emergency Situations', 'Public Concerns'].includes(report.category))
+    .filter((report) => ['pending'].includes(report.status) && ['Emergency Situations', 'Public Concerns'].includes(report.category))
     .sort(compareIncidentPriority);
 
   return (

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Col, Row, Statistic, Typography, Button, Space } from 'antd';
+import { Button, Card, Col, Row, Space, Statistic, Typography } from 'antd';
 import {
   AlertOutlined,
   ArrowRightOutlined,
@@ -27,15 +27,22 @@ export default function ResponderDashboardPage() {
     refetchInterval: 30000,
   });
 
-  const visibleHandledReports = handledReports.filter((report) => report.status !== 'verified' && report.status !== 'resolved');
+  const visibleHandledReports = handledReports.filter(
+    (report) => report.status !== 'verified' && report.status !== 'resolved'
+  );
 
   const activeReports = useMemo(
     () =>
       reports
-        .filter((report) => ['pending'].includes(report.status) && ['Emergency Situations', 'Public Concerns'].includes(report.category))
+        .filter(
+          (report) =>
+            report.status === 'pending' &&
+            ['Emergency Situations', 'Public Concerns'].includes(report.category)
+        )
         .sort(compareIncidentPriority),
     [reports]
   );
+
 
   const urgentReports = activeReports.filter(
     (report) => report.category === 'Emergency Situations'
@@ -43,7 +50,6 @@ export default function ResponderDashboardPage() {
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      
       <Card className="soft-card page-hero">
         <Title level={2} style={{ marginTop: 0 }}>
           Responder Command
@@ -58,7 +64,6 @@ export default function ResponderDashboardPage() {
           </Link>
         </Button>
       </Card>
-      
 
       <Row gutter={[16, 16]}>
         <Col xs={24} md={8}>
@@ -89,19 +94,17 @@ export default function ResponderDashboardPage() {
           </Card>
         </Col>
       </Row>
-       <Card className="soft-card" title="My handled incidents">
+
+      <Card className="soft-card" title="My handled incidents">
         <IncidentList
           reports={visibleHandledReports.slice(0, 5)}
           loading={handledReportsLoading}
           basePath="/responder/incidents"
         />
       </Card>
-
       <Card className="soft-card" title="Active incidents">
         <IncidentList reports={activeReports.slice(0, 10)} basePath="/responder/incidents" />
       </Card>
-
-     
     </Space>
   );
 }
