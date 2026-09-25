@@ -30,7 +30,7 @@ export default function IncidentHistoryPage({ variant = 'admin' }: IncidentHisto
 
     if (variant === 'responder') {
       return sorted.filter(
-        (report) => report.status === 'verified' || report.status === 'flagged'
+        (report) => report.status === 'resolved' || report.status === 'flagged'
       );
     }
 

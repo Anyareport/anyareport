@@ -118,12 +118,11 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
 
   const [lng, lat] = report.location?.coordinates || [0, 0];
   const isResident = variant === 'resident';
-  const isFinalized = report.status === 'resolved' || report.status === 'verified';
   const isResponder = ['tanod', 'responder'].includes(role || '');
   const isReservedByAnotherResponder =
     isResponder && !!report.acknowledgedBy && report.acknowledgedBy !== profile?.firebaseUid;
   const isOversightRole = role === 'captain' || role === 'secretary';
-  const responseActionsDisabled = isFinalized || isReservedByAnotherResponder;
+  const responseActionsDisabled = report.status === 'resolved' || isReservedByAnotherResponder;
 
   // The main report card — shared across all variants
   const reportCard = (
