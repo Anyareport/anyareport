@@ -3,7 +3,7 @@ import type { ThemeConfig } from 'antd';
 export const baseAntdTheme: ThemeConfig = {
   token: {
     colorPrimary: '#E63333',
-    colorInfo: '#1fb0ca',
+    colorInfo: '#f8c026',
     colorTextBase: '#282F49',
     colorBgBase: '#FFFFFF',
     fontFamily: 'Roboto, sans-serif',
@@ -55,7 +55,7 @@ export const darkComponentOverrides: ThemeConfig['components'] = {
 };
 
 export const fonts = {
-  heading: "'Bebas Neue', sans-serif",
+  heading: "'Roboto'",
   body: "'Roboto', sans-serif",
 };
 

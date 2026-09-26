@@ -58,7 +58,7 @@ h5,
 .ant-typography h4,
 .ant-typography h5 {
   /* font-family: 'Bebas Neue', sans-serif; */
-  font-family: 'Roboto Condensed';
+  font-family: 'Roboto';
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
