@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react';
 import { Form, Input, Button, Card, Typography, message, Divider, Alert } from 'antd';
 import { GoogleOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
-import { getGoogleAuthErrorMessage, registerWithEmail, loginWithGoogle, logout } from '../../lib/firebase';
+import {
+  getGoogleAuthErrorMessage,
+  registerWithEmail,
+  loginWithGoogle,
+  logout,
+} from '../../lib/firebase';
 import { api } from '../../lib/api';
 import { getRedirectPath, useAuth } from '../../contexts/AuthContext';
 import Logo from '../../components/Logo';
@@ -147,10 +152,7 @@ export default function RegisterPage() {
       <Card style={{ width: '100%', maxWidth: 480 }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <Logo size="lg" />
-          <Title
-            level={4}
-            style={{ marginTop: 16, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}
-          >
+          <Title level={4} style={{ marginTop: 16 }}>
             RESIDENT REGISTRATION
           </Title>
         </div>
@@ -163,18 +165,22 @@ export default function RegisterPage() {
         />
 
         <Form form={form} layout="vertical" onFinish={handleRegister}>
-          <Form.Item name="firstName" label="First Name" rules={[{ required: true }]}> 
+          <Form.Item name="firstName" label="First Name" rules={[{ required: true }]}>
             <Input size="large" />
           </Form.Item>
-          <Form.Item name="lastName" label="Last Name" rules={[{ required: true }]}> 
+          <Form.Item name="lastName" label="Last Name" rules={[{ required: true }]}>
             <Input size="large" />
           </Form.Item>
-          
+
           <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
             <Input size="large" disabled={completingProfile} />
           </Form.Item>
           {completingProfile && (
-            <Button type="link" onClick={handleUseDifferentEmail} style={{ padding: 0, marginTop: -8 }}>
+            <Button
+              type="link"
+              onClick={handleUseDifferentEmail}
+              style={{ padding: 0, marginTop: -8 }}
+            >
               Use a different email
             </Button>
           )}

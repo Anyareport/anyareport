@@ -55,7 +55,7 @@ export const darkComponentOverrides: ThemeConfig['components'] = {
 };
 
 export const fonts = {
-  heading: "'Roboto'",
+  heading: "'Roboto', sans-serif",
   body: "'Roboto', sans-serif",
 };
 

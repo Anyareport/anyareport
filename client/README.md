@@ -40,7 +40,7 @@ You can sign in with these demo accounts right away. In demo mode, any password 
 - Primary red: `#E63333`
 - Navy: `#282F49`
 - White: `#FFFFFF`
-- Headings: Bebas Neue
+- Headings: Roboto
 - Body: Roboto
 
 ## Notes

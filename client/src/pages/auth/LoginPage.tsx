@@ -73,8 +73,6 @@ export default function LoginPage() {
             level={4}
             style={{
               marginTop: 16,
-              fontFamily: "'Bebas Neue', sans-serif",
-              letterSpacing: 1,
             }}
           >
             SIGN IN

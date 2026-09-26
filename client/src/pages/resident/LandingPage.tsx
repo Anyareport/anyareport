@@ -57,8 +57,6 @@ export default function ResidentLanding() {
             <Title
               level={5}
               style={{
-                fontFamily: "'Bebas Neue', sans-serif",
-                letterSpacing: 1,
                 marginTop: 8,
               }}
             >
@@ -76,8 +74,6 @@ export default function ResidentLanding() {
             <Title
               level={5}
               style={{
-                fontFamily: "'Bebas Neue', sans-serif",
-                letterSpacing: 1,
                 marginTop: 8,
               }}
             >

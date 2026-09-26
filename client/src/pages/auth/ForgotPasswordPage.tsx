@@ -37,10 +37,7 @@ export default function ForgotPasswordPage() {
       <Card style={{ width: '100%', maxWidth: 420 }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <Logo size="lg" />
-          <Title
-            level={4}
-            style={{ marginTop: 16, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}
-          >
+          <Title level={4} style={{ marginTop: 16 }}>
             RESET PASSWORD
           </Title>
         </div>

@@ -292,15 +292,7 @@ export default function SubmitReportPage() {
 
   return (
     <Card className="card-container">
-      <Title
-        level={3}
-        style={{
-          fontFamily: "'Bebas Neue', sans-serif",
-          letterSpacing: 1,
-        }}
-      >
-        SUBMIT INCIDENT REPORT
-      </Title>
+      <Title level={3}>SUBMIT INCIDENT REPORT</Title>
 
       <Steps
         current={currentStep}
@@ -314,8 +306,6 @@ export default function SubmitReportPage() {
       <Title
         level={4}
         style={{
-          fontFamily: "'Bebas Neue', sans-serif",
-          letterSpacing: 0,
           marginTop: 8,
         }}
       >

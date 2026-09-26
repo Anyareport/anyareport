@@ -17,11 +17,11 @@ export default function MyReportsPage() {
 
   return (
     <div>
-      <Title level={3} style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>
-        MY REPORTS
-      </Title>
+      <Title level={3}>MY REPORTS</Title>
       {reports.length === 0 ? (
-        <Card><Empty description="No reports yet" /></Card>
+        <Card>
+          <Empty description="No reports yet" />
+        </Card>
       ) : (
         <IncidentList
           reports={reports}
