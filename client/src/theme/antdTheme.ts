@@ -3,7 +3,7 @@ import type { ThemeConfig } from 'antd';
 export const baseAntdTheme: ThemeConfig = {
   token: {
     colorPrimary: '#E63333',
-    colorInfo: '#f8c026',
+    colorInfo: '#3481f5',
     colorTextBase: '#282F49',
     colorBgBase: '#FFFFFF',
     fontFamily: 'Roboto, sans-serif',

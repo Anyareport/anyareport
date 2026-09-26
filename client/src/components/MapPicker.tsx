@@ -22,8 +22,8 @@ function getBarangayStyle(feature?: Feature<Geometry, any>): PathOptions {
   const isBoundary = name.includes('don mariano marcos');
 
   return isBoundary
-    ? { color: '#eab308', weight: 3, fillOpacity: 0 }
-    : { color: '#ec4899', weight: 2, fillOpacity: 0.12, fillColor: '#ec4899' };
+    ? { color: '#94a3b8', weight: 2, fillOpacity: 0, dashArray: '6 4' }
+    : { color: '#f8c026', weight: 2, fillOpacity: 0.12, fillColor: '#f8c026' };
 }
 
 function onEachBarangayFeature(feature: Feature<Geometry, any>, layer: Layer) {

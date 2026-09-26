@@ -155,6 +155,7 @@ export default function AdminHeatmapPage() {
                 options={[
                   { label: 'Dots', value: 'dots' },
                   { label: 'Gradient', value: 'gradient' },
+                  { label: 'Choropleth', value: 'choropleth' },
                 ]}
               />
             </Space>
@@ -163,6 +164,9 @@ export default function AdminHeatmapPage() {
               height={500}
               mode={heatmapMode}
               onPointClick={(point) => navigate(`/admin/incidents/${point.id}`)}
+              purokCounts={new Map(purokCounts)}
+              selectedPurok={selectedPurok}
+              onPurokClick={setSelectedPurok}
             />
           </Space>
         </Card>
