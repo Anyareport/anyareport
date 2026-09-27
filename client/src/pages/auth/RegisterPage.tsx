@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Form, Input, Button, Card, Typography, message, Divider, Alert } from 'antd';
 import { GoogleOutlined } from '@ant-design/icons';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   getGoogleAuthErrorMessage,
   registerWithEmail,
   loginWithGoogle,
-  logout,
 } from '../../lib/firebase';
 import { api } from '../../lib/api';
 import { getRedirectPath, useAuth } from '../../contexts/AuthContext';
@@ -48,11 +47,21 @@ async function getCaptchaToken(): Promise<string | null> {
 }
 
 export default function RegisterPage() {
+  const location = useLocation();
   const navigate = useNavigate();
-  const { firebaseUser, profile, refreshProfile } = useAuth();
+  const { firebaseUser, profile, loading: authLoading, refreshProfile } = useAuth();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const completingProfile = Boolean(firebaseUser && !profile);
+  const routeState = location.state as { completeGoogleProfile?: boolean } | null;
+  const isGoogleUser = Boolean(
+    firebaseUser?.providerData.some(({ providerId }) => providerId === 'google.com')
+  );
+  const completingProfile = Boolean(
+    firebaseUser &&
+      !profile &&
+      !authLoading &&
+      (routeState?.completeGoogleProfile || isGoogleUser)
+  );
 
   const getNameFields = (displayName: string | null | undefined) => {
     const parts = displayName?.trim().split(/\s+/).filter(Boolean) || [];
@@ -133,11 +142,6 @@ export default function RegisterPage() {
     }
   };
 
-  const handleUseDifferentEmail = async () => {
-    await logout();
-    form.resetFields();
-  };
-
   return (
     <div
       style={{
@@ -175,15 +179,6 @@ export default function RegisterPage() {
           <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
             <Input size="large" disabled={completingProfile} />
           </Form.Item>
-          {completingProfile && (
-            <Button
-              type="link"
-              onClick={handleUseDifferentEmail}
-              style={{ padding: 0, marginTop: -8 }}
-            >
-              Use a different email
-            </Button>
-          )}
           {!completingProfile && (
             <Form.Item name="password" label="Password" rules={[{ required: true, min: 6 }]}>
               <Input.Password size="large" />
