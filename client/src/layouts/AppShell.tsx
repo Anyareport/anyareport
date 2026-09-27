@@ -77,12 +77,17 @@ export default function AppShell({
       <Layout>
         <Header
           style={{
-            background: 'var(--bg-primary)',
             padding: '0 16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            borderBottom: '1px solid var(--border-default)',
+            borderBottom: fullWidthContent ? undefined : '1px solid var(--border-default)',
+            position: fullWidthContent ? 'absolute' : 'relative',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1000,
+            background: fullWidthContent ? 'transparent' : 'var(--bg-primary)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -93,7 +98,7 @@ export default function AppShell({
                 onClick={() => setDrawerOpen(true)}
               />
             )}
-            {!screens.md && <Logo size="sm" />}
+            {!screens.md && !fullWidthContent && <Logo size="sm" />}
             {roleLabel && (
               <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{roleLabel}</span>
             )}
@@ -108,7 +113,8 @@ export default function AppShell({
         <Content
           style={{
             margin: fullWidthContent ? 0 : screens.md ? 24 : 16,
-            minHeight: fullWidthContent ? '100vh' : 280,
+            height: fullWidthContent ? '100dvh' : undefined,
+            minHeight: fullWidthContent ? 0 : 280,
           }}
         >
           <Outlet />

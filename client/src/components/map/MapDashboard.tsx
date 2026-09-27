@@ -1,5 +1,13 @@
 import { useEffect } from 'react';
-import { CircleMarker, GeoJSON, MapContainer, TileLayer, Tooltip, useMap } from 'react-leaflet';
+import {
+  CircleMarker,
+  GeoJSON,
+  MapContainer,
+  TileLayer,
+  Tooltip,
+  useMap,
+  ZoomControl,
+} from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.heat';
 import L from 'leaflet';
@@ -114,7 +122,9 @@ export default function MapDashboard({
         zoom={18}
         scrollWheelZoom
         style={{ height: '100%', width: '100%' }}
+        zoomControl={false}
       >
+        <ZoomControl position="bottomright" />
         {showBoundaries && <GeoJSON key={geoJsonKey} data={barangayData as FeatureCollection} />}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
