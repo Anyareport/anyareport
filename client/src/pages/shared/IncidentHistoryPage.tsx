@@ -29,9 +29,7 @@ export default function IncidentHistoryPage({ variant = 'admin' }: IncidentHisto
     const sorted = [...reports].sort(compareIncidentPriority);
 
     if (variant === 'responder') {
-      return sorted.filter(
-        (report) => report.status === 'resolved' || report.status === 'flagged'
-      );
+      return sorted.filter((report) => report.status === 'resolved' || report.status === 'flagged');
     }
 
     return sorted;
@@ -61,21 +59,21 @@ export default function IncidentHistoryPage({ variant = 'admin' }: IncidentHisto
         description="Desktop table on larger screens, card-per-incident layout below tablet width."
       />
 
-      <Card className="soft-card">
-        <Segmented
-          value={status}
-          options={[
-            { value: 'all', label: 'All' },
-            { value: 'pending', label: formatStatus('pending') },
-            { value: 'verified', label: formatStatus('verified') },
-            { value: 'en_route', label: formatStatus('en_route') },
-            { value: 'on_scene', label: formatStatus('on_scene') },
-            { value: 'resolved', label: formatStatus('resolved') },
-            { value: 'flagged', label: formatStatus('flagged') },
-          ]}
-          onChange={(value) => setStatus(value as string)}
-        />
-      </Card>
+      {/* <Card className="soft-card"> */}
+      <Segmented
+        value={status}
+        options={[
+          { value: 'all', label: 'All' },
+          { value: 'pending', label: formatStatus('pending') },
+          { value: 'verified', label: formatStatus('verified') },
+          { value: 'en_route', label: formatStatus('en_route') },
+          { value: 'on_scene', label: formatStatus('on_scene') },
+          { value: 'resolved', label: formatStatus('resolved') },
+          { value: 'flagged', label: formatStatus('flagged') },
+        ]}
+        onChange={(value) => setStatus(value as string)}
+      />
+      {/* </Card> */}
 
       <Card className="soft-card" title="Incident monitor">
         <IncidentList reports={filtered} basePath="/admin/incidents" />

@@ -1,4 +1,3 @@
-import { Badge } from 'antd';
 import {
   DashboardOutlined,
   AlertOutlined,
@@ -34,26 +33,26 @@ export default function ResponderShell() {
       {
         key: '/responder/alerts',
         icon: <AlertOutlined />,
-        label: (
-          <span>
-            Alerts <Badge count={alertCount} size="small" offset={[8, 0]} />
-          </span>
-        ),
+        label: 'Alerts',
       },
       { key: '/responder/history', icon: <HistoryOutlined />, label: 'History' },
       {
         key: '/responder/notifications',
         icon: <BellOutlined />,
-        label: (
-          <span>
-            Notifications <Badge count={unreadCount} size="small" offset={[8, 0]} />
-          </span>
-        ),
+        label: 'Notifications',
       },
       { key: '/responder/profile', icon: <UserOutlined />, label: 'Profile' },
     ],
-    [alertCount, unreadCount]
+    []
   );
 
-  return <AppShell menuItems={menuItems} siderWidth={200} roleLabel="RESPONDER" />;
+  return (
+    <AppShell
+      menuItems={menuItems}
+      menuBadgeCounts={{ '/responder/alerts': alertCount, '/responder/notifications': unreadCount }}
+      siderWidth={200}
+      roleLabel="RESPONDER"
+      mobileNavigation
+    />
+  );
 }

@@ -59,23 +59,24 @@ export default function MapPage({ initialReportOpen = false }: { initialReportOp
     <div style={{ position: 'relative' }}>
       <MapDashboard
         points={mapPoints}
-        height="100vh"
+        height={isMobile ? 'calc(100dvh - var(--mobile-navigation-height))' : '100vh'}
         onPointClick={(point) => navigate(`/resident/reports/${point.id}`)}
         showBoundaries={isPickingLocation}
         isPickingLocation={isPickingLocation}
         onLocationPick={handleLocationPick}
         selectedLocation={selectedLocation}
       />
-      <Button
-        type="primary"
-        size="large"
-        style={{ position: 'absolute', top: 16, left: 16, zIndex: 1000 }}
-        icon={<FileAddOutlined />}
-        onClick={() => setReportDrawerOpen(true)}
-      >
-        Report an incident
-      </Button>
-
+      {!isMobile && (
+        <Button
+          type="primary"
+          size="large"
+          style={{ position: 'absolute', top: 16, left: 16, zIndex: 1000 }}
+          icon={<FileAddOutlined />}
+          onClick={() => setReportDrawerOpen(true)}
+        >
+          Report an incident
+        </Button>
+      )}
       {isPickingLocation && (
         <Button
           danger
@@ -86,7 +87,6 @@ export default function MapPage({ initialReportOpen = false }: { initialReportOp
           Cancel location selection
         </Button>
       )}
-
       <Drawer
         title="Report an incident"
         placement={isMobile ? 'bottom' : 'right'}

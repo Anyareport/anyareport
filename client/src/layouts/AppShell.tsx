@@ -1,9 +1,10 @@
-import { Layout, Menu, Button, Drawer, Grid } from 'antd';
+import { Layout, Menu, Button, Drawer, Grid, Badge } from 'antd';
 import type { ItemType } from 'antd/es/menu/interface';
 import { LogoutOutlined, MenuOutlined } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import Logo from '../components/Logo';
+import MobileBottomNavigation from '../components/MobileBottomNavigation';
 import ThemeToggle from '../components/ThemeToggle';
 import { logout } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,18 +14,26 @@ const { useBreakpoint } = Grid;
 
 interface AppShellProps {
   menuItems: ItemType[];
+  mobileMenuItems?: ItemType[];
+  menuBadgeCounts?: Record<string, number>;
   siderWidth?: number;
   roleLabel?: string;
   collapsible?: boolean;
   fullWidthContent?: boolean;
+  mobileNavigation?: boolean;
+  mobilePrimaryAction?: string;
 }
 
 export default function AppShell({
   menuItems,
+  mobileMenuItems,
+  menuBadgeCounts = {},
   siderWidth = 220,
   roleLabel,
   collapsible = false,
   fullWidthContent = false,
+  mobileNavigation = false,
+  mobilePrimaryAction,
 }: AppShellProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -42,7 +51,23 @@ export default function AppShell({
     <Menu
       mode="inline"
       selectedKeys={[location.pathname]}
-      items={menuItems}
+      items={menuItems.map((item) => {
+        if (!item || !('key' in item) || typeof item.key !== 'string' || !('label' in item)) {
+          return item;
+        }
+
+        const count = menuBadgeCounts[item.key];
+        return count === undefined
+          ? item
+          : {
+              ...item,
+              label: (
+                <span>
+                  {item.label} <Badge count={count} size="small" offset={[8, 0]} />
+                </span>
+              ),
+            };
+      })}
       onClick={({ key }) => {
         navigate(key);
         setDrawerOpen(false);
@@ -82,7 +107,7 @@ export default function AppShell({
             alignItems: 'center',
             justifyContent: 'space-between',
             borderBottom: fullWidthContent ? undefined : '1px solid var(--border-default)',
-            position: fullWidthContent ? 'absolute' : 'relative',
+            position: fullWidthContent ? 'absolute' : 'sticky',
             top: 0,
             left: 0,
             right: 0,
@@ -91,7 +116,7 @@ export default function AppShell({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {!screens.md && (
+            {!screens.md && !mobileNavigation && (
               <Button
                 type="text"
                 icon={<MenuOutlined style={{ color: 'var(--text-primary)' }} />}
@@ -115,6 +140,10 @@ export default function AppShell({
             margin: fullWidthContent ? 0 : screens.md ? 24 : 16,
             height: fullWidthContent ? '100dvh' : undefined,
             minHeight: fullWidthContent ? 0 : 280,
+            paddingBottom:
+              mobileNavigation && !screens.md && !fullWidthContent
+                ? 'var(--mobile-navigation-height)'
+                : undefined,
           }}
         >
           <Outlet />
@@ -132,6 +161,16 @@ export default function AppShell({
         </div>
         {menu}
       </Drawer>
+
+      {mobileNavigation && !screens.md && (
+        <MobileBottomNavigation
+          menuItems={mobileMenuItems ?? menuItems}
+          badgeCounts={menuBadgeCounts}
+          currentPath={location.pathname}
+          primaryAction={mobilePrimaryAction}
+          onNavigate={navigate}
+        />
+      )}
     </Layout>
   );
 }
