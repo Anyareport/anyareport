@@ -27,30 +27,30 @@
   --neutral-black: #000000;
 
   /* ===== Status Colors (Semantic) ===== */
-  --status-pending-bg: #fff7ed;
-  --status-pending-border: #ffedd5;
-  --status-pending-text: #c2410c;
-  --status-pending-tag: #ffaf40;
+  --status-pending-bg: #f1f5f9;
+  --status-pending-border: #cbd5e1;
+  --status-pending-text: #475569;
+  --status-pending-tag: #94a3b8;
 
-  --status-verified-bg: #eff6ff;
+  --status-verified-bg: #efffef;
   --status-verified-border: #dbeafe;
-  --status-verified-text: #1d4ed8;
-  --status-verified-tag: #3b82f6;
+  --status-verified-text: #51c047;
+  --status-verified-tag: #51c047;
 
-  --status-en-route-bg: #ecfeff;
-  --status-en-route-border: #cffafe;
-  --status-en-route-text: #155e75;
-  --status-en-route-tag: #06b6d4;
+  --status-en-route-bg: #f1f5f9;
+  --status-en-route-border: #38b6e7;
+  --status-en-route-text: #0cb5f8;
+  --status-en-route-tag: #0ea5e9;
 
-  --status-on-scene-bg: #f5f3ff;
-  --status-on-scene-border: #ddd6fe;
-  --status-on-scene-text: #6b21a8;
-  --status-on-scene-tag: #a855f7;
+  --status-on-scene-bg: #f1f5f9;
+  --status-on-scene-border: #3b82f6;
+  --status-on-scene-text: #3b82f6;
+  --status-on-scene-tag: #3b82f6;
 
-  --status-resolved-bg: #f0fdf4;
-  --status-resolved-border: #dcfce7;
-  --status-resolved-text: #15803d;
-  --status-resolved-tag: #4ade80;
+  --status-resolved-bg: #3481f5;
+  --status-resolved-border: #3481f5;
+  --status-resolved-text: #ffffff;
+  --status-resolved-tag: #3481f5;
 
   --status-flagged-bg: #fef2f2;
   --status-flagged-border: #fee2e2;
@@ -58,25 +58,25 @@
   --status-flagged-tag: #f87171;
 
   /* ===== Severity Colors ===== */
-  --severity-critical-bg: #fef2f2;
-  --severity-critical-border: #fee2e2;
+  --severity-critical-bg: #fee2e2;
+  --severity-critical-border: #fca5a5;
   --severity-critical-text: #b91c1c;
   --severity-critical-tag: #ef4444;
 
-  --severity-high-bg: #fff7ed;
-  --severity-high-border: #ffedd5;
-  --severity-high-text: #c2410c;
+  --severity-high-bg: #ffedd5;
+  --severity-high-border: #fdba74;
+  --severity-high-text: #9a3412;
   --severity-high-tag: #f97316;
 
-  --severity-medium-bg: #fffbeb;
-  --severity-medium-border: #fef3c7;
-  --severity-medium-text: #92400e;
-  --severity-medium-tag: #facc15;
+  --severity-medium-bg: #fef9c3;
+  --severity-medium-border: #fde047;
+  --severity-medium-text: #854d0e;
+  --severity-medium-tag: #eab308;
 
-  --severity-low-bg: #f3f4f6;
-  --severity-low-border: #e5e7eb;
-  --severity-low-text: #4b5563;
-  --severity-low-tag: #9ca3af;
+  --severity-low-bg: #dcfce7;
+  --severity-low-border: #86efac;
+  --severity-low-text: #166534;
+  --severity-low-tag: #22c55e;
 
   /* ===== Typography Colors ===== */
   --text-primary: #282f49;
@@ -205,30 +205,30 @@
   --border-dark: #6b7280;
 
   /* ===== Status Colors (Dark) ===== */
-  --status-pending-bg: #3f2e18;
-  --status-pending-border: #5c421e;
-  --status-pending-text: #fcd34d;
-  --status-pending-tag: #fbbf24;
+  --status-pending-bg: #242b35;
+  --status-pending-border: #465264;
+  --status-pending-text: #cbd5e1;
+  --status-pending-tag: #94a3b8;
 
-  --status-verified-bg: #1e3a8a;
-  --status-verified-border: #1e40af;
-  --status-verified-text: #60a5fa;
-  --status-verified-tag: #3b82f6;
+  --status-verified-bg: #1a3822;
+  --status-verified-border: #51c047;
+  --status-verified-text: #71dd67;
+  --status-verified-tag: #efffef;
 
-  --status-en-route-bg: #0e363f;
-  --status-en-route-border: #155e75;
-  --status-en-route-text: #22d3ee;
-  --status-en-route-tag: #06b6d4;
+  --status-en-route-bg: #082f49;
+  --status-en-route-border: #0369a1;
+  --status-en-route-text: #bae6fd;
+  --status-en-route-tag: #38bdf8;
 
-  --status-on-scene-bg: #3b1e7a;
-  --status-on-scene-border: #4c1d95;
-  --status-on-scene-text: #c084fc;
-  --status-on-scene-tag: #a855f7;
+  --status-on-scene-bg: #172554;
+  --status-on-scene-border: #1d4ed8;
+  --status-on-scene-text: #bfdbfe;
+  --status-on-scene-tag: #60a5fa;
 
-  --status-resolved-bg: #14532d;
-  --status-resolved-border: #166534;
-  --status-resolved-text: #4ade80;
-  --status-resolved-tag: #22c55e;
+  --status-resolved-bg: #1e40af;
+  --status-resolved-border: #3b82f6;
+  --status-resolved-text: #ffffff;
+  --status-resolved-tag: #60a5fa;
 
   --status-flagged-bg: #7f1d1d;
   --status-flagged-border: #991b1b;
@@ -237,22 +237,22 @@
 
   /* ===== Severity Colors (Dark) ===== */
   --severity-critical-bg: #7f1d1d;
-  --severity-critical-border: #991b1b;
+  --severity-critical-border: #b91c1c;
   --severity-critical-text: #fca5a5;
   --severity-critical-tag: #f87171;
 
-  --severity-high-bg: #451a03;
-  --severity-high-border: #573805;
-  --severity-high-text: #fcd34d;
+  --severity-high-bg: #7c2d12;
+  --severity-high-border: #c2410c;
+  --severity-high-text: #fdba74;
   --severity-high-tag: #fb923c;
 
-  --severity-medium-bg: #423005;
-  --severity-medium-border: #5d4607;
+  --severity-medium-bg: #713f12;
+  --severity-medium-border: #a16207;
   --severity-medium-text: #fde047;
   --severity-medium-tag: #facc15;
 
-  --severity-low-bg: #27272a;
-  --severity-low-border: #3f3f46;
-  --severity-low-text: #a1a1aa;
-  --severity-low-tag: #71717a;
+  --severity-low-bg: #14532d;
+  --severity-low-border: #166534;
+  --severity-low-text: #86efac;
+  --severity-low-tag: #22c55e;
 }

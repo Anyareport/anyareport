@@ -1,4 +1,4 @@
-import { Tag } from 'antd';
+import { WarningFilled } from '@ant-design/icons';
 
 const SEVERITY_COLOR: Record<string, string> = {
   Critical: 'var(--severity-critical-tag)',
@@ -10,11 +10,8 @@ const SEVERITY_COLOR: Record<string, string> = {
 export default function SeverityTag({ severity }: { severity: string | null | undefined }) {
   if (!severity) return null;
   return (
-    <Tag
-      color={SEVERITY_COLOR[severity] ?? 'var(--neutral-400)'}
-      style={{ color: 'var(--neutral-900)' }}
-    >
-      {severity}
-    </Tag>
+    <WarningFilled
+      style={{ fontSize: '20px', color: SEVERITY_COLOR[severity] ?? 'var(--neutral-400)' }}
+    />
   );
 }

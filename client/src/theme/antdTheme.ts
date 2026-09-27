@@ -25,6 +25,11 @@ export const baseAntdTheme: ThemeConfig = {
       itemSelectedBg: '#E63333',
       itemSelectedColor: '#FFFFFF',
     },
+    Select: {
+      optionSelectedBg: '#fee2e2',
+      optionSelectedColor: '#b91c1c',
+      optionActiveBg: '#fff1f0',
+    },
   },
 };
 
@@ -33,7 +38,7 @@ export const darkTokenOverrides: ThemeConfig['token'] = {
   colorBgBase: '#111827',
   colorTextBase: '#F9FAFB',
   colorBgContainer: '#0f1115',
-  //  colorBgElevated: '#E63333',
+  colorBgElevated: '#17191f',
   colorBgLayout: '#0f1115',
   colorBorder: '#353535',
   colorBorderSecondary: '#353535',
@@ -51,6 +56,11 @@ export const darkComponentOverrides: ThemeConfig['components'] = {
   Segmented: {
     itemSelectedBg: '#E63333',
     itemSelectedColor: '#FFFFFF',
+  },
+  Select: {
+    optionSelectedBg: '#572328',
+    optionSelectedColor: '#fff1f0',
+    optionActiveBg: '#292024',
   },
 };
 

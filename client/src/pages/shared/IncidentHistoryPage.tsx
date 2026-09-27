@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Space, Segmented } from 'antd';
+import { Card, Space } from 'antd';
 import { api, type Report } from '../../lib/api';
 import IncidentList from '../../components/IncidentList';
-import { formatStatus } from '../../components/StatusTag';
+import StatusFilter from '../../components/StatusFilter';
 import { compareIncidentPriority } from '../../lib/sortUtils';
 import PageHero from '../../components/PageHero';
 
@@ -59,21 +59,7 @@ export default function IncidentHistoryPage({ variant = 'admin' }: IncidentHisto
         description="Desktop table on larger screens, card-per-incident layout below tablet width."
       />
 
-      {/* <Card className="soft-card"> */}
-      <Segmented
-        value={status}
-        options={[
-          { value: 'all', label: 'All' },
-          { value: 'pending', label: formatStatus('pending') },
-          { value: 'verified', label: formatStatus('verified') },
-          { value: 'en_route', label: formatStatus('en_route') },
-          { value: 'on_scene', label: formatStatus('on_scene') },
-          { value: 'resolved', label: formatStatus('resolved') },
-          { value: 'flagged', label: formatStatus('flagged') },
-        ]}
-        onChange={(value) => setStatus(value as string)}
-      />
-      {/* </Card> */}
+      <StatusFilter value={status} onChange={setStatus} />
 
       <Card className="soft-card" title="Incident monitor">
         <IncidentList reports={filtered} basePath="/admin/incidents" />
