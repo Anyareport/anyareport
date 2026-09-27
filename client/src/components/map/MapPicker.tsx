@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { GeoJSON } from 'react-leaflet';
 import type { Feature, Geometry, FeatureCollection } from 'geojson';
 import type { Layer, PathOptions } from 'leaflet';
-import barangayData from '../data/DMM.json';
+import barangayData from '../../data/DMM.json';
 
 const defaultCenter: [number, number] = [16.482, 121.1557];
 
@@ -23,7 +23,7 @@ function getBarangayStyle(feature?: Feature<Geometry, any>): PathOptions {
 
   return isBoundary
     ? { color: '#94a3b8', weight: 2, fillOpacity: 0, dashArray: '6 4' }
-    : { color: '#f8c026', weight: 2, fillOpacity: 0.12, fillColor: '#f8c026' };
+    : { color: '#79a8ee', weight: 2, fillOpacity: 0.12, fillColor: '#79a8ee' };
 }
 
 function onEachBarangayFeature(feature: Feature<Geometry, any>, layer: Layer) {

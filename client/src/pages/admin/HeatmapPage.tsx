@@ -5,7 +5,7 @@ import { Card, Col, Progress, Row, Segmented, Select, Space, Typography } from '
 import IncidentHeatmap, {
   type HeatmapMode,
   type HeatmapPoint,
-} from '../../components/IncidentHeatmap';
+} from '../../components/map/IncidentHeatmap';
 import { api, type Report } from '../../lib/api';
 import type { FeatureCollection } from 'geojson';
 import barangayData from '../../data/DMM.json';

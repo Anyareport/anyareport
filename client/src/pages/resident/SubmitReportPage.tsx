@@ -28,9 +28,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api, type Category } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
-import MapPicker from '../../components/MapPicker';
+import MapPicker from '../../components/map/MapPicker';
 import type { FeatureCollection } from 'geojson';
-import { isInsideBarangayBoundary, findContainingPurok } from '../../components/MapPicker';
+import { isInsideBarangayBoundary, findContainingPurok } from '../../components/map/MapPicker';
 import barangayData from '../../data/DMM.json';
 import { compressImage } from '../../lib/imageCompressor';
 

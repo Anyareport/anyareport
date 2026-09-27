@@ -5,7 +5,9 @@ import {
   UnorderedListOutlined,
   BellOutlined,
   UserOutlined,
+  EnvironmentOutlined,
 } from '@ant-design/icons';
+import { useLocation } from 'react-router-dom';
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import AppShell from './AppShell';
@@ -20,9 +22,12 @@ export default function ResidentShell() {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
+  const location = useLocation();
+
   const menuItems = useMemo(
     () => [
       { key: '/resident', icon: <HomeOutlined />, label: 'Home' },
+      { key: '/resident/map', icon: <EnvironmentOutlined />, label: 'Map' },
       { key: '/resident/submit', icon: <FileAddOutlined />, label: 'Report Incident' },
       { key: '/resident/reports', icon: <UnorderedListOutlined />, label: 'My Reports' },
       {
@@ -39,5 +44,11 @@ export default function ResidentShell() {
     [unreadCount]
   );
 
-  return <AppShell menuItems={menuItems} siderWidth={220} />;
+  return (
+    <AppShell
+      menuItems={menuItems}
+      siderWidth={220}
+      fullWidthContent={location.pathname === '/resident/map'}
+    />
+  );
 }

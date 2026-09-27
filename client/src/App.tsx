@@ -9,6 +9,7 @@ import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import LandingPage from './pages/resident/LandingPage';
+import MapPage from './pages/resident/MapPage';
 import SubmitReportPage from './pages/resident/SubmitReportPage';
 import MyReportsPage from './pages/resident/MyReportsPage';
 import NotificationsPage from './pages/shared/NotificationsPage';
@@ -64,6 +65,7 @@ function App() {
       <Route element={<ProtectedRoute allowedRoles={['resident']} />}>
         <Route element={<ResidentShell />}>
           <Route path="/resident" element={<LandingPage />} />
+          <Route path="/resident/map" element={<MapPage />} />
           <Route path="/resident/submit" element={<SubmitReportPage />} />
           <Route path="/resident/reports" element={<MyReportsPage />} />
           <Route path="/resident/reports/:id" element={<IncidentDetailPage variant="resident" />} />

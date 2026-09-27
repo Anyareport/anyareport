@@ -16,6 +16,7 @@ interface AppShellProps {
   siderWidth?: number;
   roleLabel?: string;
   collapsible?: boolean;
+  fullWidthContent?: boolean;
 }
 
 export default function AppShell({
@@ -23,6 +24,7 @@ export default function AppShell({
   siderWidth = 220,
   roleLabel,
   collapsible = false,
+  fullWidthContent = false,
 }: AppShellProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -105,8 +107,8 @@ export default function AppShell({
 
         <Content
           style={{
-            margin: screens.md ? 24 : 16,
-            minHeight: 280,
+            margin: fullWidthContent ? 0 : screens.md ? 24 : 16,
+            minHeight: fullWidthContent ? '100vh' : 280,
           }}
         >
           <Outlet />

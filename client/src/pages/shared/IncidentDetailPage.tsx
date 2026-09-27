@@ -24,7 +24,7 @@ import {
 import { api, type Report } from '../../lib/api';
 import StatusTag from '../../components/StatusTag';
 import SeverityTag from '../../components/SeverityTag';
-import { StaticMap, RouteMap } from '../../components/MapPicker';
+import { StaticMap, RouteMap } from '../../components/map/MapPicker';
 import { useAuth } from '../../contexts/AuthContext';
 import { getRoleLabel } from '../../lib/roles';
 
@@ -45,8 +45,6 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     queryFn: () => api.get<Report>(`/api/reports/${id}`),
     enabled: !!id,
   });
-
-  
 
   const updateStatus = useMutation({
     mutationFn: (status: 'en_route' | 'on_scene' | 'resolved' | 'verified') =>
@@ -343,7 +341,9 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                       danger
                       disabled={
                         responseActionsDisabled ||
-                        (report.backupRequests || []).some((request) => request.status === 'pending')
+                        (report.backupRequests || []).some(
+                          (request) => request.status === 'pending'
+                        )
                       }
                       onClick={() => backupMutation.mutate()}
                       loading={backupMutation.isPending}

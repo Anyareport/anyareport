@@ -5,7 +5,7 @@ import 'leaflet.heat';
 import L from 'leaflet';
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
 import type { PathOptions } from 'leaflet';
-import barangayData from '../data/DMM.json';
+import barangayData from '../../data/DMM.json';
 
 export interface HeatmapPoint {
   id: string;
