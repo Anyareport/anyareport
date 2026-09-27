@@ -5,7 +5,7 @@ import { getUsernameByUid } from './userLookup.js';
 
 export async function exportToCSV(reports) {
   const rows = await Promise.all(reports.map(async (report) => ({
-    id: report._id?.toString() ?? '',
+  
     submittedBy: await getUsernameByUid(report.submittedBy) ?? '',
     category: report.category ?? '',
     status: report.status ?? '',
@@ -15,7 +15,7 @@ export async function exportToCSV(reports) {
   })));
 
   const parser = new Parser({
-    fields: ['id','submittedBy', 'category', 'status', 'description', 'address', 'submittedAt'],
+    fields: ['submittedBy', 'category', 'status', 'description', 'address', 'submittedAt'],
   });
   return `\uFEFF${parser.parse(rows)}`;
 }
