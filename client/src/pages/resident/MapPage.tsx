@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Drawer, Grid, message } from 'antd';
 import { CloseOutlined, FileAddOutlined } from '@ant-design/icons';
@@ -12,6 +12,7 @@ import barangayData from '../../data/DMM.json';
 
 export default function MapPage({ initialReportOpen = false }: { initialReportOpen?: boolean }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
   const { data: reports = [] } = useQuery({
@@ -35,8 +36,13 @@ export default function MapPage({ initialReportOpen = false }: { initialReportOp
   const [reportDrawerOpen, setReportDrawerOpen] = useState(initialReportOpen);
 
   useEffect(() => {
-    setReportDrawerOpen(initialReportOpen);
-  }, [initialReportOpen]);
+    const hasMobileActionRequest =
+      location.state &&
+      typeof location.state === 'object' &&
+      'mobileActionRequest' in location.state;
+
+    if (initialReportOpen || hasMobileActionRequest) setReportDrawerOpen(true);
+  }, [initialReportOpen, location.state]);
 
   const handleLocationChange = (position: [number, number]) => {
     if (!isInsideBarangayBoundary(position, barangayData as FeatureCollection)) {
@@ -89,6 +95,7 @@ export default function MapPage({ initialReportOpen = false }: { initialReportOp
       )}
       <Drawer
         title="Report an incident"
+        zIndex={1200}
         placement={isMobile ? 'bottom' : 'right'}
         open={reportDrawerOpen}
         onClose={() => {
@@ -97,7 +104,7 @@ export default function MapPage({ initialReportOpen = false }: { initialReportOp
         }}
         width={isMobile ? undefined : 520}
         height={isMobile ? '85vh' : undefined}
-        mask={false}
+        maskClosable
         styles={{ body: { padding: '16px 20px', overflowY: 'auto' } }}
       >
         <SubmitReportForm
