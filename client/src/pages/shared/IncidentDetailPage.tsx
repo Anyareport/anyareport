@@ -22,6 +22,9 @@ import {
   ExclamationCircleOutlined,
   FlagOutlined,
   RobotOutlined,
+  EnvironmentOutlined,
+  UserOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons';
 import { api, type Report } from '../../lib/api';
 import StatusTag from '../../components/StatusTag';
@@ -114,6 +117,8 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     return <Card className="soft-card">Report not found</Card>;
   }
 
+  const statusHistory = report.statusHistory ?? [];
+
   const [lng, lat] = report.location?.coordinates || [0, 0];
   const isResident = variant === 'resident';
   const isResponder = ['tanod', 'responder'].includes(role || '');
@@ -169,18 +174,30 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
 
         <Paragraph>{report.description}</Paragraph>
 
-        <Text type="secondary">Submitted: {new Date(report.createdAt).toLocaleString()}</Text>
+        <Space direction="vertical" size={10} style={{ width: '100%' }}>
+          {report.location?.address && (
+            <Space size={6}>
+              <EnvironmentOutlined />
+              <Text strong>{report.location.address}</Text>
+            </Space>
+          )}
 
-        {/* Reporter name — only shown to admin/responder */}
-        {!isResident && report.submitterName && (
-          <Text type="secondary">
-            Reported by: <Text strong>{report.submitterName}</Text>
-          </Text>
-        )}
+          <Space size={16}>
+            <Space size={4}>
+              <ClockCircleOutlined />
+              <Text type="secondary">{new Date(report.createdAt).toLocaleString()}</Text>
+            </Space>
 
-        {report.location?.address && (
-          <Text type="secondary">Location: {report.location.address}</Text>
-        )}
+            <Space size={4}>
+              {!isResident && report.submitterName && (
+                <Space size={4}>
+                  <UserOutlined />
+                  <Text type="secondary">{report.submitterName}</Text>
+                </Space>
+              )}
+            </Space>
+          </Space>
+        </Space>
 
         {/* Map — responder gets route view, everyone else gets static */}
         {variant === 'responder' ? (
@@ -217,13 +234,20 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         <Divider />
 
         {/* Timeline — resident sees "status — date"; admin/responder see "status by X at date" */}
-        <Timeline
-          items={(report.statusHistory || []).map((entry) => ({
-            children: isResident
-              ? `${entry.status.replace(/_/g, ' ')} — ${new Date(entry.timestamp).toLocaleString()}`
-              : `${entry.status.replace(/_/g, ' ')} by ${entry.updatedBy} at ${new Date(entry.timestamp).toLocaleString()}`,
-          }))}
-        />
+        <Timeline>
+          {statusHistory.map((entry, i) => {
+            const isLatest = i === statusHistory.length - 1;
+            return (
+              <Timeline.Item key={i} color={isLatest ? 'var(--brand-primary)' : 'gray'}>
+                <Text type={isLatest ? undefined : 'secondary'} strong={isLatest}>
+                  {isResident
+                    ? `${entry.status.replace(/_/g, ' ')} — ${new Date(entry.timestamp).toLocaleString()}`
+                    : `${entry.status.replace(/_/g, ' ')} by ${entry.updatedBy} at ${new Date(entry.timestamp).toLocaleString()}`}
+                </Text>
+              </Timeline.Item>
+            );
+          })}
+        </Timeline>
       </Space>
     </Card>
   );

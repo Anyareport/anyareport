@@ -403,19 +403,21 @@ export default function SubmitReportPage() {
               <Button icon={<EnvironmentOutlined />} onClick={handleUseGPS}>
                 Use My Current Location
               </Button>
-              <MapPicker
-                latitude={lat}
-                longitude={lng}
-                onChange={(la, ln) => {
-                  setLat(la);
-                  setLng(ln);
+              {currentStep === 1 && (
+                <MapPicker
+                  latitude={lat}
+                  longitude={lng}
+                  onChange={(la, ln) => {
+                    setLat(la);
+                    setLng(ln);
 
-                  const purok = findContainingPurok([la, ln], barangayData as FeatureCollection);
-                  if (purok) {
-                    form.setFieldValue('address', purok);
-                  }
-                }}
-              />
+                    const purok = findContainingPurok([la, ln], barangayData as FeatureCollection);
+                    if (purok) {
+                      form.setFieldValue('address', purok);
+                    }
+                  }}
+                />
+              )}
             </Space>
           </Form.Item>
 

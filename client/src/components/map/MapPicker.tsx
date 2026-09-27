@@ -263,7 +263,12 @@ export default function MapPicker({
         </div>
       )}
 
-      <MapContainer center={pos} style={{ height, width: '100%', borderRadius: 8 }} scrollWheelZoom>
+      <MapContainer
+        center={pos}
+        zoom={15}
+        style={{ height, width: '100%', borderRadius: 8 }}
+        scrollWheelZoom
+      >
         <MapResizeHandler />
         <RecenterMap position={pos} />
         <TileLayer
