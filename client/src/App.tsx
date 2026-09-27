@@ -10,7 +10,6 @@ import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import LandingPage from './pages/resident/LandingPage';
 import MapPage from './pages/resident/MapPage';
-import SubmitReportPage from './pages/resident/SubmitReportPage';
 import MyReportsPage from './pages/resident/MyReportsPage';
 import NotificationsPage from './pages/shared/NotificationsPage';
 import ProfilePage from './pages/shared/ProfilePage';
@@ -66,7 +65,8 @@ function App() {
         <Route element={<ResidentShell />}>
           <Route path="/resident" element={<LandingPage />} />
           <Route path="/resident/map" element={<MapPage />} />
-          <Route path="/resident/submit" element={<SubmitReportPage />} />
+          <Route path="/resident/report" element={<MapPage initialReportOpen />} />
+          <Route path="/resident/submit" element={<Navigate to="/resident/report" replace />} />
           <Route path="/resident/reports" element={<MyReportsPage />} />
           <Route path="/resident/reports/:id" element={<IncidentDetailPage variant="resident" />} />
           <Route

@@ -6,6 +6,7 @@ import {
   TileLayer,
   Tooltip,
   useMap,
+  useMapEvents,
   ZoomControl,
 } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -33,6 +34,9 @@ interface MapDashboardProps {
   selectedPurok?: string;
   onPurokClick?: (name: string) => void;
   showBoundaries?: boolean;
+  isPickingLocation?: boolean;
+  onLocationPick?: (position: [number, number]) => void;
+  selectedLocation?: [number, number] | null;
 }
 
 function IncidentDots({
@@ -99,6 +103,23 @@ function GradientLayer({ points }: { points: IncidentMarker[] }) {
   return null;
 }
 
+function LocationClickHandler({
+  enabled,
+  onPick,
+}: {
+  enabled: boolean;
+  onPick?: (position: [number, number]) => void;
+}) {
+  useMapEvents({
+    click(event) {
+      if (!enabled) return;
+
+      onPick?.([event.latlng.lat, event.latlng.lng]);
+    },
+  });
+  return null;
+}
+
 export default function MapDashboard({
   points,
   height = '100vh',
@@ -107,6 +128,9 @@ export default function MapDashboard({
   purokCounts = new Map(),
   selectedPurok,
   showBoundaries = true,
+  isPickingLocation = false,
+  onLocationPick,
+  selectedLocation,
 }: MapDashboardProps) {
   const center: [number, number] = [16.482, 121.1557];
   //   const maxCount = Math.max(...Array.from(purokCounts.values()), 1);
@@ -124,6 +148,7 @@ export default function MapDashboard({
         style={{ height: '100%', width: '100%' }}
         zoomControl={false}
       >
+        <LocationClickHandler enabled={isPickingLocation} onPick={onLocationPick} />
         <ZoomControl position="bottomright" />
         {showBoundaries && <GeoJSON key={geoJsonKey} data={barangayData as FeatureCollection} />}
         <TileLayer
@@ -134,6 +159,20 @@ export default function MapDashboard({
           <GradientLayer points={points} />
         ) : (
           <IncidentDots points={points} onPointClick={onPointClick} />
+        )}
+        {selectedLocation && (
+          <CircleMarker
+            center={selectedLocation}
+            radius={11}
+            pathOptions={{
+              color: '#ffffff',
+              weight: 3,
+              fillColor: 'var(--brand-color-info)',
+              fillOpacity: 1,
+            }}
+          >
+            <Tooltip>Selected report location</Tooltip>
+          </CircleMarker>
         )}
       </MapContainer>
     </div>

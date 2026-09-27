@@ -25,7 +25,7 @@ export default function ResidentLanding() {
                   type: 'primary',
                   icon: <FileAddOutlined />,
                   label: 'Submit Report',
-                  onClick: () => navigate('/resident/submit'),
+                  onClick: () => navigate('/resident/report'),
                 },
               ]
             : []

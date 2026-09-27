@@ -26,9 +26,9 @@ export default function ResidentShell() {
 
   const menuItems = useMemo(
     () => [
-      { key: '/resident', icon: <HomeOutlined />, label: 'Home' },
+      // { key: '/resident', icon: <HomeOutlined />, label: 'Home' },
       { key: '/resident/map', icon: <EnvironmentOutlined />, label: 'Map' },
-      { key: '/resident/submit', icon: <FileAddOutlined />, label: 'Report Incident' },
+      // { key: '/resident/report', icon: <FileAddOutlined />, label: 'Report Incident' },
       { key: '/resident/reports', icon: <UnorderedListOutlined />, label: 'My Reports' },
       {
         key: '/resident/notifications',
@@ -48,7 +48,7 @@ export default function ResidentShell() {
     <AppShell
       menuItems={menuItems}
       siderWidth={220}
-      fullWidthContent={location.pathname === '/resident/map'}
+      fullWidthContent={['/resident/map', '/resident/report'].includes(location.pathname)}
     />
   );
 }

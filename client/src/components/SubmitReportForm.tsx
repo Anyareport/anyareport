@@ -1,11 +1,10 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Form,
   Select,
   Input,
   Button,
   Upload,
-  Card,
   Typography,
   message,
   Alert,
@@ -28,9 +27,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api, type Category } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
-import MapPicker from '../components/map/MapPicker';
 import type { FeatureCollection } from 'geojson';
-import { isInsideBarangayBoundary, findContainingPurok } from '../components/map/MapPicker';
+import {
+  findContainingPurok,
+  isInsideBarangayBoundary,
+} from '../components/map/MapPicker';
 import barangayData from '../data/DMM.json';
 import { compressImage } from '../lib/imageCompressor';
 
@@ -47,6 +48,12 @@ const SUBCATEGORY_MAP: Record<string, string[]> = {
   'Emergency Situations': ['Public', 'Private'],
 };
 
+interface SubmitReportFormProps {
+  selectedLocation: [number, number] | null;
+  onPickLocation: () => void;
+  onLocationChange: (position: [number, number]) => void;
+}
+
 interface ClassificationResult {
   category: string;
   subcategory: string;
@@ -62,7 +69,11 @@ interface ReportFormValues {
   severity: Severity;
 }
 
-export default function SubmitReportForm() {
+export default function SubmitReportForm({
+  selectedLocation,
+  onPickLocation,
+  onLocationChange,
+}: SubmitReportFormProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { profile } = useAuth();
@@ -72,8 +83,6 @@ export default function SubmitReportForm() {
   const [maxStepReached, setMaxStepReached] = useState(0);
 
   const [reportType, setReportType] = useState<ReportType>('text');
-  const [lat, setLat] = useState<number>();
-  const [lng, setLng] = useState<number>();
   const [fileList, setFileList] = useState<
     { originFileObj: File; thumbUrl?: string; compressedBlob?: Blob }[]
   >([]);
@@ -88,6 +97,13 @@ export default function SubmitReportForm() {
     queryKey: ['categories'],
     queryFn: () => api.get<Category[]>('/api/reports/categories'),
   });
+
+  useEffect(() => {
+    if (!selectedLocation) return;
+
+    const address = findContainingPurok(selectedLocation, barangayData as FeatureCollection);
+    if (address) form.setFieldValue('address', address);
+  }, [form, selectedLocation]);
 
   const resetClassificationState = useCallback(() => {
     setClassification(undefined);
@@ -168,14 +184,18 @@ export default function SubmitReportForm() {
 
   const submitMutation = useMutation({
     mutationFn: async (values: ReportFormValues) => {
+      if (!selectedLocation) {
+        throw new Error('Please select a location before submitting.');
+      }
+
       const formData = new FormData();
       formData.append('category', values.category);
       formData.append('subcategory', values.subcategory);
       formData.append('severity', values.severity);
       formData.append('description', values.description || '');
       formData.append('address', values.address || '');
-      formData.append('latitude', String(lat));
-      formData.append('longitude', String(lng));
+      formData.append('latitude', String(selectedLocation[0]));
+      formData.append('longitude', String(selectedLocation[1]));
       // Upload all selected files (max 3)
       fileList.forEach((f) => formData.append('photos', f.originFileObj));
       return api.post('/api/reports', formData);
@@ -212,19 +232,25 @@ export default function SubmitReportForm() {
           message.error('Maximum 3 photos allowed per report');
           return;
         }
-      }
-      if (currentStep === 1) {
-        if (!lat || !lng) {
-          message.error('Please set a location on the map or use GPS.');
+
+        if (!selectedLocation) {
+          message.error('Please select a location on the map or use GPS.');
           return;
         }
         void ensureClassified();
       }
+
+      if (currentStep === 1) {
+        await form.validateFields(['category', 'subcategory', 'severity']);
+      }
+
       const next = currentStep + 1;
       setCurrentStep(next);
       setMaxStepReached((m) => Math.max(m, next));
-    } catch {}
-  }, [currentStep, reportType, lat, lng, ensureClassified, form, fileList]);
+    } catch {
+      // Form validation displays the relevant field errors.
+    }
+  }, [currentStep, reportType, selectedLocation, ensureClassified, form, fileList]);
 
   const goBack = () => setCurrentStep((s) => Math.max(0, s - 1));
 
@@ -240,16 +266,21 @@ export default function SubmitReportForm() {
       }
       if (step > maxStepReached) return;
 
-      if (step >= 2) {
-        if (!lat || !lng) {
-          message.error('Please set a location on the map or use GPS.');
+      if (step >= 1) {
+        if (!selectedLocation) {
+          message.error('Please select a location on the map or use GPS.');
           return;
         }
         await ensureClassified();
       }
+
+      if (step >= 2) {
+        await form.validateFields(['category', 'subcategory', 'severity']);
+      }
+
       setCurrentStep(step);
     },
-    [currentStep, maxStepReached, lat, lng, ensureClassified]
+    [currentStep, maxStepReached, selectedLocation, ensureClassified, form]
   );
 
   const handleUseGPS = () => {
@@ -268,8 +299,7 @@ export default function SubmitReportForm() {
           return;
         }
 
-        setLat(pos.coords.latitude);
-        setLng(pos.coords.longitude);
+        onLocationChange(point);
         message.success('Location detected via GPS.');
       },
       () => message.error('Could not get your location. Please tap the map instead.')
@@ -288,10 +318,10 @@ export default function SubmitReportForm() {
       />
     );
   }
-  const STEP_LABELS = ['Report Type', 'Location', 'Classification', 'Review'];
+  const STEP_LABELS = ['Incident details', 'Classification', 'Review'];
 
   return (
-    <Card className="card-container">
+    <div>
       <Title level={3}>SUBMIT INCIDENT REPORT</Title>
 
       <Steps
@@ -300,7 +330,7 @@ export default function SubmitReportForm() {
         responsive={false}
         onChange={handleStepClick}
         style={{ marginBottom: 32, cursor: 'pointer' }}
-        items={[{}, {}, {}, {}]}
+        items={[{}, {}, {}]}
       />
 
       <Title
@@ -313,7 +343,7 @@ export default function SubmitReportForm() {
       </Title>
 
       <Form form={form} layout="vertical" initialValues={{ reportType: 'text' }}>
-        {/* STEP 1: Report Type */}
+        {/* STEP 1: Incident details and location */}
         <div style={{ display: currentStep === 0 ? 'block' : 'none' }}>
           <Form.Item label="How would you like to report this?">
             <Segmented
@@ -394,30 +424,25 @@ export default function SubmitReportForm() {
               }}
             />
           </Form.Item>
-        </div>
 
-        {/* STEP 2: Location */}
-        <div style={{ display: currentStep === 1 ? 'block' : 'none' }}>
-          <Form.Item label="Location (tap map or use GPS)">
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <Button icon={<EnvironmentOutlined />} onClick={handleUseGPS}>
-                Use My Current Location
-              </Button>
-              {currentStep === 1 && (
-                <MapPicker
-                  latitude={lat}
-                  longitude={lng}
-                  onChange={(la, ln) => {
-                    setLat(la);
-                    setLng(ln);
-
-                    const purok = findContainingPurok([la, ln], barangayData as FeatureCollection);
-                    if (purok) {
-                      form.setFieldValue('address', purok);
-                    }
-                  }}
-                />
+          <Form.Item label="Location">
+            <Space direction="vertical" size={8}>
+              {selectedLocation ? (
+                <Text>
+                  Location selected: {selectedLocation[0].toFixed(5)},{' '}
+                  {selectedLocation[1].toFixed(5)}
+                </Text>
+              ) : (
+                <Text type="secondary">No location selected</Text>
               )}
+              <Space wrap>
+                <Button icon={<EnvironmentOutlined />} onClick={onPickLocation}>
+                  Pick on map
+                </Button>
+                <Button icon={<EnvironmentOutlined />} onClick={handleUseGPS}>
+                  Use my location
+                </Button>
+              </Space>
             </Space>
           </Form.Item>
 
@@ -426,8 +451,8 @@ export default function SubmitReportForm() {
           </Form.Item>
         </div>
 
-        {/* STEP 3: Classification */}
-        <div style={{ display: currentStep === 2 ? 'block' : 'none' }}>
+        {/* STEP 2: Classification */}
+        <div style={{ display: currentStep === 1 ? 'block' : 'none' }}>
           {classifyMutation.isPending && !classification && (
             <Alert
               style={{ marginBottom: 16 }}
@@ -497,8 +522,8 @@ export default function SubmitReportForm() {
           </Form.Item>
         </div>
 
-        {/* STEP 4: Review */}
-        <div style={{ display: currentStep === 3 ? 'block' : 'none' }}>
+        {/* STEP 3: Review */}
+        <div style={{ display: currentStep === 2 ? 'block' : 'none' }}>
           <Descriptions bordered column={1} size="middle">
             <Descriptions.Item label="Report Type">
               {reportType === 'text' ? 'Text description' : 'Photo'}
@@ -524,7 +549,9 @@ export default function SubmitReportForm() {
               {form.getFieldValue('description') || <Text type="secondary">None provided</Text>}
             </Descriptions.Item>
             <Descriptions.Item label="Location">
-              {lat && lng ? `${lat.toFixed(6)}, ${lng.toFixed(6)}` : 'Not set'}
+              {selectedLocation
+                ? `${selectedLocation[0].toFixed(6)}, ${selectedLocation[1].toFixed(6)}`
+                : 'Not set'}
             </Descriptions.Item>
             <Descriptions.Item label="Address">
               {form.getFieldValue('address') || <Text type="secondary">Not provided</Text>}
@@ -546,12 +573,12 @@ export default function SubmitReportForm() {
         {/* Navigation */}
         <Space style={{ marginTop: 32 }}>
           {currentStep > 0 && <Button onClick={goBack}>Previous</Button>}
-          {currentStep < 3 && (
+          {currentStep < 2 && (
             <Button type="primary" onClick={goNext} disabled={classifyMutation.isPending}>
               Next
             </Button>
           )}
-          {currentStep === 3 && (
+          {currentStep === 2 && (
             <Button
               type="primary"
               danger
@@ -564,7 +591,7 @@ export default function SubmitReportForm() {
                   submitMutation.mutate({ ...form.getFieldsValue(), ...values });
                 } catch {
                   message.error('Please complete the category, subcategory, and severity fields.');
-                  setCurrentStep(2);
+                  setCurrentStep(1);
                 }
               }}
             >
@@ -573,6 +600,6 @@ export default function SubmitReportForm() {
           )}
         </Space>
       </Form>
-    </Card>
+    </div>
   );
 }

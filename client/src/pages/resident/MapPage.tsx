@@ -1,17 +1,19 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-// import { Typography } from 'antd';
-// import { Card, Col, Row, Space } from 'antd';
+import { Button, Drawer, Grid, message } from 'antd';
+import { CloseOutlined, FileAddOutlined } from '@ant-design/icons';
 import { api, type Report } from '../../lib/api';
 import MapDashboard from '../../components/map/MapDashboard';
-// import StatusTag from '../../components/StatusTag';
-// import PageHero from '../../components/PageHero';
+import SubmitReportForm from '../../components/SubmitReportForm';
+import type { FeatureCollection } from 'geojson';
+import { isInsideBarangayBoundary } from '../../components/map/MapPicker';
+import barangayData from '../../data/DMM.json';
 
-// const { Text } = Typography;
-
-export default function MapPage() {
+export default function MapPage({ initialReportOpen = false }: { initialReportOpen?: boolean }) {
   const navigate = useNavigate();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const { data: reports = [] } = useQuery({
     queryKey: ['my-reports'],
     queryFn: () => api.get<Report[]>('/api/reports/mine'),
@@ -28,44 +30,85 @@ export default function MapPage() {
     }));
   }, [reports]);
 
+  const [selectedLocation, setSelectedLocation] = useState<[number, number] | null>(null);
+  const [isPickingLocation, setIsPickingLocation] = useState(false);
+  const [reportDrawerOpen, setReportDrawerOpen] = useState(initialReportOpen);
+
+  useEffect(() => {
+    setReportDrawerOpen(initialReportOpen);
+  }, [initialReportOpen]);
+
+  const handleLocationChange = (position: [number, number]) => {
+    if (!isInsideBarangayBoundary(position, barangayData as FeatureCollection)) {
+      message.error('Choose a location inside the barangay boundary.');
+      return false;
+    }
+
+    setSelectedLocation(position);
+    return true;
+  };
+
+  const handleLocationPick = (position: [number, number]) => {
+    if (!handleLocationChange(position)) return;
+
+    setIsPickingLocation(false);
+    setReportDrawerOpen(true);
+  };
+
   return (
-    // <Row gutter={[16, 16]}>
-    //   <Col xs={24} xl={16}>
-    //     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-    //       <PageHero
-    //         title="Map view"
-    //         description="Geographic overview of report locations with responsive single-column fallback on smaller screens."
-    //       />
-    //       <Card className="soft-card" title="Incident map">
-    <MapDashboard
-      points={mapPoints}
-      height="100vh"
-      onPointClick={(point) => navigate(`/resident/reports/${point.id}`)}
-      showBoundaries={false}
-    />
-    //       </Card>
-    //     </Space>
-    //   </Col>
-    //   <Col xs={24} xl={8}>
-    //     <Card className="soft-card" title="Recent incidents">
-    //       <Space direction="vertical" size={12} style={{ width: '100%' }}>
-    //         {reports.slice(0, 8).map((report) => (
-    //           <Card
-    //             key={report._id}
-    //             size="small"
-    //             onClick={() => setSelectedId(report._id)}
-    //             hoverable
-    //           >
-    //             <Space direction="vertical" size={4} style={{ width: '100%' }}>
-    //               <StatusTag status={report.status} />
-    //               <Text strong>{report.category}</Text>
-    //               <Text type="secondary">{report.location?.address || 'No address'}</Text>
-    //             </Space>
-    //           </Card>
-    //         ))}
-    //       </Space>
-    //     </Card>
-    //   </Col>
-    // </Row>
+    <div style={{ position: 'relative' }}>
+      <MapDashboard
+        points={mapPoints}
+        height="100vh"
+        onPointClick={(point) => navigate(`/resident/reports/${point.id}`)}
+        showBoundaries={isPickingLocation}
+        isPickingLocation={isPickingLocation}
+        onLocationPick={handleLocationPick}
+        selectedLocation={selectedLocation}
+      />
+      <Button
+        type="primary"
+        size="large"
+        style={{ position: 'absolute', top: 16, left: 16, zIndex: 1000 }}
+        icon={<FileAddOutlined />}
+        onClick={() => setReportDrawerOpen(true)}
+      >
+        Report an incident
+      </Button>
+
+      {isPickingLocation && (
+        <Button
+          danger
+          icon={<CloseOutlined />}
+          style={{ position: 'absolute', top: 72, left: 16, zIndex: 1000 }}
+          onClick={() => setIsPickingLocation(false)}
+        >
+          Cancel location selection
+        </Button>
+      )}
+
+      <Drawer
+        title="Report an incident"
+        placement={isMobile ? 'bottom' : 'right'}
+        open={reportDrawerOpen}
+        onClose={() => {
+          setReportDrawerOpen(false);
+          setIsPickingLocation(false);
+        }}
+        width={isMobile ? undefined : 520}
+        height={isMobile ? '85vh' : undefined}
+        mask={false}
+        styles={{ body: { padding: '16px 20px', overflowY: 'auto' } }}
+      >
+        <SubmitReportForm
+          selectedLocation={selectedLocation}
+          onPickLocation={() => {
+            setReportDrawerOpen(false);
+            setIsPickingLocation(true);
+          }}
+          onLocationChange={handleLocationChange}
+        />
+      </Drawer>
+    </div>
   );
 }
