@@ -65,7 +65,7 @@ function App() {
         <Route element={<ResidentShell />}>
           <Route path="/resident" element={<Navigate to="/resident/map" replace />} />
           <Route path="/resident/map" element={<MapPage />} />
-          <Route path="/resident/report" element={<MapPage initialReportOpen />} />
+          <Route path="/resident/report" element={<MapPage />} />
           <Route path="/resident/submit" element={<Navigate to="/resident/report" replace />} />
           <Route path="/resident/reports" element={<MyReportsPage />} />
           <Route path="/resident/reports/:id" element={<IncidentDetailPage variant="resident" />} />

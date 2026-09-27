@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Drawer, Grid, message } from 'antd';
@@ -10,11 +10,12 @@ import type { FeatureCollection } from 'geojson';
 import { isInsideBarangayBoundary } from '../../components/map/MapPicker';
 import barangayData from '../../data/DMM.json';
 
-export default function MapPage({ initialReportOpen = false }: { initialReportOpen?: boolean }) {
+export default function MapPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
+  const reportDrawerOpen = location.pathname === '/resident/report';
   const { data: reports = [] } = useQuery({
     queryKey: ['my-reports'],
     queryFn: () => api.get<Report[]>('/api/reports/mine'),
@@ -33,16 +34,6 @@ export default function MapPage({ initialReportOpen = false }: { initialReportOp
 
   const [selectedLocation, setSelectedLocation] = useState<[number, number] | null>(null);
   const [isPickingLocation, setIsPickingLocation] = useState(false);
-  const [reportDrawerOpen, setReportDrawerOpen] = useState(initialReportOpen);
-
-  useEffect(() => {
-    const hasMobileActionRequest =
-      location.state &&
-      typeof location.state === 'object' &&
-      'mobileActionRequest' in location.state;
-
-    if (initialReportOpen || hasMobileActionRequest) setReportDrawerOpen(true);
-  }, [initialReportOpen, location.state]);
 
   const handleLocationChange = (position: [number, number]) => {
     if (!isInsideBarangayBoundary(position, barangayData as FeatureCollection)) {
@@ -58,7 +49,12 @@ export default function MapPage({ initialReportOpen = false }: { initialReportOp
     if (!handleLocationChange(position)) return;
 
     setIsPickingLocation(false);
-    setReportDrawerOpen(true);
+    navigate('/resident/report');
+  };
+
+  const closeReportDrawer = () => {
+    setIsPickingLocation(false);
+    navigate('/resident/map', { replace: true });
   };
 
   return (
@@ -76,9 +72,9 @@ export default function MapPage({ initialReportOpen = false }: { initialReportOp
         <Button
           type="primary"
           size="large"
-          style={{ position: 'absolute', top: 16, left: 16, zIndex: 1000 }}
+          style={{ position: 'absolute', top: 16, left: 16, zIndex: 1101 }}
           icon={<FileAddOutlined />}
-          onClick={() => setReportDrawerOpen(true)}
+          onClick={() => navigate('/resident/report')}
         >
           Report an incident
         </Button>
@@ -98,10 +94,7 @@ export default function MapPage({ initialReportOpen = false }: { initialReportOp
         zIndex={1200}
         placement={isMobile ? 'bottom' : 'right'}
         open={reportDrawerOpen}
-        onClose={() => {
-          setReportDrawerOpen(false);
-          setIsPickingLocation(false);
-        }}
+        onClose={closeReportDrawer}
         width={isMobile ? undefined : 520}
         height={isMobile ? '85vh' : undefined}
         maskClosable
@@ -110,7 +103,7 @@ export default function MapPage({ initialReportOpen = false }: { initialReportOp
         <SubmitReportForm
           selectedLocation={selectedLocation}
           onPickLocation={() => {
-            setReportDrawerOpen(false);
+            navigate('/resident/map', { replace: true });
             setIsPickingLocation(true);
           }}
           onLocationChange={handleLocationChange}

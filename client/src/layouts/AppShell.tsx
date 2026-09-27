@@ -2,7 +2,7 @@ import { Layout, Menu, Button, Drawer, Grid, Badge } from 'antd';
 import type { ItemType } from 'antd/es/menu/interface';
 import { LogoutOutlined, MenuOutlined } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import Logo from '../components/Logo';
 import MobileBottomNavigation from '../components/MobileBottomNavigation';
 import ThemeToggle from '../components/ThemeToggle';
@@ -40,7 +40,6 @@ export default function AppShell({
   const screens = useBreakpoint();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const mobileActionRequestRef = useRef(0);
   const { profile } = useAuth();
 
   const handleLogout = async () => {
@@ -169,15 +168,7 @@ export default function AppShell({
           badgeCounts={menuBadgeCounts}
           currentPath={location.pathname}
           primaryAction={mobilePrimaryAction}
-          onNavigate={(path) => {
-            if (path === mobilePrimaryAction) {
-              mobileActionRequestRef.current += 1;
-              navigate(path, { state: { mobileActionRequest: mobileActionRequestRef.current } });
-              return;
-            }
-
-            navigate(path);
-          }}
+          onNavigate={navigate}
         />
       )}
     </Layout>
