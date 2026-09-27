@@ -27,6 +27,7 @@ export default function MyReportsPage() {
           reports={reports}
           basePath="/resident/reports"
           onRowClick={(id) => navigate(`/resident/reports/${id}`)}
+          showSubmitter={false}
         />
       )}
     </div>

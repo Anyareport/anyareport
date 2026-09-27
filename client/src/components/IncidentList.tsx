@@ -14,6 +14,7 @@ interface IncidentListProps {
   loading?: boolean;
   onRowClick?: (id: string) => void;
   basePath?: string;
+  showSubmitter?: boolean;
 }
 
 export default function IncidentList({
@@ -21,6 +22,7 @@ export default function IncidentList({
   loading,
   onRowClick,
   basePath = '/admin/incidents',
+  showSubmitter = true,
 }: IncidentListProps) {
   const screens = useBreakpoint();
   const navigate = useNavigate();
@@ -84,11 +86,15 @@ export default function IncidentList({
       render: (s: string | null) => <SeverityTag severity={s} />,
     },
     { title: 'Category', dataIndex: 'category', key: 'category' },
-    {
-      title: 'Submitted By',
-      key: 'submitterName',
-      render: (_: unknown, r: Report) => r.submitterName || '—',
-    },
+    ...(showSubmitter
+      ? [
+          {
+            title: 'Submitted By',
+            key: 'submitterName',
+            render: (_: unknown, r: Report) => r.submitterName || '—',
+          },
+        ]
+      : []),
     {
       title: 'Location',
       key: 'location',

@@ -27,21 +27,21 @@ export default function SecretaryIntakePage() {
         description="Secretary review queue for new submissions. Resolved cases are pushed to the bottom."
       />
 
-      <Card className="soft-card">
-        <Segmented
-          value={status}
-          options={[
-            { value: 'all', label: 'All' },
-            { value: 'pending', label: formatStatus('pending') },
-            { value: 'verified', label: formatStatus('verified') },
-            { value: 'en_route', label: formatStatus('en_route') },
-            { value: 'on_scene', label: formatStatus('on_scene') },
-            { value: 'resolved', label: formatStatus('resolved') },
-            { value: 'flagged', label: formatStatus('flagged') },
-          ]}
-          onChange={(value) => setStatus(value as string)}
-        />
-      </Card>
+      {/* <Card className="soft-card"> */}
+      <Segmented
+        value={status}
+        options={[
+          { value: 'all', label: 'All' },
+          { value: 'pending', label: formatStatus('pending') },
+          { value: 'verified', label: formatStatus('verified') },
+          { value: 'en_route', label: formatStatus('en_route') },
+          { value: 'on_scene', label: formatStatus('on_scene') },
+          { value: 'resolved', label: formatStatus('resolved') },
+          { value: 'flagged', label: formatStatus('flagged') },
+        ]}
+        onChange={(value) => setStatus(value as string)}
+      />
+      {/* </Card> */}
 
       <Card className="soft-card" title="Intake monitor">
         <IncidentList reports={sorted} basePath="/admin/incidents" />
