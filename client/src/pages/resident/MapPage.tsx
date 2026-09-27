@@ -83,7 +83,7 @@ export default function MapPage() {
         <Button
           danger
           icon={<CloseOutlined />}
-          style={{ position: 'absolute', top: 72, left: 16, zIndex: 1000 }}
+          style={{ position: 'absolute', top: 48, right: 16, zIndex: 1102 }}
           onClick={() => setIsPickingLocation(false)}
         >
           Cancel location selection

@@ -22,16 +22,14 @@ import {
   EnvironmentOutlined,
   CameraOutlined,
   FileTextOutlined,
+  SendOutlined,
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api, type Category } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import type { FeatureCollection } from 'geojson';
-import {
-  findContainingPurok,
-  isInsideBarangayBoundary,
-} from '../components/map/MapPicker';
+import { findContainingPurok, isInsideBarangayBoundary } from '../components/map/MapPicker';
 import barangayData from '../data/DMM.json';
 import { compressImage } from '../lib/imageCompressor';
 
@@ -322,8 +320,6 @@ export default function SubmitReportForm({
 
   return (
     <div>
-      <Title level={3}>SUBMIT INCIDENT REPORT</Title>
-
       <Steps
         current={currentStep}
         size="small"
@@ -341,10 +337,33 @@ export default function SubmitReportForm({
       >
         {STEP_LABELS[currentStep]}
       </Title>
-
+      {/* STEP 1: Incident details and location */}
       <Form form={form} layout="vertical" initialValues={{ reportType: 'text' }}>
-        {/* STEP 1: Incident details and location */}
         <div style={{ display: currentStep === 0 ? 'block' : 'none' }}>
+          <Form.Item>
+            <Space direction="vertical" size={8} style={{ width: '100%' }}>
+              {selectedLocation ? (
+                <Tag color="blue">Location selected</Tag>
+              ) : (
+                <Tag color="red">No location selected</Tag>
+              )}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                  gap: 8,
+                  width: '100%',
+                }}
+              >
+                <Button icon={<EnvironmentOutlined />} onClick={onPickLocation}>
+                  Pick on map
+                </Button>
+                <Button icon={<SendOutlined />} onClick={handleUseGPS}>
+                  Use my location
+                </Button>
+              </div>
+            </Space>
+          </Form.Item>
           <Form.Item label="How would you like to report this?">
             <Segmented
               block
@@ -423,27 +442,6 @@ export default function SubmitReportForm({
                 resetClassificationState();
               }}
             />
-          </Form.Item>
-
-          <Form.Item label="Location">
-            <Space direction="vertical" size={8}>
-              {selectedLocation ? (
-                <Text>
-                  Location selected: {selectedLocation[0].toFixed(5)},{' '}
-                  {selectedLocation[1].toFixed(5)}
-                </Text>
-              ) : (
-                <Text type="secondary">No location selected</Text>
-              )}
-              <Space wrap>
-                <Button icon={<EnvironmentOutlined />} onClick={onPickLocation}>
-                  Pick on map
-                </Button>
-                <Button icon={<EnvironmentOutlined />} onClick={handleUseGPS}>
-                  Use my location
-                </Button>
-              </Space>
-            </Space>
           </Form.Item>
 
           <Form.Item name="address" label="Address (optional)">
@@ -571,18 +569,30 @@ export default function SubmitReportForm({
         </div>
 
         {/* Navigation */}
-        <Space style={{ marginTop: 32 }}>
-          {currentStep > 0 && <Button onClick={goBack}>Previous</Button>}
+        <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+          {currentStep > 0 && (
+            <Button style={{ flex: 1, minWidth: 0 }} onClick={goBack}>
+              Previous
+            </Button>
+          )}
+
           {currentStep < 2 && (
-            <Button type="primary" onClick={goNext} disabled={classifyMutation.isPending}>
+            <Button
+              type="primary"
+              style={{ flex: 1, minWidth: 0 }}
+              onClick={goNext}
+              disabled={classifyMutation.isPending}
+            >
               Next
             </Button>
           )}
+
           {currentStep === 2 && (
             <Button
               type="primary"
               danger
               size="large"
+              style={{ flex: 1, minWidth: 0 }}
               loading={submitMutation.isPending}
               onClick={async () => {
                 try {
@@ -598,7 +608,7 @@ export default function SubmitReportForm({
               Confirm & Submit
             </Button>
           )}
-        </Space>
+        </div>
       </Form>
     </div>
   );
