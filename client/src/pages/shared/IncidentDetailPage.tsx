@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
+  Alert,
   Button,
   Card,
   Col,
@@ -20,13 +21,13 @@ import {
   CheckOutlined,
   ExclamationCircleOutlined,
   FlagOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 import { api, type Report } from '../../lib/api';
 import StatusTag from '../../components/StatusTag';
 import SeverityTag from '../../components/SeverityTag';
 import { StaticMap, RouteMap } from '../../components/map/MapPicker';
 import { useAuth } from '../../contexts/AuthContext';
-import { getRoleLabel } from '../../lib/roles';
 
 const { Paragraph, Text } = Typography;
 
@@ -133,10 +134,10 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         {!isResident && (
           <Space wrap>
             {report.verifiedBy && <Tag color="geekblue">Reviewed</Tag>}
-            {report.aiSuggestedCategory && (
+            {/* {report.aiSuggestedCategory && (
               <Tag color="purple">AI: {report.aiSuggestedCategory}</Tag>
-            )}
-            <Tag>{getRoleLabel(profile?.role)}</Tag>
+            )} */}
+            {/* <Tag>{getRoleLabel(profile?.role)}</Tag> */}
           </Space>
         )}
 
@@ -149,13 +150,21 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           </Space>
         )}
 
-        {report.aiSummary && (
-          <>
-            <Text strong style={{ color: 'var(--text-link)' }}>
-              AI Summary
-            </Text>
-            <Paragraph style={{ marginBottom: 16 }}>{report.aiSummary}</Paragraph>
-          </>
+        {(report.aiSummary || report.aiSuggestedCategory) && (
+          <Alert
+            type="info"
+            showIcon
+            icon={<RobotOutlined />}
+            message={
+              <Space size={8} wrap>
+                <Text strong>AI Analysis</Text>
+                {report.aiSuggestedCategory && report.aiSuggestedCategory !== report.category && (
+                  <Tag color="blue">Suggested: {report.aiSuggestedCategory}</Tag>
+                )}
+              </Space>
+            }
+            description={report.aiSummary}
+          />
         )}
 
         <Paragraph>{report.description}</Paragraph>

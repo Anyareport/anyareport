@@ -263,12 +263,7 @@ export default function MapPicker({
         </div>
       )}
 
-      <MapContainer
-        center={pos}
-        zoom={15}
-        style={{ height, width: '100%', borderRadius: 8 }}
-        scrollWheelZoom
-      >
+      <MapContainer center={pos} style={{ height, width: '100%', borderRadius: 8 }} scrollWheelZoom>
         <MapResizeHandler />
         <RecenterMap position={pos} />
         <TileLayer
@@ -293,9 +288,10 @@ interface RouteMapProps {
   incidentLat: number;
   incidentLng: number;
   height?: number;
+  zoom?: number;
 }
 
-export function RouteMap({ incidentLat, incidentLng, height = 350 }: RouteMapProps) {
+export function RouteMap({ incidentLat, incidentLng, height = 350, zoom = 17 }: RouteMapProps) {
   const [responderPos, setResponderPos] = useState<[number, number] | null>(null);
   const [routeCoords, setRouteCoords] = useState<[number, number][] | null>(null);
   const incidentPos: [number, number] = [incidentLat, incidentLng];
@@ -335,7 +331,7 @@ export function RouteMap({ incidentLat, incidentLng, height = 350 }: RouteMapPro
   return (
     <MapContainer
       center={center}
-      zoom={14}
+      zoom={zoom}
       style={{ height, width: '100%', borderRadius: 8 }}
       scrollWheelZoom
     >
@@ -359,7 +355,8 @@ interface StaticMapProps {
   latitude: number;
   longitude: number;
   height?: number;
-  showBoundaries?: boolean; // toggle the barangay/purok overlay on or off
+  showBoundaries?: boolean;
+  zoom?: number;
 }
 
 export function StaticMap({
@@ -367,11 +364,12 @@ export function StaticMap({
   longitude,
   height = 250,
   showBoundaries = true,
+  zoom = 17,
 }: StaticMapProps) {
   return (
     <MapContainer
       center={[latitude, longitude]}
-      zoom={15}
+      zoom={zoom}
       style={{ height, width: '100%', borderRadius: 8 }}
       scrollWheelZoom={false}
     >
