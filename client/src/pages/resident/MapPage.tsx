@@ -1,13 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Col, Row, Space, Typography } from 'antd';
+// import { Typography } from 'antd';
+// import { Card, Col, Row, Space } from 'antd';
 import { api, type Report } from '../../lib/api';
 import MapDashboard from '../../components/map/MapDashboard';
-import StatusTag from '../../components/StatusTag';
-import PageHero from '../../components/PageHero';
+// import StatusTag from '../../components/StatusTag';
+// import PageHero from '../../components/PageHero';
 
-const { Text } = Typography;
+// const { Text } = Typography;
 
 export default function MapPage() {
   const navigate = useNavigate();
@@ -26,14 +27,6 @@ export default function MapPage() {
       status: report.status,
     }));
   }, [reports]);
-
-  const [selectedId, setSelectedId] = useState<string | null>(reports[0]?._id || null);
-
-  const selected = useMemo(
-    () => reports.find((report) => report._id === selectedId) || reports[0],
-    [reports, selectedId]
-  );
-  const [lng, lat] = selected?.location?.coordinates || [121.3708, 16.4833];
 
   return (
     // <Row gutter={[16, 16]}>

@@ -101,7 +101,7 @@ export default function MapDashboard({
   showBoundaries = true,
 }: MapDashboardProps) {
   const center: [number, number] = [16.482, 121.1557];
-  const maxCount = Math.max(...Array.from(purokCounts.values()), 1);
+  //   const maxCount = Math.max(...Array.from(purokCounts.values()), 1);
 
   const geoJsonKey = `${mode}-${selectedPurok || ''}-${Array.from(purokCounts.entries())
     .map(([name, count]) => `${name}:${count}`)
