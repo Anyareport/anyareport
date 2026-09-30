@@ -5,6 +5,7 @@ import {
   Alert,
   Avatar,
   Button,
+  Card,
   Empty,
   Image,
   Space,
@@ -367,7 +368,11 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   ) : null;
 
   const actionPanel = isResident ? null : isResponder ? (
-    <section className="incident-side-section" aria-labelledby="incident-actions-heading">
+    <Card
+      className="soft-card incident-side-section"
+      role="region"
+      aria-labelledby="incident-actions-heading"
+    >
       <h2 id="incident-actions-heading">Response</h2>
       {responderAction || (
         <Text type="secondary">
@@ -411,9 +416,13 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           </Button>
         </Space>
       )}
-    </section>
+    </Card>
   ) : role === 'admin' ? (
-    <section className="incident-side-section" aria-labelledby="incident-access-heading">
+    <Card
+      className="soft-card incident-side-section"
+      role="region"
+      aria-labelledby="incident-access-heading"
+    >
       <h2 id="incident-access-heading">Access</h2>
       <Text type="secondary">
         Read-only. Admins manage accounts and system logs, not incident status.
@@ -425,9 +434,13 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       >
         Export system log
       </Button>
-    </section>
+    </Card>
   ) : isBlotter ? (
-    <section className="incident-side-section" aria-labelledby="incident-actions-heading">
+    <Card
+      className="soft-card incident-side-section"
+      role="region"
+      aria-labelledby="incident-actions-heading"
+    >
       <h2 id="incident-actions-heading">Actions</h2>
       {oversightAction || (
         <Text type="secondary">
@@ -450,12 +463,16 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           Export case audit
         </Button>
       )}
-    </section>
+    </Card>
   ) : (
-    <section className="incident-side-section" aria-labelledby="incident-actions-heading">
+    <Card
+      className="soft-card incident-side-section"
+      role="region"
+      aria-labelledby="incident-actions-heading"
+    >
       <h2 id="incident-actions-heading">Monitoring</h2>
       <Text type="secondary">Field status changes are handled by tanods and responders.</Text>
-    </section>
+    </Card>
   );
 
   const historyTimeline = (
@@ -585,126 +602,129 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       </header>
 
       <div className="incident-detail-grid">
-        <article className="incident-main">
-          {variant === 'admin' ? (
-            <>
-              {titleBlock}
-              {progress}
-              {reportHero}
-            </>
-          ) : (
-            <>
-              {reportHero}
-              {titleBlock}
-              {progress}
-            </>
-          )}
-
-          {description && (
-            <section className="incident-description-section">
-              <h2>Report description</h2>
-              <Paragraph className="incident-description">{description}</Paragraph>
-            </section>
-          )}
-
-          {report.aiSummary && (
-            <section className="incident-ai-summary">
-              <div className="incident-section-label">
-                <RobotOutlined /> <Text strong>AI summary</Text>
-              </div>
-              <Paragraph>{report.aiSummary}</Paragraph>
-              {report.aiSuggestedCategory && report.aiSuggestedCategory !== report.category && (
-                <Text type="secondary">Suggested category: {report.aiSuggestedCategory}</Text>
-              )}
-            </section>
-          )}
-
-          <section className="incident-facts" aria-label="Report details">
-            <div className="incident-fact">
-              <EnvironmentOutlined />
-              <Text>{report.location?.address || 'Location unavailable'}</Text>
-            </div>
-            {!isResident && canViewReporter && (
-              <div className="incident-fact">
-                <UserOutlined />
-                {report.submitterName ? (
-                  <Text>
-                    Reporter: {report.submitterName}
-                    {variant === 'admin' && role === 'secretary'
-                      ? report.submitterPhone
-                        ? ` · ${report.submitterPhone}`
-                        : ' · No contact on file'
-                      : ''}
-                  </Text>
-                ) : (
-                  <Text type="secondary">
-                    {isResponder && report.acknowledgedBy !== profile?.firebaseUid
-                      ? 'Reporter hidden until you acknowledge'
-                      : 'Reporter details unavailable'}
-                  </Text>
-                )}
-              </div>
+        <Card className="soft-card incident-main-card">
+          <article className="incident-main">
+            {variant === 'admin' ? (
+              <>
+                {titleBlock}
+                {progress}
+                {reportHero}
+              </>
+            ) : (
+              <>
+                {reportHero}
+                {titleBlock}
+                {progress}
+              </>
             )}
-            {isResponder && !canViewReporter && (
-              <div className="incident-fact">
-                <UserOutlined />
-                <Text type="secondary">Reporter hidden until you acknowledge</Text>
-              </div>
+
+            {description && (
+              <section className="incident-description-section">
+                <h2>Report description</h2>
+                <Paragraph className="incident-description">{description}</Paragraph>
+              </section>
             )}
-            {!isResident && report.acknowledgedBy && (
-              <div className="incident-participants">
-                <div className="incident-participant-group">
-                  <Text strong>Lead</Text>
-                  <span className="incident-participant-chip">
-                    <Avatar size={22}>
-                      {getInitials(report.acknowledgedByName || 'Responder')}
-                    </Avatar>
-                    {report.acknowledgedByName || 'Responder'}
-                  </span>
+
+            {report.aiSummary && (
+              <section className="incident-ai-summary">
+                <div className="incident-section-label">
+                  <RobotOutlined /> <Text strong>AI summary</Text>
                 </div>
-                {backupResponderNames.length > 0 && (
-                  <div className="incident-participant-group">
-                    <Text strong>Backup</Text>
-                    <div className="incident-participant-list">
-                      {backupResponderNames.map((name) => (
-                        <span key={name} className="incident-participant-chip">
-                          <Avatar size={22}>{getInitials(name)}</Avatar>
-                          {name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                <Paragraph>{report.aiSummary}</Paragraph>
+                {report.aiSuggestedCategory && report.aiSuggestedCategory !== report.category && (
+                  <Text type="secondary">Suggested category: {report.aiSuggestedCategory}</Text>
                 )}
-              </div>
+              </section>
             )}
-          </section>
 
-          {photos.length > 0 && (
-            <section className="incident-location-section">
-              <h2>Location</h2>
-              {variant === 'responder' ? (
-                <RouteMap incidentLat={latitude} incidentLng={longitude} />
-              ) : (
-                <StaticMap latitude={latitude} longitude={longitude} height={250} />
+            <section className="incident-facts" aria-label="Report details">
+              <div className="incident-fact">
+                <EnvironmentOutlined />
+                <Text>{report.location?.address || 'Location unavailable'}</Text>
+              </div>
+              {!isResident && canViewReporter && (
+                <div className="incident-fact">
+                  <UserOutlined />
+                  {report.submitterName ? (
+                    <Text>
+                      Reporter: {report.submitterName}
+                      {variant === 'admin' && role === 'secretary'
+                        ? report.submitterPhone
+                          ? ` · ${report.submitterPhone}`
+                          : ' · No contact on file'
+                        : ''}
+                    </Text>
+                  ) : (
+                    <Text type="secondary">
+                      {isResponder && report.acknowledgedBy !== profile?.firebaseUid
+                        ? 'Reporter hidden until you acknowledge'
+                        : 'Reporter details unavailable'}
+                    </Text>
+                  )}
+                </div>
+              )}
+              {isResponder && !canViewReporter && (
+                <div className="incident-fact">
+                  <UserOutlined />
+                  <Text type="secondary">Reporter hidden until you acknowledge</Text>
+                </div>
+              )}
+              {!isResident && report.acknowledgedBy && (
+                <div className="incident-participants">
+                  <div className="incident-participant-group">
+                    <Text strong>Lead</Text>
+                    <span className="incident-participant-chip">
+                      <Avatar size={22}>
+                        {getInitials(report.acknowledgedByName || 'Responder')}
+                      </Avatar>
+                      {report.acknowledgedByName || 'Responder'}
+                    </span>
+                  </div>
+                  {backupResponderNames.length > 0 && (
+                    <div className="incident-participant-group">
+                      <Text strong>Backup</Text>
+                      <div className="incident-participant-list">
+                        {backupResponderNames.map((name) => (
+                          <span key={name} className="incident-participant-chip">
+                            <Avatar size={22}>{getInitials(name)}</Avatar>
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </section>
-          )}
 
-          {variant === 'resident' && (
-            <section className="incident-history-section">
-              <h2>Report history</h2>
-              {reportHistory.length ? historyTimeline : <Empty description="No updates yet" />}
-            </section>
-          )}
-        </article>
+            {photos.length > 0 && (
+              <section className="incident-location-section">
+                <h2>Location</h2>
+                {variant === 'responder' ? (
+                  <RouteMap incidentLat={latitude} incidentLng={longitude} />
+                ) : (
+                  <StaticMap latitude={latitude} longitude={longitude} height={250} />
+                )}
+              </section>
+            )}
+
+            {variant === 'resident' && (
+              <section className="incident-history-section">
+                <h2>Report history</h2>
+                {reportHistory.length ? historyTimeline : <Empty description="No updates yet" />}
+              </section>
+            )}
+          </article>
+        </Card>
 
         {!isResident && (
           <aside className="incident-aside">
             {actionPanel}
 
             {variant === 'admin' && role !== 'admin' && (
-              <section
-                className="incident-side-section"
+              <Card
+                className="soft-card incident-side-section"
+                role="region"
                 aria-labelledby="incident-timeline-heading"
               >
                 <h2 id="incident-timeline-heading">Timeline</h2>
@@ -713,11 +733,15 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                 ) : (
                   <Empty description="No activity recorded" />
                 )}
-              </section>
+              </Card>
             )}
 
             {canViewReportAudit && (
-              <section className="incident-side-section" aria-labelledby="incident-audit-heading">
+              <Card
+                className="soft-card incident-side-section"
+                role="region"
+                aria-labelledby="incident-audit-heading"
+              >
                 <div className="incident-panel-heading">
                   <h2 id="incident-audit-heading">
                     {role === 'admin' ? 'Audit trail' : 'Case activity'}
@@ -739,7 +763,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                 ) : (
                   <Empty description="No audit events recorded" />
                 )}
-              </section>
+              </Card>
             )}
           </aside>
         )}
