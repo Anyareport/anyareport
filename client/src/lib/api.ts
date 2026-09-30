@@ -74,6 +74,7 @@ export interface UserProfile {
 
 export interface Report {
   _id: string;
+  referenceNumber?: string | null;
   submittedBy: string | null;
   submitterName: string | null;
   submitterPhone?: string | null;

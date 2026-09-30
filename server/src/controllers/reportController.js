@@ -14,6 +14,7 @@ import {
 import { antiAbuseConfig } from '../config/antiAbuse.js';
 import { workflowConfig } from '../config/workflow.js';
 import { uploadImage } from '../services/cloudinary.js';
+import { getNextReportReference } from '../services/reportReference.js';
 import { canVerifyReports } from '../middleware/rbac.js';
 import {
   BLOTTER_REPORT_CATEGORY,
@@ -131,8 +132,10 @@ export async function createReport(req, res) {
       console.error('[Report Creation] AI classification failed:', classifyErr.message);
     }
 
+    const referenceNumber = await getNextReportReference();
     const report = await Report.create({
       submittedBy: req.firebaseUser.uid,
+      referenceNumber,
       category,
       subcategory: subcategory || null,
       severity: severity || null,

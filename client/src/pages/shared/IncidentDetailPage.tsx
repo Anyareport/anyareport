@@ -250,7 +250,9 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const [longitude, latitude] = report.location?.coordinates || [0, 0];
   const description = report.description.trim();
   const title = report.aiTitle?.trim() || report.subcategory || report.category;
-  const referenceLabel = 'Reference pending';
+  const referenceLabel = report.referenceNumber
+    ? `Reference ${report.referenceNumber}`
+    : 'Reference not assigned';
   const reportHistory = report.statusHistory || [];
   const showMobileResponderActions = isResponder;
   const canStartBlotter =

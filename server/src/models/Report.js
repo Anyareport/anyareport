@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 const reportSchema = new mongoose.Schema(
   {
     submittedBy: { type: String, required: true, index: true },
+    referenceNumber: { type: String },
     category: { type: String, required: true },
     description: { type: String, default: '' },
     photos: [{ type: String }],
@@ -56,5 +57,6 @@ const reportSchema = new mongoose.Schema(
 );
 
 reportSchema.index({ location: '2dsphere' });
+reportSchema.index({ referenceNumber: 1 }, { unique: true, sparse: true });
 
 export default mongoose.model('Report', reportSchema);
