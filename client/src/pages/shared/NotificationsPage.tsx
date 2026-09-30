@@ -131,7 +131,7 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
                   >
                     <Button
                       type={notification.read ? 'default' : 'primary'}
-                      icon={<CheckOutlined />}
+                   
                       onClick={(event) => {
                         event.stopPropagation();
                         markRead.mutate(notification._id);
@@ -146,7 +146,7 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
                         cursor: notification.read ? 'not-allowed' : 'pointer',
                       }}
                     >
-                      {notification.read ? 'Read ✓' : 'Mark read'}
+                      {notification.read ? 'Read ' : 'Mark read'}
                     </Button>
                   </div>
                 </div>
