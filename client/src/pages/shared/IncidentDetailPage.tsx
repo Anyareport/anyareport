@@ -1,3 +1,4 @@
+import { useRef, useState, type TouchEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -18,6 +19,8 @@ import {
   CompassOutlined,
   DownloadOutlined,
   EnvironmentOutlined,
+  LeftOutlined,
+  RightOutlined,
   RobotOutlined,
   UserAddOutlined,
   UserOutlined,
@@ -113,6 +116,8 @@ async function downloadFile(path: string, filename: string) {
 }
 
 export default function IncidentDetailPage({ variant }: IncidentDetailPageProps) {
+  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+  const galleryTouchStart = useRef<{ x: number; y: number } | null>(null);
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -234,6 +239,8 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     !isBackupResponder &&
     status !== 'resolved';
   const photos = report.photos || [];
+  const activePhoto = photos[activePhotoIndex];
+  const activePhotoUrl = activePhoto ? getPhotoUrl(activePhoto) : undefined;
   const [longitude, latitude] = report.location?.coordinates || [0, 0];
   const title = report.description.trim() || report.subcategory || report.category;
   const referenceLabel = 'Reference pending';
@@ -250,6 +257,43 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     backupMutation.isPending ||
     joinBackupMutation.isPending ||
     closeBackupMutation.isPending;
+
+  const showPreviousPhoto = () => {
+    setActivePhotoIndex((currentIndex) => (currentIndex - 1 + photos.length) % photos.length);
+  };
+
+  const showNextPhoto = () => {
+    setActivePhotoIndex((currentIndex) => (currentIndex + 1) % photos.length);
+  };
+
+  const handleGalleryTouchStart = (event: TouchEvent<HTMLDivElement>) => {
+    const touch = event.touches[0];
+    galleryTouchStart.current = { x: touch.clientX, y: touch.clientY };
+  };
+
+  const handleGalleryTouchEnd = (event: TouchEvent<HTMLDivElement>) => {
+    const start = galleryTouchStart.current;
+    galleryTouchStart.current = null;
+    if (!start || photos.length < 2) return;
+
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (Math.abs(deltaX) < 48 || Math.abs(deltaX) < Math.abs(deltaY)) return;
+
+    if (deltaX > 0) showPreviousPhoto();
+    else showNextPhoto();
+  };
+
+  const handleGalleryKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      showPreviousPhoto();
+    } else if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      showNextPhoto();
+    }
+  };
 
   const responderAction = canJoinBackup ? (
     <Button
@@ -468,31 +512,56 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
 
   const reportHero = (
     <section
-      className="incident-hero"
+      className={photos.length ? 'incident-gallery' : 'incident-hero'}
       aria-label={photos.length ? 'Report photo' : 'Incident location'}
     >
-      {photos.length > 0 ? (
-        <Image.PreviewGroup>
-          <Image
-            className="incident-hero-photo"
-            src={getPhotoUrl(photos[0])}
-            alt="Photo submitted with this report"
+      {photos.length > 0 && activePhotoUrl ? (
+        <div
+          className="incident-gallery__stage"
+          role="group"
+          aria-label={`Photo ${activePhotoIndex + 1} of ${photos.length}`}
+          tabIndex={photos.length > 1 ? 0 : undefined}
+          onTouchStart={handleGalleryTouchStart}
+          onTouchEnd={handleGalleryTouchEnd}
+          onKeyDown={handleGalleryKeyDown}
+        >
+          <img
+            className="incident-gallery__backdrop"
+            src={activePhotoUrl}
+            alt=""
+            aria-hidden="true"
           />
+          <Image.PreviewGroup>
+            <Image
+              className="incident-gallery__image"
+              src={activePhotoUrl}
+              alt={`Report photo ${activePhotoIndex + 1}`}
+            />
+          </Image.PreviewGroup>
           {photos.length > 1 && (
-            <div className="incident-photo-thumbnails">
-              {photos.slice(1).map((photo, index) => (
-                <Image
-                  key={`${photo}-${index}`}
-                  src={getPhotoUrl(photo)}
-                  alt={`Additional report photo ${index + 2}`}
-                  width={82}
-                  height={64}
-                  preview
-                />
-              ))}
-            </div>
+            <>
+              <Button
+                className="incident-gallery__control incident-gallery__control--previous"
+                shape="circle"
+                icon={<LeftOutlined />}
+                aria-label="Previous photo"
+                title="Previous photo"
+                onClick={showPreviousPhoto}
+              />
+              <Button
+                className="incident-gallery__control incident-gallery__control--next"
+                shape="circle"
+                icon={<RightOutlined />}
+                aria-label="Next photo"
+                title="Next photo"
+                onClick={showNextPhoto}
+              />
+              <span className="incident-gallery__count" aria-live="polite">
+                {activePhotoIndex + 1} / {photos.length}
+              </span>
+            </>
           )}
-        </Image.PreviewGroup>
+        </div>
       ) : (
         <div className="incident-hero-map">
           {variant === 'responder' ? (
