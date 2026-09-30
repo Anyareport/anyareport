@@ -438,7 +438,7 @@
 
 @media (max-width: 767px) {
   .incident-detail {
-    padding: 0 0 calc(174px + env(safe-area-inset-bottom));
+    padding: 0 0 calc(46px + var(--mobile-navigation-height) + 12px);
   }
 
   .incident-detail-grid,
@@ -489,12 +489,77 @@
   .incident-mobile-actions {
     position: fixed;
     z-index: 1200;
-    right: 10px;
-    bottom: calc(62px + env(safe-area-inset-bottom));
-    left: 10px;
+    right: 0;
+    bottom: var(--mobile-navigation-height);
+    left: 0;
     display: block;
-    max-height: 32dvh;
+    max-height: min(44dvh, 360px);
     overflow: auto;
+    border: 1px solid var(--border-light);
+    border-bottom: 0;
+    border-radius: 16px 16px 0 0;
+    background: var(--bg-primary);
+  }
+
+  .incident-mobile-actions.soft-card {
+    box-shadow: none;
+  }
+
+  .incident-mobile-actions__summary {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    min-height: 46px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-weight: 700;
+    list-style: none;
+  }
+
+  .incident-mobile-actions__summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .incident-mobile-actions[open] > .incident-mobile-actions__summary {
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .incident-mobile-actions__summary:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: -2px;
+  }
+
+  .incident-mobile-actions__chevron {
+    transition: transform 150ms ease;
+  }
+
+  .incident-mobile-actions[open] .incident-mobile-actions__chevron {
+    transform: rotate(180deg);
+  }
+
+  .incident-mobile-actions__content {
+    padding: 10px;
+  }
+
+  .incident-mobile-actions .incident-mobile-hide-panel.ant-card {
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .incident-mobile-actions .incident-mobile-hide-panel .ant-card-body {
+    padding: 0;
+  }
+
+  .incident-mobile-actions .incident-mobile-hide-panel .ant-card-body > h2 {
+    display: none;
   }
 }
 

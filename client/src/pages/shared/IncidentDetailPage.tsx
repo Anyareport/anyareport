@@ -18,6 +18,7 @@ import {
   ArrowLeftOutlined,
   CheckOutlined,
   CompassOutlined,
+  DownOutlined,
   DownloadOutlined,
   EnvironmentOutlined,
   LeftOutlined,
@@ -761,7 +762,15 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         </aside>
       </div>
 
-      {showMobileResponderActions && <div className="incident-mobile-actions">{actionPanel}</div>}
+      {showMobileResponderActions && (
+        <details open className="incident-mobile-actions soft-card">
+          <summary className="incident-mobile-actions__summary">
+            <span>Response</span>
+            <DownOutlined className="incident-mobile-actions__chevron" aria-hidden="true" />
+          </summary>
+          <div className="incident-mobile-actions__content">{actionPanel}</div>
+        </details>
+      )}
     </main>
   );
 }
