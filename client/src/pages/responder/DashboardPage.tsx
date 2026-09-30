@@ -124,6 +124,7 @@ export default function ResponderDashboardPage() {
           reports={otherIncidents.slice(0, 5)}
           loading={reportsLoading}
           basePath="/responder/incidents"
+          showSubmitter={false}
         />
       </Card>
     </Space>

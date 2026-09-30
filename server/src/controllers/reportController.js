@@ -19,6 +19,7 @@ import {
   BLOTTER_REPORT_CATEGORY,
   FIELD_REPORT_CATEGORIES,
   canViewReporter,
+  canViewReporterContact,
   getJoinDecision,
   getTransitionDecision,
   normalizeHistoryStatus,
@@ -210,7 +211,7 @@ export async function getReports(req, res) {
         const canSeeReporter = canViewReporter(req.userRole, report, req.firebaseUser.uid);
         return {
           ...serializeReport(report),
-          submittedBy: canSeeReporter ? report.submittedBy : null,
+          submittedBy: null,
           submitterName: canSeeReporter ? nameByUid[report.submittedBy] || null : null,
         };
       })
@@ -252,11 +253,16 @@ export async function getReportById(req, res) {
     const nameByUid = Object.fromEntries(users.map((user) => [user.firebaseUid, user.name]));
     const phoneByUid = Object.fromEntries(users.map((user) => [user.firebaseUid, user.phone]));
     const canSeeReporter = canViewReporter(req.userRole, report, req.firebaseUser.uid);
+    const canSeeReporterContact = canViewReporterContact(
+      req.userRole,
+      report,
+      req.firebaseUser.uid
+    );
     const result = {
       ...reportData,
-      submittedBy: canSeeReporter ? report.submittedBy : null,
+      submittedBy: req.userRole === 'resident' ? report.submittedBy : null,
       submitterName: canSeeReporter ? nameByUid[report.submittedBy] || null : null,
-      submitterPhone: canSeeReporter ? phoneByUid[report.submittedBy] || null : null,
+      submitterPhone: canSeeReporterContact ? phoneByUid[report.submittedBy] || null : null,
       acknowledgedByName: report.acknowledgedBy ? nameByUid[report.acknowledgedBy] || null : null,
       backupRequests: reportData.backupRequests.map((request) => ({
         ...request,

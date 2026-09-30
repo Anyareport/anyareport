@@ -6,6 +6,7 @@ import IncidentList from '../../components/IncidentList';
 import StatusFilter from '../../components/StatusFilter';
 import { compareIncidentPriority } from '../../lib/sortUtils';
 import PageHero from '../../components/PageHero';
+import { useAuth } from '../../contexts/AuthContext';
 
 export interface IncidentHistoryPageProps {
   variant?: 'admin' | 'responder';
@@ -13,6 +14,7 @@ export interface IncidentHistoryPageProps {
 
 export default function IncidentHistoryPage({ variant = 'admin' }: IncidentHistoryPageProps) {
   const [status, setStatus] = useState<string | 'all'>('all');
+  const { role } = useAuth();
 
   const { data: reports = [] } = useQuery({
     queryKey: variant === 'responder' ? ['responder-history'] : ['admin-reports', status],
@@ -62,7 +64,11 @@ export default function IncidentHistoryPage({ variant = 'admin' }: IncidentHisto
       <StatusFilter value={status} onChange={setStatus} />
 
       <Card className="soft-card" title="Incident monitor">
-        <IncidentList reports={filtered} basePath="/admin/incidents" />
+        <IncidentList
+          reports={filtered}
+          basePath="/admin/incidents"
+          showSubmitter={role !== 'admin'}
+        />
       </Card>
     </Space>
   );

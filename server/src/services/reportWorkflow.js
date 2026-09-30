@@ -49,15 +49,22 @@ export function statusFilterValues(status) {
   }
 }
 
+function isResponderParticipant(report, uid) {
+  return (
+    report.acknowledgedBy === uid ||
+    (report.backupRequests || []).some((request) => (request.joinedBy || []).includes(uid))
+  );
+}
+
 export function canViewReporter(role, report, uid) {
   if (role === 'resident') return report.submittedBy === uid;
-  if (RESPONDER_ROLES.includes(role)) {
-    return (
-      report.acknowledgedBy === uid ||
-      (report.backupRequests || []).some((request) => (request.joinedBy || []).includes(uid))
-    );
-  }
-  return role === 'secretary' && report.category === BLOTTER_REPORT_CATEGORY;
+  if (RESPONDER_ROLES.includes(role)) return isResponderParticipant(report, uid);
+  return ['captain', 'secretary'].includes(role) && report.category === BLOTTER_REPORT_CATEGORY;
+}
+
+export function canViewReporterContact(role, report, uid) {
+  if (role === 'captain') return false;
+  return canViewReporter(role, report, uid);
 }
 
 function reject(statusCode, error) {

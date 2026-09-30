@@ -9,6 +9,7 @@ export function setSocketIO(io) {
 
 export async function notifyOnNewReport(report) {
   const isEmergency = report.category === 'Emergency Situations';
+  const reportTitle = report.aiTitle?.trim() || report.subcategory || report.category;
   const rolesToNotify =
     report.category === 'Blotter Cases'
       ? ['captain', 'secretary']
@@ -22,7 +23,7 @@ export async function notifyOnNewReport(report) {
       recipientRole: user.role,
       reportId: report._id,
       type: 'incident_received',
-      message: `New report: ${report.category} — ${report.description.slice(0, 80)}`,
+      message: `New report: ${reportTitle}`,
       urgent: user.role === 'captain' && isEmergency,
     });
     notifications.push(notif);

@@ -36,7 +36,7 @@ export default function ResponderAlertsPage() {
           <Col xs={24} md={12} lg={8} key={report._id}>
             <Card
               className="soft-card"
-              title={report.category}
+              title={report.aiTitle?.trim() || report.subcategory || report.category}
               extra={<StatusTag status={report.status} />}
               actions={[
                 <Link key="open" to={`/responder/incidents/${report._id}`}>
@@ -45,6 +45,10 @@ export default function ResponderAlertsPage() {
               ]}
             >
               <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                <Text type="secondary">
+                  {report.category}
+                  {report.subcategory ? ` · ${report.subcategory}` : ''}
+                </Text>
                 <Text>{report.description}</Text>
                 <Tag color={report.category === 'Emergency Situations' ? 'red' : 'blue'}>
                   {report.category === 'Emergency Situations'

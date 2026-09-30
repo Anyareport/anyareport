@@ -120,9 +120,13 @@ export default function AdminDashboardPage() {
                   extra={<StatusTag status={report.status} />}
                 >
                   <List.Item.Meta
-                    title={report.category}
+                    title={report.aiTitle?.trim() || report.subcategory || report.category}
                     description={
                       <Space direction="vertical" size={2}>
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          {report.category}
+                          {report.subcategory ? ` · ${report.subcategory}` : ''}
+                        </Text>
                         <Text type="secondary" style={{ fontSize: 12 }}>
                           {report.description.length > 80
                             ? report.description.slice(0, 80) + '…'

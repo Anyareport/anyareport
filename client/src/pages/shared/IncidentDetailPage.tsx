@@ -234,6 +234,9 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const isParticipant = isOwner || isBackupResponder;
   const canViewReporter =
     (variant === 'responder' && isParticipant) ||
+    (variant === 'admin' && ['captain', 'secretary'].includes(role || '') && isBlotter);
+  const canViewReporterContact =
+    (variant === 'responder' && isParticipant) ||
     (variant === 'admin' && role === 'secretary' && isBlotter);
   const canJoinBackup =
     isResponder &&
@@ -650,7 +653,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                   {report.submitterName ? (
                     <Text>
                       Reporter: {report.submitterName}
-                      {variant === 'admin' && role === 'secretary'
+                      {canViewReporterContact
                         ? report.submitterPhone
                           ? ` · ${report.submitterPhone}`
                           : ' · No contact on file'

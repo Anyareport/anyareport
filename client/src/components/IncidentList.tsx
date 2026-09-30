@@ -50,8 +50,12 @@ export default function IncidentList({
                   {new Date(r.createdAt).toLocaleDateString()}
                 </Text>
               </div>
-              <Text strong>{r.category}</Text>
-              {r.submitterName && (
+              <Text strong>{r.aiTitle?.trim() || r.subcategory || r.category}</Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {r.category}
+                {r.subcategory ? ` · ${r.subcategory}` : ''}
+              </Text>
+              {showSubmitter && r.submitterName && (
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   By {r.submitterName}
                 </Text>
@@ -109,10 +113,13 @@ export default function IncidentList({
       render: (d: string) => new Date(d).toLocaleString(),
     },
     {
-      title: 'Description',
-      dataIndex: 'description',
-      key: 'description',
-      ellipsis: true,
+      title: 'Incident',
+      key: 'aiTitle',
+      render: (_: unknown, r: Report) => (
+        <Text ellipsis={{ tooltip: r.description }}>
+          {r.aiTitle?.trim() || r.subcategory || r.category}
+        </Text>
+      ),
     },
   ];
 
