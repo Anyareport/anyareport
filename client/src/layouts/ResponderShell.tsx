@@ -17,7 +17,9 @@ export default function ResponderShell() {
     refetchInterval: 30000,
   });
 
-  const alertCount = reports.filter((r) => ['verified', 'en_route'].includes(r.status)).length;
+  const alertCount = reports.filter(
+    (report) => ['pending', 'verified'].includes(report.status) && !report.acknowledgedBy
+  ).length;
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['notifications'],

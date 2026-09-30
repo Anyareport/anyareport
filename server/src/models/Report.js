@@ -13,7 +13,16 @@ const reportSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'verified', 'en_route', 'on_scene', 'resolved', 'flagged'],
+      enum: [
+        'pending',
+        'verified',
+        'acknowledged',
+        'in_progress',
+        'en_route',
+        'on_scene',
+        'resolved',
+        'flagged',
+      ],
       default: 'pending',
     },
     subcategory: { type: String, default: null },
@@ -26,7 +35,11 @@ const reportSchema = new mongoose.Schema(
       {
         requestedBy: { type: String, required: true },
         requestedAt: { type: Date, default: Date.now },
-        status: { type: String, enum: ['pending'], default: 'pending' },
+        status: { type: String, enum: ['pending', 'closed'], default: 'pending' },
+        joinedBy: [{ type: String }],
+        closedBy: { type: String, default: null },
+        closedAt: { type: Date, default: null },
+        closeReason: { type: String, enum: ['enough_help', 'resolved'], default: null },
       },
     ],
     statusHistory: [

@@ -91,7 +91,17 @@ export interface Report {
   aiSummary: string | null;
   verifiedBy: string | null;
   acknowledgedBy: string | null;
-  backupRequests?: { requestedBy: string; requestedAt: string; status: 'pending' }[];
+  acknowledgedByName?: string | null;
+  backupRequests?: {
+    requestedBy: string;
+    requestedAt: string;
+    status: 'pending' | 'closed';
+    joinedBy?: string[];
+    joinedByNames?: string[];
+    closedBy?: string | null;
+    closedAt?: string | null;
+    closeReason?: 'enough_help' | 'resolved' | null;
+  }[];
   statusHistory: { status: string; updatedBy: string; timestamp: string }[];
   createdAt: string;
   updatedAt: string;

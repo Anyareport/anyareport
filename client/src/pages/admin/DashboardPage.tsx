@@ -13,6 +13,7 @@ export default function AdminDashboardPage() {
   const { data: analytics } = useQuery({
     queryKey: ['admin-dashboard-analytics'],
     queryFn: () => api.get<Analytics>('/api/reports/analytics'),
+    refetchInterval: 30000,
   });
 
   const { data: reports = [] } = useQuery({

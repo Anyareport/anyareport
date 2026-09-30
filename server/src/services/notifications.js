@@ -9,7 +9,8 @@ export function setSocketIO(io) {
 
 export async function notifyOnVerification(report) {
   const isEmergency = report.category === 'Emergency Situations';
-  const rolesToNotify = ['tanod', 'responder', 'captain'];
+  const rolesToNotify =
+    report.category === 'Blotter Cases' ? ['captain'] : ['tanod', 'responder', 'captain'];
   const users = await User.find({ role: { $in: rolesToNotify }, status: 'active' });
 
   const notifications = [];
@@ -82,6 +83,27 @@ export async function notifyBackupRequest(report, requesterName) {
   }
 
   return notifications;
+}
+
+export async function notifyBackupJoined(report, helperName) {
+  const owner = await User.findOne({ firebaseUid: report.acknowledgedBy })
+    .select('firebaseUid role')
+    .lean();
+  if (!owner) return null;
+
+  const notification = await Notification.create({
+    recipientUid: owner.firebaseUid,
+    recipientRole: owner.role,
+    reportId: report._id,
+    type: 'backup_joined',
+    message: `${helperName} joined your incident as backup.`,
+  });
+
+  if (ioInstance) {
+    ioInstance.to(`role:${owner.role}`).emit('notification', notification);
+  }
+
+  return notification;
 }
 
 export async function getNotificationsForUser(firebaseUid) {

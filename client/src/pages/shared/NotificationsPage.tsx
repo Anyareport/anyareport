@@ -63,12 +63,17 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
             renderItem={(notification) => (
               <List.Item
                 onClick={() => {
-                  if (notification.type !== 'backup_requested' || !notification.reportId) return;
+                  if (
+                    !['backup_requested', 'backup_joined'].includes(notification.type) ||
+                    !notification.reportId
+                  )
+                    return;
                   if (!notification.read) markRead.mutate(notification._id);
                   navigate(`/responder/incidents/${notification.reportId}`);
                 }}
                 style={{
-                  ...(notification.type === 'backup_requested' && notification.reportId
+                  ...(['backup_requested', 'backup_joined'].includes(notification.type) &&
+                  notification.reportId
                     ? { cursor: 'pointer' }
                     : {}),
                   flexDirection: isMobile ? 'column' : 'row',
@@ -90,11 +95,7 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
                   <List.Item.Meta
                     style={{ width: '100%', minWidth: 0 }}
                     title={
-                      <Space
-                        wrap
-                        size={[8, 4]}
-                        style={{ width: '100%', minWidth: 0 }}
-                      >
+                      <Space wrap size={[8, 4]} style={{ width: '100%', minWidth: 0 }}>
                         <Text
                           strong
                           style={{

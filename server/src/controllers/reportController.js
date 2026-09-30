@@ -1,9 +1,11 @@
+import mongoose from 'mongoose';
 import Report from '../models/Report.js';
 import User from '../models/User.js';
 import AuditLog from '../models/AuditLog.js';
 import Category from '../models/Category.js';
 import { classifyReport } from '../services/gemini.js';
 import {
+  notifyBackupJoined,
   notifyBackupRequest,
   notifyOnStatusUpdate,
   notifyOnVerification,
@@ -12,6 +14,9 @@ import { antiAbuseConfig } from '../config/antiAbuse.js';
 import { uploadImage } from '../services/cloudinary.js';
 import { canUpdateStatus, canVerifyReports } from '../middleware/rbac.js';
 
+const RESPONDER_CATEGORIES = ['Emergency Situations', 'Public Concerns'];
+const BLOTTER_CATEGORY = 'Blotter Cases';
+
 // Resolves a Firebase UID to the user's display name, falling back to the UID
 // so statusHistory doesn't become an empty string.
 async function resolveActorName(uid) {
@@ -19,15 +24,45 @@ async function resolveActorName(uid) {
   return user?.name || uid;
 }
 
-async function logAudit(action, req, reportId, metadata = {}) {
-  await AuditLog.create({
+async function logAudit(action, req, reportId, metadata = {}, session = null) {
+  const record = {
     action,
     actorUid: req.firebaseUser?.uid || null,
     reportId,
     ip: req.ip || req.headers['x-forwarded-for'] || null,
     userAgent: req.headers['user-agent'] || null,
     metadata,
-  });
+  };
+
+  if (session) {
+    await AuditLog.create([record], { session });
+    return;
+  }
+
+  await AuditLog.create(record);
+}
+
+async function updateWithAudit(action, req, reportId, metadata, update) {
+  const session = await mongoose.startSession();
+  let result = null;
+
+  try {
+    await session.withTransaction(async () => {
+      result = await update(session);
+      if (result) await logAudit(action, req, reportId, metadata, session);
+    });
+    return result;
+  } finally {
+    await session.endSession();
+  }
+}
+
+async function notifyBestEffort(notification, context) {
+  try {
+    await notification;
+  } catch (error) {
+    console.error(`[${context}] Notification failed:`, error.message);
+  }
 }
 
 export async function createReport(req, res) {
@@ -134,9 +169,16 @@ export async function getReports(req, res) {
   try {
     let query = {};
 
+    if (['tanod', 'responder'].includes(req.userRole)) {
+      query.category = { $in: RESPONDER_CATEGORIES };
+    }
+
     if (req.query.status) query.status = req.query.status;
     if (req.query.handledByMe === 'true' && ['tanod', 'responder'].includes(req.userRole)) {
-      query.acknowledgedBy = req.firebaseUser.uid;
+      query.$or = [
+        { acknowledgedBy: req.firebaseUser.uid },
+        { 'backupRequests.joinedBy': req.firebaseUser.uid },
+      ];
     }
 
     const reports = await Report.find(query).sort({ createdAt: -1 }).limit(200);
@@ -164,12 +206,37 @@ export async function getReportById(req, res) {
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ error: 'Report not found' });
 
+    if (
+      ['tanod', 'responder'].includes(req.userRole) &&
+      !RESPONDER_CATEGORIES.includes(report.category)
+    ) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
     if (req.userRole === 'resident' && report.submittedBy !== req.firebaseUser.uid) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const submitter = await User.findOne({ firebaseUid: report.submittedBy }).select('name').lean();
-    const result = { ...report.toObject(), submitterName: submitter?.name || null };
+    const reportData = report.toObject();
+    const participantUids = [
+      report.submittedBy,
+      report.acknowledgedBy,
+      ...report.backupRequests.flatMap((request) => request.joinedBy || []),
+    ].filter(Boolean);
+    const users = await User.find({ firebaseUid: { $in: participantUids } })
+      .select('firebaseUid name')
+      .lean();
+    const nameByUid = Object.fromEntries(users.map((user) => [user.firebaseUid, user.name]));
+    const result = {
+      ...reportData,
+      submitterName: nameByUid[report.submittedBy] || null,
+      acknowledgedByName: report.acknowledgedBy ? nameByUid[report.acknowledgedBy] || null : null,
+      backupRequests: reportData.backupRequests.map((request) => ({
+        ...request,
+        joinedBy: request.joinedBy || [],
+        joinedByNames: (request.joinedBy || []).map((uid) => nameByUid[uid] || uid),
+      })),
+    };
 
     res.json(result);
   } catch (err) {
@@ -243,7 +310,7 @@ export async function flagReport(req, res) {
 export async function updateReportStatus(req, res) {
   try {
     const { status } = req.body;
-    const validStatuses = ['en_route', 'on_scene', 'resolved', 'verified'];
+    const validStatuses = ['in_progress', 'resolved'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
     }
@@ -266,39 +333,99 @@ export async function updateReportStatus(req, res) {
       return res.status(403).json({ error: 'Oversight only — cannot directly update status' });
     }
 
-    if (isResponder && report.acknowledgedBy && report.acknowledgedBy !== req.firebaseUser.uid) {
-      return res.status(409).json({ error: 'Incident is already reserved by another responder' });
+    if (isResponder && !RESPONDER_CATEGORIES.includes(report.category)) {
+      return res.status(404).json({ error: 'Report not found' });
     }
 
-    const updatedBy = await resolveActorName(req.firebaseUser.uid);
-    if (isResponder && status === 'en_route' && !report.acknowledgedBy) {
-      const reservedReport = await Report.findOneAndUpdate(
-        { _id: report._id, acknowledgedBy: null },
-        { acknowledgedBy: req.firebaseUser.uid },
-        { new: true }
-      );
-      if (!reservedReport) {
-        return res.status(409).json({ error: 'Incident was just reserved by another responder' });
+    if (req.userRole === 'secretary' && report.category !== BLOTTER_CATEGORY) {
+      return res.status(403).json({ error: 'Secretary can only resolve blotter cases' });
+    }
+
+    const actorUid = req.firebaseUser.uid;
+    const isOwner = report.acknowledgedBy === actorUid;
+    const isBackupResponder = report.backupRequests.some((request) =>
+      (request.joinedBy || []).includes(actorUid)
+    );
+
+    if (isResponder && !isOwner && !isBackupResponder) {
+      return res.status(403).json({ error: 'Only incident participants can update this status' });
+    }
+
+    if (isResponder && status === 'in_progress' && !isOwner) {
+      return res.status(403).json({ error: 'Only the incident owner can mark it in progress' });
+    }
+
+    if (isResponder && status === 'in_progress' && report.status !== 'acknowledged') {
+      return res.status(409).json({ error: 'Acknowledge the incident before starting work' });
+    }
+
+    if (
+      isResponder &&
+      status === 'resolved' &&
+      !['in_progress', 'en_route', 'on_scene'].includes(report.status)
+    ) {
+      return res.status(409).json({ error: 'Mark the incident in progress before resolving it' });
+    }
+
+    if (report.status === 'resolved') {
+      return res.status(409).json({ error: 'Incident is already resolved' });
+    }
+
+    const updatedBy = await resolveActorName(actorUid);
+    const updateFilter = {
+      _id: report._id,
+      status:
+        isResponder && status === 'in_progress'
+          ? 'acknowledged'
+          : isResponder
+            ? { $in: ['in_progress', 'en_route', 'on_scene'] }
+            : { $ne: 'resolved' },
+    };
+
+    if (isResponder) {
+      updateFilter.category = { $in: RESPONDER_CATEGORIES };
+      if (status === 'in_progress') {
+        updateFilter.acknowledgedBy = actorUid;
+      } else {
+        updateFilter.$or = [{ acknowledgedBy: actorUid }, { 'backupRequests.joinedBy': actorUid }];
       }
-      report.acknowledgedBy = req.firebaseUser.uid;
+    } else if (req.userRole === 'secretary') {
+      updateFilter.category = BLOTTER_CATEGORY;
     }
 
-    if (isResponder && !report.acknowledgedBy) {
-      return res.status(409).json({ error: 'Set en route first to reserve this incident' });
-    }
-    const statusChanged = report.status !== status;
-    report.status = status;
-    if (status === 'verified' && isResponder) {
-      report.verifiedBy = req.firebaseUser.uid;
-    }
-    report.statusHistory.push({ status, updatedBy });
-    await report.save();
+    const update = {
+      $set: { status },
+      $push: { statusHistory: { status, updatedBy } },
+    };
+    const options = { new: true };
 
-    if (statusChanged) {
-      await notifyOnStatusUpdate(report, status, updatedBy);
+    const hasOpenBackupRequest = report.backupRequests.some(
+      (request) => request.status === 'pending'
+    );
+
+    if (status === 'resolved' && hasOpenBackupRequest) {
+      const closedAt = new Date();
+      update.$set['backupRequests.$[request].status'] = 'closed';
+      update.$set['backupRequests.$[request].closedBy'] = actorUid;
+      update.$set['backupRequests.$[request].closedAt'] = closedAt;
+      update.$set['backupRequests.$[request].closeReason'] = 'resolved';
+      options.arrayFilters = [{ 'request.status': 'pending' }];
     }
-    await logAudit('status_updated', req, report._id, { status });
-    res.json(report);
+
+    const updatedReport = await updateWithAudit(
+      'status_updated',
+      req,
+      report._id,
+      { status },
+      (session) => Report.findOneAndUpdate(updateFilter, update, { ...options, session })
+    );
+
+    if (!updatedReport) {
+      return res.status(409).json({ error: 'Incident status changed before your update' });
+    }
+
+    await notifyBestEffort(notifyOnStatusUpdate(updatedReport, status, updatedBy), 'Status update');
+    res.json(updatedReport);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -313,26 +440,57 @@ export async function acknowledgeReport(req, res) {
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ error: 'Report not found' });
 
+    if (!RESPONDER_CATEGORIES.includes(report.category)) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
     if (report.acknowledgedBy && report.acknowledgedBy !== req.firebaseUser.uid) {
       return res.status(409).json({ error: 'Incident is already reserved by another responder' });
     }
 
-    report.acknowledgedBy = req.firebaseUser.uid;
-    let statusChanged = false;
-    let updatedBy;
-    if (report.status === 'verified') {
-      report.status = 'en_route';
-      updatedBy = await resolveActorName(req.firebaseUser.uid);
-      report.statusHistory.push({ status: 'en_route', updatedBy });
-      statusChanged = true;
+    if (report.acknowledgedBy === req.firebaseUser.uid) {
+      return res.json(report);
     }
-    await report.save();
 
-    if (statusChanged) {
-      await notifyOnStatusUpdate(report, 'en_route', updatedBy);
+    if (!['pending', 'verified'].includes(report.status)) {
+      return res.status(409).json({ error: 'This incident can no longer be acknowledged' });
     }
-    await logAudit('report_acknowledged', req, report._id);
-    res.json(report);
+
+    const updatedBy = await resolveActorName(req.firebaseUser.uid);
+    const acknowledgedReport = await updateWithAudit(
+      'report_acknowledged',
+      req,
+      report._id,
+      {},
+      (session) =>
+        Report.findOneAndUpdate(
+          {
+            _id: report._id,
+            category: { $in: RESPONDER_CATEGORIES },
+            acknowledgedBy: null,
+            status: { $in: ['pending', 'verified'] },
+          },
+          {
+            $set: { acknowledgedBy: req.firebaseUser.uid, status: 'acknowledged' },
+            $push: { statusHistory: { status: 'acknowledged', updatedBy } },
+          },
+          { new: true, session }
+        )
+    );
+
+    if (!acknowledgedReport) {
+      const latestReport = await Report.findById(report._id);
+      if (latestReport?.acknowledgedBy === req.firebaseUser.uid) {
+        return res.json(latestReport);
+      }
+      return res.status(409).json({ error: 'Incident was just acknowledged by another responder' });
+    }
+
+    await notifyBestEffort(
+      notifyOnStatusUpdate(acknowledgedReport, 'acknowledged', updatedBy),
+      'Incident acknowledgement'
+    );
+    res.json(acknowledgedReport);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -346,23 +504,220 @@ export async function requestBackup(req, res) {
 
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ error: 'Report not found' });
-    if (report.status === 'resolved') {
-      return res.status(409).json({ error: 'Resolved incidents cannot request backup' });
+    if (!RESPONDER_CATEGORIES.includes(report.category)) {
+      return res.status(404).json({ error: 'Report not found' });
     }
     if (report.acknowledgedBy !== req.firebaseUser.uid) {
       return res.status(403).json({ error: 'Only the assigned responder can request backup' });
     }
-    if (report.backupRequests.some((request) => request.status === 'pending')) {
-      return res.status(409).json({ error: 'Backup has already been requested' });
+    if (report.status === 'resolved') {
+      return res.status(409).json({ error: 'Resolved incidents cannot request backup' });
     }
 
-    report.backupRequests.push({ requestedBy: req.firebaseUser.uid });
-    await report.save();
+    const openRequest = report.backupRequests.find(
+      (request) => request.requestedBy === req.firebaseUser.uid && request.status === 'pending'
+    );
+    if (openRequest) {
+      return res.json({ report: report.toObject(), alreadyRequested: true });
+    }
+
+    const updatedReport = await updateWithAudit(
+      'backup_requested',
+      req,
+      report._id,
+      {},
+      (session) =>
+        Report.findOneAndUpdate(
+          {
+            _id: report._id,
+            category: { $in: RESPONDER_CATEGORIES },
+            status: { $ne: 'resolved' },
+            acknowledgedBy: req.firebaseUser.uid,
+            backupRequests: { $not: { $elemMatch: { status: 'pending' } } },
+          },
+          { $push: { backupRequests: { requestedBy: req.firebaseUser.uid } } },
+          { new: true, session }
+        )
+    );
+
+    if (!updatedReport) {
+      const latestReport = await Report.findById(report._id);
+      const wasRequested = latestReport?.backupRequests.some(
+        (request) => request.requestedBy === req.firebaseUser.uid && request.status === 'pending'
+      );
+      if (wasRequested) {
+        return res.json({ report: latestReport, alreadyRequested: true });
+      }
+      return res
+        .status(409)
+        .json({ error: 'The incident changed before backup could be requested' });
+    }
 
     const requesterName = await resolveActorName(req.firebaseUser.uid);
-    await notifyBackupRequest(report, requesterName);
-    await logAudit('backup_requested', req, report._id);
-    res.json(report);
+    await notifyBestEffort(notifyBackupRequest(updatedReport, requesterName), 'Backup request');
+    res.json({ report: updatedReport, alreadyRequested: false });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export async function joinBackupRequest(req, res) {
+  try {
+    if (!['tanod', 'responder'].includes(req.userRole)) {
+      return res.status(403).json({ error: 'Only responders can join a backup request' });
+    }
+
+    const report = await Report.findById(req.params.id);
+    if (!report) return res.status(404).json({ error: 'Report not found' });
+    if (!RESPONDER_CATEGORIES.includes(report.category)) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+    if (!report.acknowledgedBy || report.acknowledgedBy === req.firebaseUser.uid) {
+      return res.status(409).json({ error: 'This incident has no open backup request for you' });
+    }
+    const alreadyJoined = report.backupRequests.some((request) =>
+      (request.joinedBy || []).includes(req.firebaseUser.uid)
+    );
+    if (alreadyJoined) {
+      return res.json({ report: report.toObject(), alreadyJoined: true });
+    }
+    if (report.status === 'resolved') {
+      return res.status(409).json({ error: 'Resolved incidents cannot accept backup responders' });
+    }
+
+    const ownerUid = report.acknowledgedBy;
+    const updatedReport = await updateWithAudit(
+      'backup_joined',
+      req,
+      report._id,
+      { ownerUid },
+      (session) =>
+        Report.findOneAndUpdate(
+          {
+            _id: report._id,
+            category: { $in: RESPONDER_CATEGORIES },
+            status: { $ne: 'resolved' },
+            acknowledgedBy: ownerUid,
+            backupRequests: {
+              $elemMatch: {
+                requestedBy: ownerUid,
+                status: 'pending',
+                joinedBy: { $ne: req.firebaseUser.uid },
+              },
+            },
+          },
+          {
+            $addToSet: { 'backupRequests.$[request].joinedBy': req.firebaseUser.uid },
+          },
+          {
+            new: true,
+            session,
+            arrayFilters: [
+              {
+                'request.requestedBy': ownerUid,
+                'request.status': 'pending',
+                'request.joinedBy': { $ne: req.firebaseUser.uid },
+              },
+            ],
+          }
+        )
+    );
+
+    if (!updatedReport) {
+      const latestReport = await Report.findById(report._id);
+      const joinedDuringRequest = latestReport?.backupRequests.some((request) =>
+        (request.joinedBy || []).includes(req.firebaseUser.uid)
+      );
+      if (joinedDuringRequest) {
+        return res.json({ report: latestReport, alreadyJoined: true });
+      }
+      return res.status(409).json({ error: 'The backup request was closed or has changed' });
+    }
+
+    const helperName = await resolveActorName(req.firebaseUser.uid);
+    await notifyBestEffort(notifyBackupJoined(updatedReport, helperName), 'Backup join');
+    res.json({ report: updatedReport, alreadyJoined: false });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export async function closeBackupRequest(req, res) {
+  try {
+    if (!['tanod', 'responder'].includes(req.userRole)) {
+      return res.status(403).json({ error: 'Only responders can close a backup request' });
+    }
+
+    const report = await Report.findById(req.params.id);
+    if (!report) return res.status(404).json({ error: 'Report not found' });
+    if (!RESPONDER_CATEGORIES.includes(report.category)) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+    if (report.acknowledgedBy !== req.firebaseUser.uid) {
+      return res
+        .status(403)
+        .json({ error: 'Only the incident owner can close the backup request' });
+    }
+
+    const isOpen = report.backupRequests.some(
+      (request) => request.requestedBy === req.firebaseUser.uid && request.status === 'pending'
+    );
+    if (!isOpen) {
+      return res.json({ report: report.toObject(), alreadyClosed: true });
+    }
+
+    const closedAt = new Date();
+    const closedReport = await updateWithAudit(
+      'backup_request_closed',
+      req,
+      report._id,
+      { closeReason: 'enough_help' },
+      (session) =>
+        Report.findOneAndUpdate(
+          {
+            _id: report._id,
+            category: { $in: RESPONDER_CATEGORIES },
+            status: { $ne: 'resolved' },
+            acknowledgedBy: req.firebaseUser.uid,
+            backupRequests: {
+              $elemMatch: { requestedBy: req.firebaseUser.uid, status: 'pending' },
+            },
+          },
+          {
+            $set: {
+              'backupRequests.$[request].status': 'closed',
+              'backupRequests.$[request].closedBy': req.firebaseUser.uid,
+              'backupRequests.$[request].closedAt': closedAt,
+              'backupRequests.$[request].closeReason': 'enough_help',
+            },
+          },
+          {
+            new: true,
+            session,
+            arrayFilters: [
+              {
+                'request.requestedBy': req.firebaseUser.uid,
+                'request.status': 'pending',
+              },
+            ],
+          }
+        )
+    );
+
+    if (!closedReport) {
+      const latestReport = await Report.findById(report._id);
+      const stillOpen = latestReport?.backupRequests.some(
+        (request) => request.requestedBy === req.firebaseUser.uid && request.status === 'pending'
+      );
+      if (!stillOpen && latestReport) {
+        return res.json({ report: latestReport, alreadyClosed: true });
+      }
+      return res
+        .status(409)
+        .json({ error: 'The incident changed before the backup request closed' });
+    }
+
+    res.json({ report: closedReport, alreadyClosed: false });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

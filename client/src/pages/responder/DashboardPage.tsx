@@ -31,21 +31,17 @@ export default function ResponderDashboardPage() {
   });
 
   const myActiveReports = useMemo(
-    () =>
-      handledReports.filter(
-        (report) => report.status !== 'resolved'
-      ),
+    () => handledReports.filter((report) => report.status !== 'resolved'),
     [handledReports]
   );
-
-  
 
   const activeReports = useMemo(
     () =>
       reports
         .filter(
           (report) =>
-            report.status === 'pending' &&
+            ['pending', 'verified'].includes(report.status) &&
+            !report.acknowledgedBy &&
             ['Emergency Situations', 'Public Concerns'].includes(report.category)
         )
         .sort(compareIncidentPriority),
@@ -59,7 +55,11 @@ export default function ResponderDashboardPage() {
             report.acknowledgedBy &&
             report.acknowledgedBy !== profile?.firebaseUid &&
             report.status !== 'resolved' &&
-            (report.backupRequests || []).some((request) => request.status === 'pending')
+            (report.backupRequests || []).some(
+              (request) =>
+                request.status === 'pending' &&
+                !(request.joinedBy || []).includes(profile?.firebaseUid || '')
+            )
         )
         .sort(compareIncidentPriority),
     [profile?.firebaseUid, reports]
@@ -72,8 +72,8 @@ export default function ResponderDashboardPage() {
           Responder Command
         </Title>
         <Paragraph>
-          Field responders monitor verified incidents, route to active scenes, and close reports in
-          the field.
+          Field responders acknowledge public concerns and emergencies, track progress, and close
+          reports in the field.
         </Paragraph>
         <Button type="primary" icon={<ArrowRightOutlined />}>
           <Link to="/responder/alerts" style={{ color: 'inherit' }}>
@@ -104,8 +104,12 @@ export default function ResponderDashboardPage() {
         <Col xs={24} md={8}>
           <Card className="soft-card">
             <Statistic
-              title="Scene-ready"
-              value={myActiveReports.filter((report) => report.status === 'on_scene').length}
+              title="In progress"
+              value={
+                myActiveReports.filter((report) =>
+                  ['in_progress', 'en_route', 'on_scene'].includes(report.status)
+                ).length
+              }
               prefix={<EnvironmentOutlined />}
             />
           </Card>

@@ -5,8 +5,8 @@ const options = [
   { value: 'all', label: 'All' },
   { value: 'pending', label: formatStatus('pending') },
   { value: 'verified', label: formatStatus('verified') },
-  { value: 'en_route', label: formatStatus('en_route') },
-  { value: 'on_scene', label: formatStatus('on_scene') },
+  { value: 'acknowledged', label: formatStatus('acknowledged') },
+  { value: 'in_progress', label: formatStatus('in_progress') },
   { value: 'resolved', label: formatStatus('resolved') },
   { value: 'flagged', label: formatStatus('flagged') },
 ];

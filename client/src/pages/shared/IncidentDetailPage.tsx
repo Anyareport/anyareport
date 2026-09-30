@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -19,15 +18,15 @@ import {
 import {
   ArrowLeftOutlined,
   CheckOutlined,
-  ExclamationCircleOutlined,
   FlagOutlined,
   RobotOutlined,
   EnvironmentOutlined,
   UserOutlined,
+  UserAddOutlined,
   ClockCircleOutlined,
 } from '@ant-design/icons';
 import { api, type Report } from '../../lib/api';
-import StatusTag from '../../components/StatusTag';
+import StatusTag, { formatStatus } from '../../components/StatusTag';
 import SeverityTag from '../../components/SeverityTag';
 import { StaticMap, RouteMap } from '../../components/map/MapPicker';
 import { useAuth } from '../../contexts/AuthContext';
@@ -48,17 +47,24 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     queryKey: ['report', id],
     queryFn: () => api.get<Report>(`/api/reports/${id}`),
     enabled: !!id,
+    refetchInterval: 15000,
   });
 
   const updateStatus = useMutation({
-    mutationFn: (status: 'en_route' | 'on_scene' | 'resolved' | 'verified') =>
+    mutationFn: (status: 'in_progress' | 'resolved') =>
       api.patch(`/api/reports/${id}/status`, { status }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['report', id] });
       await queryClient.invalidateQueries({ queryKey: ['admin-reports'] });
       await queryClient.invalidateQueries({ queryKey: ['responder-reports'] });
       await queryClient.invalidateQueries({ queryKey: ['responder-alerts'] });
+      await queryClient.invalidateQueries({ queryKey: ['responder-handled-reports'] });
       await queryClient.invalidateQueries({ queryKey: ['responder-history'] });
+      await queryClient.invalidateQueries({ queryKey: ['my-reports'] });
+      await queryClient.invalidateQueries({ queryKey: ['admin-reports'] });
+      await queryClient.invalidateQueries({ queryKey: ['admin-dashboard-reports'] });
+      await queryClient.invalidateQueries({ queryKey: ['admin-dashboard-analytics'] });
+      await queryClient.invalidateQueries({ queryKey: ['secretary-intake'] });
     },
     onError: (error: Error) => message.error(error.message),
   });
@@ -85,25 +91,56 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     mutationFn: () => api.patch(`/api/reports/${id}/acknowledge`, {}),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['report', id] });
+      await queryClient.invalidateQueries({ queryKey: ['responder-reports'] });
+      await queryClient.invalidateQueries({ queryKey: ['responder-alerts'] });
+      await queryClient.invalidateQueries({ queryKey: ['responder-handled-reports'] });
+      await queryClient.invalidateQueries({ queryKey: ['responder-history'] });
       message.success('Incident acknowledged');
     },
     onError: (error: Error) => message.error(error.message),
   });
 
   const backupMutation = useMutation({
-    mutationFn: () => api.post(`/api/reports/${id}/backup`, {}),
-    onSuccess: async () => {
+    mutationFn: () =>
+      api.post<{ report: Report; alreadyRequested: boolean }>(`/api/reports/${id}/backup`, {}),
+    onSuccess: async ({ alreadyRequested }) => {
       await queryClient.invalidateQueries({ queryKey: ['report', id] });
+      await queryClient.invalidateQueries({ queryKey: ['responder-reports'] });
+      await queryClient.invalidateQueries({ queryKey: ['responder-alerts'] });
       await queryClient.invalidateQueries({ queryKey: ['responder-handled-reports'] });
-      message.success('Backup requested from other responders');
+      message.success(alreadyRequested ? 'Backup is already requested' : 'Backup requested');
     },
     onError: (error: Error) => message.error(error.message),
   });
 
-  const canManageStatus = useMemo(
-    () => ['captain', 'secretary', 'tanod', 'responder'].includes(role || ''),
-    [role]
-  );
+  const joinBackupMutation = useMutation({
+    mutationFn: () =>
+      api.post<{ report: Report; alreadyJoined: boolean }>(`/api/reports/${id}/backup/join`, {}),
+    onSuccess: async ({ alreadyJoined }) => {
+      await queryClient.invalidateQueries({ queryKey: ['report', id] });
+      await queryClient.invalidateQueries({ queryKey: ['responder-reports'] });
+      await queryClient.invalidateQueries({ queryKey: ['responder-alerts'] });
+      await queryClient.invalidateQueries({ queryKey: ['responder-handled-reports'] });
+      await queryClient.invalidateQueries({ queryKey: ['responder-history'] });
+      await queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      message.success(alreadyJoined ? 'You are already assisting' : 'You joined as backup');
+    },
+    onError: (error: Error) => message.error(error.message),
+  });
+
+  const closeBackupMutation = useMutation({
+    mutationFn: () =>
+      api.post<{ report: Report; alreadyClosed: boolean }>(`/api/reports/${id}/backup/close`, {}),
+    onSuccess: async ({ alreadyClosed }) => {
+      await queryClient.invalidateQueries({ queryKey: ['report', id] });
+      await queryClient.invalidateQueries({ queryKey: ['responder-reports'] });
+      await queryClient.invalidateQueries({ queryKey: ['responder-alerts'] });
+      await queryClient.invalidateQueries({ queryKey: ['responder-handled-reports'] });
+      await queryClient.invalidateQueries({ queryKey: ['responder-history'] });
+      message.success(alreadyClosed ? 'Backup request is already closed' : 'No more backup needed');
+    },
+    onError: (error: Error) => message.error(error.message),
+  });
 
   if (isLoading) {
     return (
@@ -122,15 +159,29 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const [lng, lat] = report.location?.coordinates || [0, 0];
   const isResident = variant === 'resident';
   const isResponder = ['tanod', 'responder'].includes(role || '');
+  const backupRequests = report.backupRequests ?? [];
+  const openBackupRequest = backupRequests.find((request) => request.status === 'pending');
+  const backupResponderUids = backupRequests.flatMap((request) => request.joinedBy ?? []);
+  const backupResponderNames = [
+    ...new Set(backupRequests.flatMap((request) => request.joinedByNames ?? [])),
+  ];
+  const isOwner = isResponder && report.acknowledgedBy === profile?.firebaseUid;
+  const isBackupResponder = isResponder && backupResponderUids.includes(profile?.firebaseUid || '');
+  const canJoinBackup =
+    isResponder &&
+    !!openBackupRequest &&
+    report.acknowledgedBy !== profile?.firebaseUid &&
+    !isBackupResponder &&
+    report.status !== 'resolved';
   const isReservedByAnotherResponder =
-    isResponder && !!report.acknowledgedBy && report.acknowledgedBy !== profile?.firebaseUid;
+    isResponder && !!report.acknowledgedBy && !isOwner && !isBackupResponder;
   const isOversightRole = role === 'captain' || role === 'secretary';
   const responseActionsDisabled = report.status === 'resolved' || isReservedByAnotherResponder;
 
   // The main report card — shared across all variants
   const reportCard = (
     <Card
-      className="soft-card"
+      className="soft-card card-container"
       title={report.category}
       extra={<StatusTag status={report.status} />}
     >
@@ -199,6 +250,15 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           </Space>
         </Space>
 
+        {!isResident && report.acknowledgedBy && (
+          <Space direction="vertical" size={4}>
+            <Text>Lead responder: {report.acknowledgedByName || report.acknowledgedBy}</Text>
+            {backupResponderNames.length > 0 && (
+              <Text type="secondary">Backup: {backupResponderNames.join(', ')}</Text>
+            )}
+          </Space>
+        )}
+
         {/* Map — responder gets route view, everyone else gets static */}
         {variant === 'responder' ? (
           <Card size="small">
@@ -241,8 +301,8 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
               <Timeline.Item key={i} color={isLatest ? 'var(--brand-primary)' : 'gray'}>
                 <Text type={isLatest ? undefined : 'secondary'} strong={isLatest}>
                   {isResident
-                    ? `${entry.status.replace(/_/g, ' ')} — ${new Date(entry.timestamp).toLocaleString()}`
-                    : `${entry.status.replace(/_/g, ' ')} by ${entry.updatedBy} at ${new Date(entry.timestamp).toLocaleString()}`}
+                    ? `${formatStatus(entry.status)} — ${new Date(entry.timestamp).toLocaleString()}`
+                    : `${formatStatus(entry.status)} by ${entry.updatedBy} at ${new Date(entry.timestamp).toLocaleString()}`}
                 </Text>
               </Timeline.Item>
             );
@@ -287,50 +347,84 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         <Col xs={24} xl={8}>
           <Card className="soft-card" title="Actions">
             <Space direction="vertical" size={12} style={{ width: '100%' }}>
-              {canManageStatus && (
+              {isResponder && !report.acknowledgedBy && (
+                <Button
+                  block
+                  type="primary"
+                  icon={<CheckOutlined />}
+                  disabled={
+                    responseActionsDisabled || !['pending', 'verified'].includes(report.status)
+                  }
+                  onClick={() => acknowledgeMutation.mutate()}
+                  loading={acknowledgeMutation.isPending}
+                >
+                  Acknowledge
+                </Button>
+              )}
+
+              {canJoinBackup && (
+                <Button
+                  block
+                  type="primary"
+                  icon={<UserAddOutlined />}
+                  onClick={() => joinBackupMutation.mutate()}
+                  loading={joinBackupMutation.isPending}
+                >
+                  Join as backup
+                </Button>
+              )}
+
+              {isResponder &&
+                !isOwner &&
+                !isBackupResponder &&
+                report.acknowledgedBy &&
+                !openBackupRequest &&
+                report.status !== 'resolved' && (
+                  <Text type="secondary">
+                    Being handled by {report.acknowledgedByName || report.acknowledgedBy}
+                  </Text>
+                )}
+
+              {isOwner && (
                 <>
-                  <Text type="secondary">Status controls</Text>
-                  {!isOversightRole && (
-                    <>
-                      <Button
-                        block
-                        disabled={responseActionsDisabled}
-                        onClick={() => updateStatus.mutate('en_route')}
-                        loading={updateStatus.isPending}
-                      >
-                        Set en route
-                      </Button>
-                      <Button
-                        block
-                        disabled={responseActionsDisabled}
-                        onClick={() => updateStatus.mutate('on_scene')}
-                        loading={updateStatus.isPending}
-                      >
-                        Set on scene
-                      </Button>
-                      <Button
-                        block
-                        type="primary"
-                        disabled={responseActionsDisabled}
-                        onClick={() => updateStatus.mutate('verified')}
-                        loading={updateStatus.isPending}
-                      >
-                        Verify incident
-                      </Button>
-                    </>
-                  )}
-                  {isOversightRole && (
+                  {report.status === 'acknowledged' && (
                     <Button
                       block
                       type="primary"
-                      disabled={report.status === 'resolved'}
-                      onClick={() => updateStatus.mutate('resolved')}
+                      disabled={responseActionsDisabled}
+                      onClick={() => updateStatus.mutate('in_progress')}
                       loading={updateStatus.isPending}
                     >
-                      Mark resolved
+                      Mark in progress
                     </Button>
                   )}
                 </>
+              )}
+
+              {isResponder &&
+                (isOwner || isBackupResponder) &&
+                ['in_progress', 'en_route', 'on_scene'].includes(report.status) && (
+                  <Button
+                    block
+                    type="primary"
+                    disabled={responseActionsDisabled}
+                    onClick={() => updateStatus.mutate('resolved')}
+                    loading={updateStatus.isPending}
+                  >
+                    Mark resolved
+                  </Button>
+                )}
+
+              {isOversightRole && (role === 'captain' || report.category === 'Blotter Cases') && (
+                <Button
+                  block
+                  type="primary"
+                  disabled={report.status === 'resolved'}
+                  onClick={() => updateStatus.mutate('resolved')}
+                  loading={updateStatus.isPending}
+                >
+                  Mark resolved
+                </Button>
               )}
 
               {role === 'secretary' && report.status === 'pending' && (
@@ -356,35 +450,28 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                 </>
               )}
 
-              {isResponder && (
-                <>
-                  <Button
-                    block
-                    type="dashed"
-                    icon={<ExclamationCircleOutlined />}
-                    disabled={responseActionsDisabled}
-                    onClick={() => acknowledgeMutation.mutate()}
-                    loading={acknowledgeMutation.isPending}
-                  >
-                    Acknowledge
-                  </Button>
-                  {report.acknowledgedBy === profile?.firebaseUid && (
-                    <Button
-                      block
-                      danger
-                      disabled={
-                        responseActionsDisabled ||
-                        (report.backupRequests || []).some(
-                          (request) => request.status === 'pending'
-                        )
-                      }
-                      onClick={() => backupMutation.mutate()}
-                      loading={backupMutation.isPending}
-                    >
-                      Request backup
-                    </Button>
-                  )}
-                </>
+              {isOwner && openBackupRequest && (
+                <Button
+                  block
+                  icon={<CheckOutlined />}
+                  disabled={responseActionsDisabled}
+                  onClick={() => closeBackupMutation.mutate()}
+                  loading={closeBackupMutation.isPending}
+                >
+                  Enough help
+                </Button>
+              )}
+
+              {isOwner && !openBackupRequest && (
+                <Button
+                  block
+                  danger
+                  disabled={responseActionsDisabled}
+                  onClick={() => backupMutation.mutate()}
+                  loading={backupMutation.isPending}
+                >
+                  {openBackupRequest ? 'Backup requested' : 'Request backup'}
+                </Button>
               )}
             </Space>
           </Card>

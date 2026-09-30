@@ -90,7 +90,7 @@ const REPORT_TEMPLATES = [
   {
     category: 'Emergency Situations',
     description: 'Elderly resident collapsed, needs medical assistance',
-    status: 'en_route',
+    status: 'in_progress',
     offset: [0.003, -0.001],
   },
   {
@@ -164,6 +164,24 @@ async function seed() {
   for (let i = 0; i < REPORT_TEMPLATES.length; i++) {
     const t = REPORT_TEMPLATES[i];
     const submitter = SEED_USERS[i % 2].firebaseUid;
+    const isResponderCategory = ['Emergency Situations', 'Public Concerns'].includes(t.category);
+    const isResponderResolved = t.status === 'resolved' && isResponderCategory;
+    const statusHistory = [{ status: 'pending', updatedBy: submitter }];
+    if (['verified', 'acknowledged', 'in_progress', 'resolved'].includes(t.status)) {
+      statusHistory.push({ status: 'verified', updatedBy: 'seed-secretary-1' });
+    }
+    if (['acknowledged', 'in_progress'].includes(t.status) || isResponderResolved) {
+      statusHistory.push({ status: 'acknowledged', updatedBy: 'seed-responder-1' });
+    }
+    if (t.status === 'in_progress' || isResponderResolved) {
+      statusHistory.push({ status: 'in_progress', updatedBy: 'seed-responder-1' });
+    }
+    if (t.status === 'resolved' || t.status === 'flagged') {
+      statusHistory.push({
+        status: t.status,
+        updatedBy: isResponderResolved ? 'seed-responder-1' : 'seed-secretary-1',
+      });
+    }
     const report = await Report.create({
       submittedBy: submitter,
       category: t.category,
@@ -176,10 +194,14 @@ async function seed() {
       },
       status: t.status,
       aiSuggestedCategory: t.category,
-      verifiedBy: ['verified', 'en_route', 'on_scene', 'resolved'].includes(t.status)
+      verifiedBy: ['verified', 'acknowledged', 'in_progress', 'resolved'].includes(t.status)
         ? 'seed-secretary-1'
         : null,
-      statusHistory: [{ status: 'pending', updatedBy: submitter }],
+      acknowledgedBy:
+        ['acknowledged', 'in_progress'].includes(t.status) || isResponderResolved
+          ? 'seed-responder-1'
+          : null,
+      statusHistory,
     });
     reports.push(report);
   }

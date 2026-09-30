@@ -11,6 +11,7 @@ export default function MyReportsPage() {
   const { data: reports = [], isLoading } = useQuery({
     queryKey: ['my-reports'],
     queryFn: () => api.get<Report[]>('/api/reports/mine'),
+    refetchInterval: 30000,
   });
 
   if (isLoading) return <Spin size="large" style={{ display: 'block', margin: '40px auto' }} />;

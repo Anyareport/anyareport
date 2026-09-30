@@ -16,6 +16,7 @@ export default function ResidentShell() {
     queryKey: ['notifications'],
     queryFn: () => api.get<Notification[]>('/api/notifications'),
     staleTime: 30_000,
+    refetchInterval: 30000,
   });
 
   const unreadCount = notifications.filter((n) => !n.read).length;

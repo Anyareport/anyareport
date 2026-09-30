@@ -15,16 +15,20 @@ export default function ResponderAlertsPage() {
     refetchInterval: 15000,
   });
 
-
   const alerts = reports
-    .filter((report) => ['pending'].includes(report.status) && ['Emergency Situations', 'Public Concerns'].includes(report.category))
+    .filter(
+      (report) =>
+        ['pending', 'verified'].includes(report.status) &&
+        !report.acknowledgedBy &&
+        ['Emergency Situations', 'Public Concerns'].includes(report.category)
+    )
     .sort(compareIncidentPriority);
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <PageHero
         title="Alerts"
-        description="Dual-layer urgent alerts surface verified incidents and emergency calls for fast triage."
+        description="New emergency and public concern reports available for response."
       />
 
       <Row gutter={[16, 16]}>

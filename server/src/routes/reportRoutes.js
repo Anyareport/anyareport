@@ -13,6 +13,8 @@ import {
   updateReportStatus,
   acknowledgeReport,
   requestBackup,
+  joinBackupRequest,
+  closeBackupRequest,
   getCategories,
   getAnalytics,
   getHeatmapData,
@@ -34,12 +36,14 @@ router.get('/', requireRole('admin', 'captain', 'secretary', 'tanod', 'responder
 router.get('/:id', getReportById);
 router.post('/:id/verify', requireRole('secretary'), verifyReport);
 router.post('/:id/flag', requireRole('secretary'), flagReport);
-router.patch('/:id/status', requireRole('captain', 'secretary', 'tanod', 'responder'), updateReportStatus);
-router.post('/:id/backup', requireRole('tanod', 'responder'), requestBackup);
 router.patch(
-  '/:id/acknowledge',
-  requireRole('tanod', 'responder'),
-  acknowledgeReport
+  '/:id/status',
+  requireRole('captain', 'secretary', 'tanod', 'responder'),
+  updateReportStatus
 );
+router.post('/:id/backup', requireRole('tanod', 'responder'), requestBackup);
+router.post('/:id/backup/join', requireRole('tanod', 'responder'), joinBackupRequest);
+router.post('/:id/backup/close', requireRole('tanod', 'responder'), closeBackupRequest);
+router.patch('/:id/acknowledge', requireRole('tanod', 'responder'), acknowledgeReport);
 
 export default router;

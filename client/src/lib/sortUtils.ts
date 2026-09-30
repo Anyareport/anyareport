@@ -5,7 +5,9 @@ export const EMERGENCY_CATEGORY = 'Emergency Situations';
 export const STATUS_ORDER: Record<string, number> = {
   pending: 0,
   verified: 1,
-  en_route: 2,
+  acknowledged: 2,
+  in_progress: 3,
+  en_route: 3,
   on_scene: 3,
   flagged: 4,
   resolved: 5,
