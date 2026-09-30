@@ -117,11 +117,13 @@ export async function createReport(req, res) {
     );
     const photos = uploadedPhotos.map((photo) => photo.secure_url);
     let aiSuggestedCategory = null;
+    let aiTitle = null;
     let aiSummary = null;
     try {
       const classificationResult = await classifyReport(trimmedDescription, req.files || null);
       if (!classificationResult.error) {
         aiSuggestedCategory = classificationResult.category;
+        aiTitle = classificationResult.title;
         aiSummary = classificationResult.summary;
       }
     } catch (classifyErr) {
@@ -140,6 +142,7 @@ export async function createReport(req, res) {
         coordinates: [parseFloat(longitude), parseFloat(latitude)],
         address: address || '',
       },
+      aiTitle,
       aiSuggestedCategory,
       aiSummary,
       status: 'pending',

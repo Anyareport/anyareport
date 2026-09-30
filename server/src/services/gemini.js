@@ -18,6 +18,7 @@ export async function classifyReport(description, files) {
       category: null,
       subcategory: null,
       severity: null,
+      title: null,
       summary: null,
       error: 'classification_unavailable',
     };
@@ -37,7 +38,9 @@ ${Object.entries(SUBCATEGORY_MAP)
 Severity levels: ${VALID_SEVERITIES.join(', ')}
 
 Return this exact shape:
-{"category":"<one of the categories above>","subcategory":"<matching subcategory>","severity":"<Low|Medium|High|Critical>","summary":"<1-3 sentence brief synthesized description of the incident>"}
+{"category":"<one of the categories above>","subcategory":"<matching subcategory>","severity":"<Low|Medium|High|Critical>","title":"<concise incident title, 3-8 words>","summary":"<1-3 sentence brief synthesized description of the incident>"}
+
+For "title": always write a neutral, factual headline in simple English, even when the description is in another language. Translate its meaning when needed, then rewrite it as a concise third-person incident headline in 3-8 words. Do not copy the description verbatim or use the reporter's first-person wording. Preserve uncertainty with words like "Reported" when appropriate. Do not add details or judgments that the user did not provide, and do not end the title with a period. Example: "Napilitan akong sumali sa misa" becomes "Reported pressure to attend Mass".
 
 For "summary": synthesize a concise 1-3 sentence incident description based on the user's description text and the attached image(s) (if any). Use objective, factual language suitable for barangay officials.
 
@@ -82,18 +85,23 @@ Description: ${description}`;
       VALID_SEVERITIES.find((s) => s.toLowerCase() === (parsed.severity || '').toLowerCase()) ||
       'Low';
 
+    const title =
+      typeof parsed.title === 'string' && parsed.title.trim().length > 0
+        ? parsed.title.trim().replace(/\s+/g, ' ').split(' ').slice(0, 8).join(' ')
+        : null;
     const summary =
       typeof parsed.summary === 'string' && parsed.summary.trim().length > 0
         ? parsed.summary.trim()
         : null;
 
-    return { category, subcategory, severity, summary, error: null };
+    return { category, subcategory, severity, title, summary, error: null };
   } catch (err) {
     console.error('[Gemini] Classification failed:', err.message);
     return {
       category: null,
       subcategory: null,
       severity: null,
+      title: null,
       summary: null,
       error: 'classification_unavailable',
     };

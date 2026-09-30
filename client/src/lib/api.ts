@@ -88,6 +88,7 @@ export interface Report {
   status: string;
   subcategory: string | null;
   severity: 'Low' | 'Medium' | 'High' | 'Critical' | null;
+  aiTitle?: string | null;
   aiSuggestedCategory: string | null;
   aiSummary: string | null;
   verifiedBy: string | null;

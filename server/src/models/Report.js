@@ -28,6 +28,7 @@ const reportSchema = new mongoose.Schema(
     },
     subcategory: { type: String, default: null },
     severity: { type: String, enum: ['Low', 'Medium', 'High', 'Critical'], default: null },
+    aiTitle: { type: String, default: null },
     aiSuggestedCategory: { type: String, default: null },
     aiSummary: { type: String, default: null },
     verifiedBy: { type: String, default: null },
