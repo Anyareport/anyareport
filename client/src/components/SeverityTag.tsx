@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import { Tag } from 'antd';
+import { WarningOutlined } from '@ant-design/icons';
 
 export const SEVERITY_STYLES: Record<string, CSSProperties> = {
   Critical: {
@@ -36,5 +37,9 @@ export function getSeverityStyle(severity: string | null | undefined): CSSProper
 
 export default function SeverityTag({ severity }: { severity: string | null | undefined }) {
   if (!severity) return null;
-  return <Tag style={{ ...getSeverityStyle(severity), marginInlineEnd: 0 }}>{severity}</Tag>;
+  return (
+    <Tag style={{ ...getSeverityStyle(severity), marginInlineEnd: 0 }} icon={<WarningOutlined />}>
+      {severity}
+    </Tag>
+  );
 }
