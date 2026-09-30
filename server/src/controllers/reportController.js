@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { Parser } from 'json2csv';
 import Report from '../models/Report.js';
 import User from '../models/User.js';
 import AuditLog from '../models/AuditLog.js';
@@ -7,18 +8,28 @@ import { classifyReport } from '../services/gemini.js';
 import {
   notifyBackupJoined,
   notifyBackupRequest,
+  notifyOnNewReport,
   notifyOnStatusUpdate,
-  notifyOnVerification,
 } from '../services/notifications.js';
 import { antiAbuseConfig } from '../config/antiAbuse.js';
+import { workflowConfig } from '../config/workflow.js';
 import { uploadImage } from '../services/cloudinary.js';
-import { canUpdateStatus, canVerifyReports } from '../middleware/rbac.js';
+import { canVerifyReports } from '../middleware/rbac.js';
+import {
+  BLOTTER_REPORT_CATEGORY,
+  FIELD_REPORT_CATEGORIES,
+  canViewReporter,
+  getJoinDecision,
+  getTransitionDecision,
+  normalizeHistoryStatus,
+  normalizeReportStatus,
+  serializeReport,
+  statusFilterValues,
+} from '../services/reportWorkflow.js';
 
-const RESPONDER_CATEGORIES = ['Emergency Situations', 'Public Concerns'];
-const BLOTTER_CATEGORY = 'Blotter Cases';
+const RESPONDER_CATEGORIES = FIELD_REPORT_CATEGORIES;
+const BLOTTER_CATEGORY = BLOTTER_REPORT_CATEGORY;
 
-// Resolves a Firebase UID to the user's display name, falling back to the UID
-// so statusHistory doesn't become an empty string.
 async function resolveActorName(uid) {
   const user = await User.findOne({ firebaseUid: uid }).select('name').lean();
   return user?.name || uid;
@@ -38,14 +49,16 @@ async function logAudit(action, req, reportId, metadata = {}, session = null) {
     await AuditLog.create([record], { session });
     return;
   }
-
   await AuditLog.create(record);
+}
+
+async function logSystemAudit(action, reportId, metadata = {}) {
+  await AuditLog.create({ action, actorUid: null, reportId, metadata });
 }
 
 async function updateWithAudit(action, req, reportId, metadata, update) {
   const session = await mongoose.startSession();
   let result = null;
-
   try {
     await session.withTransaction(async () => {
       result = await update(session);
@@ -59,9 +72,10 @@ async function updateWithAudit(action, req, reportId, metadata, update) {
 
 async function notifyBestEffort(notification, context) {
   try {
-    await notification;
+    return await notification;
   } catch (error) {
     console.error(`[${context}] Notification failed:`, error.message);
+    return null;
   }
 }
 
@@ -73,12 +87,10 @@ export async function createReport(req, res) {
 
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
-
     const reportCount = await Report.countDocuments({
       submittedBy: req.firebaseUser.uid,
       createdAt: { $gte: startOfDay },
     });
-
     if (reportCount >= antiAbuseConfig.maxReportsPerDay) {
       return res.status(429).json({
         error: `Daily report limit reached (${antiAbuseConfig.maxReportsPerDay} per day)`,
@@ -88,26 +100,22 @@ export async function createReport(req, res) {
     const { category, subcategory, description, latitude, longitude, address, severity } = req.body;
     const trimmedDescription = (description || '').trim();
     const hasPhoto = Array.isArray(req.files) && req.files.length > 0;
-
-    // Validate max 3 photos
     if (Array.isArray(req.files) && req.files.length > 3) {
       return res.status(400).json({ error: 'Maximum 3 photos allowed per report' });
     }
-
     if (!category || !latitude || !longitude) {
       return res.status(400).json({ error: 'Category and location are required' });
     }
     if (!hasPhoto && trimmedDescription.length < 10) {
-      return res
-        .status(400)
-        .json({ error: 'Provide a description (min. 10 characters) or attach a photo' });
+      return res.status(400).json({
+        error: 'Provide a description (min. 10 characters) or attach a photo',
+      });
     }
 
     const uploadedPhotos = await Promise.all(
       (req.files || []).map((file) => uploadImage(file.buffer, file.mimetype))
     );
     const photos = uploadedPhotos.map((photo) => photo.secure_url);
-
     let aiSuggestedCategory = null;
     let aiSummary = null;
     try {
@@ -134,21 +142,28 @@ export async function createReport(req, res) {
       },
       aiSuggestedCategory,
       aiSummary,
+      status: 'pending',
       statusHistory: [
-        {
-          status: 'pending',
-          updatedBy: await resolveActorName(req.firebaseUser.uid),
-        },
+        { status: 'pending', updatedBy: await resolveActorName(req.firebaseUser.uid) },
       ],
     });
 
-    await logAudit('report_submitted', req, report._id, {
-      category,
-      ip: req.ip,
-      userAgent: req.headers['user-agent'],
-    });
-
-    res.status(201).json(report);
+    await logAudit('report_submitted', req, report._id, { category });
+    if (aiSuggestedCategory) {
+      await logSystemAudit('report_classified', report._id, {
+        suggestedCategory: aiSuggestedCategory,
+      });
+    }
+    const notifications = await notifyBestEffort(notifyOnNewReport(report), 'Report intake');
+    if (notifications?.length) {
+      await logSystemAudit('report_recipients_notified', report._id, {
+        recipientCount: notifications.length,
+        recipientRoles: [
+          ...new Set(notifications.map((notification) => notification.recipientRole)),
+        ],
+      });
+    }
+    res.status(201).json(serializeReport(report));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -156,10 +171,10 @@ export async function createReport(req, res) {
 
 export async function getMyReports(req, res) {
   try {
-    const reports = await Report.find({
-      submittedBy: req.firebaseUser.uid,
-    }).sort({ createdAt: -1 });
-    res.json(reports);
+    const reports = await Report.find({ submittedBy: req.firebaseUser.uid }).sort({
+      createdAt: -1,
+    });
+    res.json(reports.map(serializeReport));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -167,13 +182,12 @@ export async function getMyReports(req, res) {
 
 export async function getReports(req, res) {
   try {
-    let query = {};
-
+    const query = {};
     if (['tanod', 'responder'].includes(req.userRole)) {
       query.category = { $in: RESPONDER_CATEGORIES };
     }
-
-    if (req.query.status) query.status = req.query.status;
+    if (req.userRole === 'secretary') query.category = BLOTTER_CATEGORY;
+    if (req.query.status) query.status = { $in: statusFilterValues(req.query.status) };
     if (req.query.handledByMe === 'true' && ['tanod', 'responder'].includes(req.userRole)) {
       query.$or = [
         { acknowledgedBy: req.firebaseUser.uid },
@@ -182,20 +196,22 @@ export async function getReports(req, res) {
     }
 
     const reports = await Report.find(query).sort({ createdAt: -1 }).limit(200);
-
-    // Resolve submitter names in bulk
-    const uids = [...new Set(reports.map((r) => r.submittedBy))];
-    const users = await User.find({ firebaseUid: { $in: uids } })
+    const submitterUids = [...new Set(reports.map((report) => report.submittedBy))];
+    const submitters = await User.find({ firebaseUid: { $in: submitterUids } })
       .select('firebaseUid name')
       .lean();
-    const nameMap = Object.fromEntries(users.map((u) => [u.firebaseUid, u.name]));
+    const nameByUid = Object.fromEntries(submitters.map((user) => [user.firebaseUid, user.name]));
 
-    const result = reports.map((r) => ({
-      ...r.toObject(),
-      submitterName: nameMap[r.submittedBy] || null,
-    }));
-
-    res.json(result);
+    res.json(
+      reports.map((report) => {
+        const canSeeReporter = canViewReporter(req.userRole, report, req.firebaseUser.uid);
+        return {
+          ...serializeReport(report),
+          submittedBy: canSeeReporter ? report.submittedBy : null,
+          submitterName: canSeeReporter ? nameByUid[report.submittedBy] || null : null,
+        };
+      })
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -213,23 +229,31 @@ export async function getReportById(req, res) {
       return res.status(404).json({ error: 'Report not found' });
     }
 
+    if (req.userRole === 'secretary' && report.category !== BLOTTER_CATEGORY) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
     if (req.userRole === 'resident' && report.submittedBy !== req.firebaseUser.uid) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const reportData = report.toObject();
+    const reportData = serializeReport(report);
     const participantUids = [
       report.submittedBy,
       report.acknowledgedBy,
       ...report.backupRequests.flatMap((request) => request.joinedBy || []),
     ].filter(Boolean);
     const users = await User.find({ firebaseUid: { $in: participantUids } })
-      .select('firebaseUid name')
+      .select('firebaseUid name phone')
       .lean();
     const nameByUid = Object.fromEntries(users.map((user) => [user.firebaseUid, user.name]));
+    const phoneByUid = Object.fromEntries(users.map((user) => [user.firebaseUid, user.phone]));
+    const canSeeReporter = canViewReporter(req.userRole, report, req.firebaseUser.uid);
     const result = {
       ...reportData,
-      submitterName: nameByUid[report.submittedBy] || null,
+      submittedBy: canSeeReporter ? report.submittedBy : null,
+      submitterName: canSeeReporter ? nameByUid[report.submittedBy] || null : null,
+      submitterPhone: canSeeReporter ? phoneByUid[report.submittedBy] || null : null,
       acknowledgedByName: report.acknowledgedBy ? nameByUid[report.acknowledgedBy] || null : null,
       backupRequests: reportData.backupRequests.map((request) => ({
         ...request,
@@ -244,29 +268,77 @@ export async function getReportById(req, res) {
   }
 }
 
-export async function verifyReport(req, res) {
+export async function getReportAudit(req, res) {
   try {
-    if (!canVerifyReports(req.userRole)) {
-      return res.status(403).json({ error: 'Only Secretary can verify reports' });
-    }
-
-    const report = await Report.findById(req.params.id);
+    const report = await Report.findById(req.params.id).select('_id category');
     if (!report) return res.status(404).json({ error: 'Report not found' });
-    if (report.status !== 'pending') {
-      return res.status(400).json({ error: 'Report is not pending verification' });
+    if (req.userRole === 'secretary' && report.category !== BLOTTER_CATEGORY) {
+      return res
+        .status(403)
+        .json({ error: 'Secretaries can view audit history for blotter cases only' });
+    }
+    if (!['admin', 'secretary'].includes(req.userRole)) {
+      return res.status(403).json({ error: 'Insufficient permissions to view this report audit' });
     }
 
-    report.status = 'verified';
-    report.verifiedBy = req.firebaseUser.uid;
-    const updatedBy = await resolveActorName(req.firebaseUser.uid);
-    report.statusHistory.push({ status: 'verified', updatedBy });
-    await report.save();
+    const logs = await AuditLog.find({ reportId: report._id }).sort({ timestamp: 1 });
+    const actorUids = [...new Set(logs.map((entry) => entry.actorUid).filter(Boolean))];
+    const users = await User.find({ firebaseUid: { $in: actorUids } })
+      .select('firebaseUid name')
+      .lean();
+    const namesByUid = Object.fromEntries(users.map((user) => [user.firebaseUid, user.name]));
+    const rows = logs.map((entry) => ({
+      ...entry.toObject(),
+      actorName: entry.actorUid ? namesByUid[entry.actorUid] || null : null,
+    }));
 
-    await notifyOnVerification(report);
-    await notifyOnStatusUpdate(report, 'verified', updatedBy);
-    await logAudit('report_verified', req, report._id);
+    if (req.query.format === 'csv') {
+      const parser = new Parser({ fields: ['timestamp', 'action', 'actorName', 'metadata'] });
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename=report-${report._id}-audit.csv`);
+      return res.send(`\uFEFF${parser.parse(rows)}`);
+    }
 
-    res.json(report);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export async function getCaptainInactiveReports(req, res) {
+  try {
+    const openReports = await Report.find({ status: { $nin: ['resolved', 'flagged'] } })
+      .sort({ createdAt: -1 })
+      .limit(200);
+    if (openReports.length === 0) {
+      return res.json({ thresholdHours: workflowConfig.captainInactivityHours, reports: [] });
+    }
+
+    const reportIds = openReports.map((report) => report._id);
+    const lastActivity = await AuditLog.aggregate([
+      { $match: { reportId: { $in: reportIds } } },
+      { $sort: { timestamp: -1 } },
+      { $group: { _id: '$reportId', lastActivityAt: { $first: '$timestamp' } } },
+    ]);
+    const lastActivityByReport = new Map(
+      lastActivity.map((entry) => [String(entry._id), entry.lastActivityAt])
+    );
+    const thresholdMs = workflowConfig.captainInactivityHours * 60 * 60 * 1000;
+    const now = Date.now();
+    const staleReports = openReports.flatMap((report) => {
+      const lastActivityAt = lastActivityByReport.get(String(report._id)) || report.createdAt;
+      const inactiveMs = now - new Date(lastActivityAt).getTime();
+      if (inactiveMs < thresholdMs) return [];
+      return [
+        {
+          ...serializeReport(report),
+          lastActivityAt,
+          inactiveHours: Math.floor(inactiveMs / (60 * 60 * 1000)),
+        },
+      ];
+    });
+
+    res.json({ thresholdHours: workflowConfig.captainInactivityHours, reports: staleReports });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -280,6 +352,9 @@ export async function flagReport(req, res) {
 
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ error: 'Report not found' });
+    if (req.userRole === 'secretary' && report.category !== BLOTTER_CATEGORY) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
 
     report.status = 'flagged';
     const updatedBy = await resolveActorName(req.firebaseUser.uid);
@@ -307,125 +382,75 @@ export async function flagReport(req, res) {
   }
 }
 
+async function applyReportTransition(req, report, toStatus) {
+  const actorUid = req.firebaseUser.uid;
+  const helperUids = (report.backupRequests || []).flatMap((request) => request.joinedBy || []);
+  const decision = getTransitionDecision({
+    category: report.category,
+    role: req.userRole,
+    fromStatus: report.status,
+    toStatus,
+    actorUid,
+    ownerUid: report.acknowledgedBy,
+    helperUids,
+  });
+
+  if (!decision.allowed) return { statusCode: decision.statusCode, error: decision.error };
+
+  const updatedBy = await resolveActorName(actorUid);
+  const update = {
+    $set: { ...decision.update },
+    $push: { statusHistory: { status: decision.update.status, updatedBy } },
+  };
+  const options = { new: true };
+  const hasOpenBackupRequest = (report.backupRequests || []).some(
+    (request) => request.status === 'pending'
+  );
+
+  if (decision.update.status === 'resolved' && hasOpenBackupRequest) {
+    const closedAt = new Date();
+    update.$set['backupRequests.$[request].status'] = 'closed';
+    update.$set['backupRequests.$[request].closedBy'] = actorUid;
+    update.$set['backupRequests.$[request].closedAt'] = closedAt;
+    update.$set['backupRequests.$[request].closeReason'] = 'resolved';
+    options.arrayFilters = [{ 'request.status': 'pending' }];
+  }
+
+  const updatedReport = await updateWithAudit(
+    decision.action,
+    req,
+    report._id,
+    { status: decision.update.status },
+    (session) =>
+      Report.findOneAndUpdate({ _id: report._id, ...decision.filter }, update, {
+        ...options,
+        session,
+      })
+  );
+
+  if (!updatedReport) {
+    return { statusCode: 409, error: 'The report changed before your action completed' };
+  }
+
+  await notifyBestEffort(
+    notifyOnStatusUpdate(updatedReport, decision.update.status, updatedBy),
+    'Report status update'
+  );
+  return { report: updatedReport };
+}
+
 export async function updateReportStatus(req, res) {
   try {
     const { status } = req.body;
-    const validStatuses = ['in_progress', 'resolved'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ error: 'Invalid status' });
+    if (!['in_progress', 'resolved'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status transition' });
     }
 
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ error: 'Report not found' });
-
-    const isResponder = ['tanod', 'responder'].includes(req.userRole);
-    const isOfficial = canUpdateStatus(req.userRole);
-
-    if (!isOfficial && !isResponder) {
-      return res.status(403).json({ error: 'Insufficient permissions to update status' });
-    }
-
-    if (['captain', 'secretary'].includes(req.userRole) && status !== 'resolved') {
-      return res.status(403).json({ error: 'Captain and Secretary can only resolve incidents' });
-    }
-
-    if (req.userRole === 'admin') {
-      return res.status(403).json({ error: 'Oversight only — cannot directly update status' });
-    }
-
-    if (isResponder && !RESPONDER_CATEGORIES.includes(report.category)) {
-      return res.status(404).json({ error: 'Report not found' });
-    }
-
-    if (req.userRole === 'secretary' && report.category !== BLOTTER_CATEGORY) {
-      return res.status(403).json({ error: 'Secretary can only resolve blotter cases' });
-    }
-
-    const actorUid = req.firebaseUser.uid;
-    const isOwner = report.acknowledgedBy === actorUid;
-    const isBackupResponder = report.backupRequests.some((request) =>
-      (request.joinedBy || []).includes(actorUid)
-    );
-
-    if (isResponder && !isOwner && !isBackupResponder) {
-      return res.status(403).json({ error: 'Only incident participants can update this status' });
-    }
-
-    if (isResponder && status === 'in_progress' && !isOwner) {
-      return res.status(403).json({ error: 'Only the incident owner can mark it in progress' });
-    }
-
-    if (isResponder && status === 'in_progress' && report.status !== 'acknowledged') {
-      return res.status(409).json({ error: 'Acknowledge the incident before starting work' });
-    }
-
-    if (
-      isResponder &&
-      status === 'resolved' &&
-      !['in_progress', 'en_route', 'on_scene'].includes(report.status)
-    ) {
-      return res.status(409).json({ error: 'Mark the incident in progress before resolving it' });
-    }
-
-    if (report.status === 'resolved') {
-      return res.status(409).json({ error: 'Incident is already resolved' });
-    }
-
-    const updatedBy = await resolveActorName(actorUid);
-    const updateFilter = {
-      _id: report._id,
-      status:
-        isResponder && status === 'in_progress'
-          ? 'acknowledged'
-          : isResponder
-            ? { $in: ['in_progress', 'en_route', 'on_scene'] }
-            : { $ne: 'resolved' },
-    };
-
-    if (isResponder) {
-      updateFilter.category = { $in: RESPONDER_CATEGORIES };
-      if (status === 'in_progress') {
-        updateFilter.acknowledgedBy = actorUid;
-      } else {
-        updateFilter.$or = [{ acknowledgedBy: actorUid }, { 'backupRequests.joinedBy': actorUid }];
-      }
-    } else if (req.userRole === 'secretary') {
-      updateFilter.category = BLOTTER_CATEGORY;
-    }
-
-    const update = {
-      $set: { status },
-      $push: { statusHistory: { status, updatedBy } },
-    };
-    const options = { new: true };
-
-    const hasOpenBackupRequest = report.backupRequests.some(
-      (request) => request.status === 'pending'
-    );
-
-    if (status === 'resolved' && hasOpenBackupRequest) {
-      const closedAt = new Date();
-      update.$set['backupRequests.$[request].status'] = 'closed';
-      update.$set['backupRequests.$[request].closedBy'] = actorUid;
-      update.$set['backupRequests.$[request].closedAt'] = closedAt;
-      update.$set['backupRequests.$[request].closeReason'] = 'resolved';
-      options.arrayFilters = [{ 'request.status': 'pending' }];
-    }
-
-    const updatedReport = await updateWithAudit(
-      'status_updated',
-      req,
-      report._id,
-      { status },
-      (session) => Report.findOneAndUpdate(updateFilter, update, { ...options, session })
-    );
-
-    if (!updatedReport) {
-      return res.status(409).json({ error: 'Incident status changed before your update' });
-    }
-
-    await notifyBestEffort(notifyOnStatusUpdate(updatedReport, status, updatedBy), 'Status update');
-    res.json(updatedReport);
+    const result = await applyReportTransition(req, report, status);
+    if (result.error) return res.status(result.statusCode).json({ error: result.error });
+    res.json(serializeReport(result.report));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -433,64 +458,21 @@ export async function updateReportStatus(req, res) {
 
 export async function acknowledgeReport(req, res) {
   try {
-    if (!['tanod', 'responder'].includes(req.userRole)) {
-      return res.status(403).json({ error: 'Only responders can acknowledge incidents' });
-    }
-
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ error: 'Report not found' });
-
-    if (!RESPONDER_CATEGORIES.includes(report.category)) {
-      return res.status(404).json({ error: 'Report not found' });
-    }
-
-    if (report.acknowledgedBy && report.acknowledgedBy !== req.firebaseUser.uid) {
-      return res.status(409).json({ error: 'Incident is already reserved by another responder' });
-    }
-
     if (report.acknowledgedBy === req.firebaseUser.uid) {
-      return res.json(report);
+      return res.json(serializeReport(report));
     }
 
-    if (!['pending', 'verified'].includes(report.status)) {
-      return res.status(409).json({ error: 'This incident can no longer be acknowledged' });
-    }
-
-    const updatedBy = await resolveActorName(req.firebaseUser.uid);
-    const acknowledgedReport = await updateWithAudit(
-      'report_acknowledged',
-      req,
-      report._id,
-      {},
-      (session) =>
-        Report.findOneAndUpdate(
-          {
-            _id: report._id,
-            category: { $in: RESPONDER_CATEGORIES },
-            acknowledgedBy: null,
-            status: { $in: ['pending', 'verified'] },
-          },
-          {
-            $set: { acknowledgedBy: req.firebaseUser.uid, status: 'acknowledged' },
-            $push: { statusHistory: { status: 'acknowledged', updatedBy } },
-          },
-          { new: true, session }
-        )
-    );
-
-    if (!acknowledgedReport) {
+    const result = await applyReportTransition(req, report, 'coordinating');
+    if (result.error) {
       const latestReport = await Report.findById(report._id);
       if (latestReport?.acknowledgedBy === req.firebaseUser.uid) {
-        return res.json(latestReport);
+        return res.json(serializeReport(latestReport));
       }
-      return res.status(409).json({ error: 'Incident was just acknowledged by another responder' });
+      return res.status(result.statusCode).json({ error: result.error });
     }
-
-    await notifyBestEffort(
-      notifyOnStatusUpdate(acknowledgedReport, 'acknowledged', updatedBy),
-      'Incident acknowledgement'
-    );
-    res.json(acknowledgedReport);
+    res.json(serializeReport(result.report));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -514,11 +496,11 @@ export async function requestBackup(req, res) {
       return res.status(409).json({ error: 'Resolved incidents cannot request backup' });
     }
 
-    const openRequest = report.backupRequests.find(
+    const openRequest = (report.backupRequests || []).find(
       (request) => request.requestedBy === req.firebaseUser.uid && request.status === 'pending'
     );
     if (openRequest) {
-      return res.json({ report: report.toObject(), alreadyRequested: true });
+      return res.json({ report: serializeReport(report), alreadyRequested: true });
     }
 
     const updatedReport = await updateWithAudit(
@@ -546,7 +528,7 @@ export async function requestBackup(req, res) {
         (request) => request.requestedBy === req.firebaseUser.uid && request.status === 'pending'
       );
       if (wasRequested) {
-        return res.json({ report: latestReport, alreadyRequested: true });
+        return res.json({ report: serializeReport(latestReport), alreadyRequested: true });
       }
       return res
         .status(409)
@@ -555,7 +537,7 @@ export async function requestBackup(req, res) {
 
     const requesterName = await resolveActorName(req.firebaseUser.uid);
     await notifyBestEffort(notifyBackupRequest(updatedReport, requesterName), 'Backup request');
-    res.json({ report: updatedReport, alreadyRequested: false });
+    res.json({ report: serializeReport(updatedReport), alreadyRequested: false });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -563,29 +545,23 @@ export async function requestBackup(req, res) {
 
 export async function joinBackupRequest(req, res) {
   try {
-    if (!['tanod', 'responder'].includes(req.userRole)) {
-      return res.status(403).json({ error: 'Only responders can join a backup request' });
-    }
-
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ error: 'Report not found' });
-    if (!RESPONDER_CATEGORIES.includes(report.category)) {
-      return res.status(404).json({ error: 'Report not found' });
+    const ownerUid = report.acknowledgedBy;
+    const decision = getJoinDecision({
+      category: report.category,
+      status: report.status,
+      ownerUid,
+      actorUid: req.firebaseUser.uid,
+      backupRequests: report.backupRequests || [],
+    });
+    if (!decision.allowed) {
+      return res.status(decision.statusCode).json({ error: decision.error });
     }
-    if (!report.acknowledgedBy || report.acknowledgedBy === req.firebaseUser.uid) {
-      return res.status(409).json({ error: 'This incident has no open backup request for you' });
-    }
-    const alreadyJoined = report.backupRequests.some((request) =>
-      (request.joinedBy || []).includes(req.firebaseUser.uid)
-    );
-    if (alreadyJoined) {
-      return res.json({ report: report.toObject(), alreadyJoined: true });
-    }
-    if (report.status === 'resolved') {
-      return res.status(409).json({ error: 'Resolved incidents cannot accept backup responders' });
+    if (decision.alreadyJoined) {
+      return res.json({ report: serializeReport(report), alreadyJoined: true });
     }
 
-    const ownerUid = report.acknowledgedBy;
     const updatedReport = await updateWithAudit(
       'backup_joined',
       req,
@@ -595,16 +571,7 @@ export async function joinBackupRequest(req, res) {
         Report.findOneAndUpdate(
           {
             _id: report._id,
-            category: { $in: RESPONDER_CATEGORIES },
-            status: { $ne: 'resolved' },
-            acknowledgedBy: ownerUid,
-            backupRequests: {
-              $elemMatch: {
-                requestedBy: ownerUid,
-                status: 'pending',
-                joinedBy: { $ne: req.firebaseUser.uid },
-              },
-            },
+            ...decision.filter,
           },
           {
             $addToSet: { 'backupRequests.$[request].joinedBy': req.firebaseUser.uid },
@@ -629,14 +596,14 @@ export async function joinBackupRequest(req, res) {
         (request.joinedBy || []).includes(req.firebaseUser.uid)
       );
       if (joinedDuringRequest) {
-        return res.json({ report: latestReport, alreadyJoined: true });
+        return res.json({ report: serializeReport(latestReport), alreadyJoined: true });
       }
       return res.status(409).json({ error: 'The backup request was closed or has changed' });
     }
 
     const helperName = await resolveActorName(req.firebaseUser.uid);
     await notifyBestEffort(notifyBackupJoined(updatedReport, helperName), 'Backup join');
-    res.json({ report: updatedReport, alreadyJoined: false });
+    res.json({ report: serializeReport(updatedReport), alreadyJoined: false });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -742,14 +709,23 @@ export async function getAnalytics(req, res) {
       { $sort: { count: -1 } },
     ]);
 
-    const byStatus = await Report.aggregate([
+    const rawStatusCounts = await Report.aggregate([
       { $match: match },
       { $group: { _id: '$status', count: { $sum: 1 } } },
     ]);
+    const statusCounts = new Map();
+    for (const item of rawStatusCounts) {
+      const status = normalizeReportStatus(item._id);
+      statusCounts.set(status, (statusCounts.get(status) || 0) + item.count);
+    }
+    const byStatus = [...statusCounts].map(([_id, count]) => ({ _id, count }));
 
     const total = await Report.countDocuments(match);
     const resolved = await Report.countDocuments({ ...match, status: 'resolved' });
-    const pending = await Report.countDocuments({ ...match, status: 'pending' });
+    const pending = await Report.countDocuments({
+      ...match,
+      status: { $in: ['pending', 'verified'] },
+    });
 
     const last30Days = await Report.aggregate([
       {
@@ -792,7 +768,7 @@ export async function getHeatmapData(req, res) {
         lat: p.location.coordinates[1],
         lng: p.location.coordinates[0],
         category: p.category,
-        status: p.status,
+        status: normalizeReportStatus(p.status),
       }))
     );
   } catch (err) {

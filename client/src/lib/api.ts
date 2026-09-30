@@ -74,8 +74,9 @@ export interface UserProfile {
 
 export interface Report {
   _id: string;
-  submittedBy: string;
+  submittedBy: string | null;
   submitterName: string | null;
+  submitterPhone?: string | null;
   category: string;
   description: string;
   photos: string[];

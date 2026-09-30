@@ -15,6 +15,7 @@ const reportSchema = new mongoose.Schema(
       type: String,
       enum: [
         'pending',
+        'coordinating',
         'verified',
         'acknowledged',
         'in_progress',

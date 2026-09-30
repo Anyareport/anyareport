@@ -1,14 +1,12 @@
 import type { Report } from './api';
+import { normalizeReportStatus } from './reportWorkflow';
 
 export const EMERGENCY_CATEGORY = 'Emergency Situations';
 
 export const STATUS_ORDER: Record<string, number> = {
   pending: 0,
-  verified: 1,
-  acknowledged: 2,
-  in_progress: 3,
-  en_route: 3,
-  on_scene: 3,
+  coordinating: 1,
+  in_progress: 2,
   flagged: 4,
   resolved: 5,
 };
@@ -29,7 +27,7 @@ export function getPriorityTier(r: Report): number {
 }
 
 export function getStatusOrder(status: string): number {
-  return STATUS_ORDER[status] ?? 99;
+  return STATUS_ORDER[normalizeReportStatus(status)] ?? 99;
 }
 
 export function getSeverityOrder(severity: string | null | undefined): number {

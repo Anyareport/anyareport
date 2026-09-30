@@ -5,11 +5,13 @@ import { api, type Analytics, type Notification, type Report } from '../../lib/a
 import { adminDashboardRoles } from '../../lib/roles';
 import StatusTag from '../../components/StatusTag';
 import PageHero from '../../components/PageHero';
+import { useAuth } from '../../contexts/AuthContext';
 
 const { Text } = Typography;
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
+  const { role } = useAuth();
   const { data: analytics } = useQuery({
     queryKey: ['admin-dashboard-analytics'],
     queryFn: () => api.get<Analytics>('/api/reports/analytics'),
@@ -25,6 +27,16 @@ export default function AdminDashboardPage() {
   const { data: notifications = [] } = useQuery({
     queryKey: ['admin-dashboard-notifications'],
     queryFn: () => api.get<Notification[]>('/api/notifications'),
+    refetchInterval: 30000,
+  });
+
+  const { data: inactivityMonitor } = useQuery({
+    queryKey: ['captain-inactive-reports'],
+    queryFn: () =>
+      api.get<{ thresholdHours: number; reports: (Report & { inactiveHours: number })[] }>(
+        '/api/reports/captain/inactive'
+      ),
+    enabled: role === 'captain',
     refetchInterval: 30000,
   });
 
@@ -57,6 +69,30 @@ export default function AdminDashboardPage() {
           </Card>
         </Col>
       </Row>
+
+      {role === 'captain' && (
+        <Card
+          className="soft-card"
+          title={`Open incidents inactive for ${inactivityMonitor?.thresholdHours ?? 4}+ hours`}
+        >
+          <List
+            dataSource={inactivityMonitor?.reports ?? []}
+            locale={{ emptyText: 'No open incidents have exceeded the inactivity threshold.' }}
+            renderItem={(report) => (
+              <List.Item
+                style={{ cursor: 'pointer' }}
+                onClick={() => navigate(`/admin/incidents/${report._id}`)}
+                extra={<Text type="secondary">{report.inactiveHours}h inactive</Text>}
+              >
+                <List.Item.Meta
+                  title={`${report.category} · ${report.location?.address || 'Location unavailable'}`}
+                  description={<StatusTag status={report.status} />}
+                />
+              </List.Item>
+            )}
+          />
+        </Card>
+      )}
 
       <Row gutter={[16, 16]}>
         <Col xs={24} xl={16}>

@@ -8,7 +8,8 @@ import {
   getMyReports,
   getReports,
   getReportById,
-  verifyReport,
+  getReportAudit,
+  getCaptainInactiveReports,
   flagReport,
   updateReportStatus,
   acknowledgeReport,
@@ -32,9 +33,10 @@ router.post('/classify', upload.array('photos', 3), classifyReportHandler);
 router.get('/mine', getMyReports);
 router.get('/analytics', requireRole('admin', 'captain', 'secretary'), getAnalytics);
 router.get('/heatmap', requireRole('admin', 'captain', 'secretary'), getHeatmapData);
+router.get('/captain/inactive', requireRole('captain'), getCaptainInactiveReports);
 router.get('/', requireRole('admin', 'captain', 'secretary', 'tanod', 'responder'), getReports);
+router.get('/:id/audit', requireRole('admin', 'secretary'), getReportAudit);
 router.get('/:id', getReportById);
-router.post('/:id/verify', requireRole('secretary'), verifyReport);
 router.post('/:id/flag', requireRole('secretary'), flagReport);
 router.patch(
   '/:id/status',

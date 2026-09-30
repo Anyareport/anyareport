@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
+    "test": "node --test",
     "seed": "node src/seeds/seed.js",
-    "seed:officials": "node src/seeds/seedOfficials.js"
+    "seed:officials": "node src/seeds/seedOfficials.js",
+    "migrate:report-workflow": "node src/seeds/migrateReportWorkflow.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.0",

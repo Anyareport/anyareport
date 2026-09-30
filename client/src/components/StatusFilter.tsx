@@ -4,8 +4,7 @@ import { formatStatus } from './StatusTag';
 const options = [
   { value: 'all', label: 'All' },
   { value: 'pending', label: formatStatus('pending') },
-  { value: 'verified', label: formatStatus('verified') },
-  { value: 'acknowledged', label: formatStatus('acknowledged') },
+  { value: 'coordinating', label: formatStatus('coordinating') },
   { value: 'in_progress', label: formatStatus('in_progress') },
   { value: 'resolved', label: formatStatus('resolved') },
   { value: 'flagged', label: formatStatus('flagged') },

@@ -18,7 +18,7 @@ export default function ResponderAlertsPage() {
   const alerts = reports
     .filter(
       (report) =>
-        ['pending', 'verified'].includes(report.status) &&
+        report.status === 'pending' &&
         !report.acknowledgedBy &&
         ['Emergency Situations', 'Public Concerns'].includes(report.category)
     )

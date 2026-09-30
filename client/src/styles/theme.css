@@ -37,6 +37,10 @@
   --status-verified-text: #51c047;
   --status-verified-tag: #51c047;
 
+  --status-coordinating-bg: #eff6ff;
+  --status-coordinating-border: #93c5fd;
+  --status-coordinating-text: #1d4ed8;
+
   --status-en-route-bg: #f1f5f9;
   --status-en-route-border: #38b6e7;
   --status-en-route-text: #0cb5f8;
@@ -47,10 +51,10 @@
   --status-on-scene-text: #3b82f6;
   --status-on-scene-tag: #3b82f6;
 
-  --status-resolved-bg: #3481f5;
-  --status-resolved-border: #3481f5;
-  --status-resolved-text: #ffffff;
-  --status-resolved-tag: #3481f5;
+  --status-resolved-bg: #dcfce7;
+  --status-resolved-border: #86efac;
+  --status-resolved-text: #166534;
+  --status-resolved-tag: #22c55e;
 
   --status-flagged-bg: #fef2f2;
   --status-flagged-border: #fee2e2;
@@ -215,6 +219,10 @@
   --status-verified-text: #71dd67;
   --status-verified-tag: #efffef;
 
+  --status-coordinating-bg: #172554;
+  --status-coordinating-border: #3b82f6;
+  --status-coordinating-text: #bfdbfe;
+
   --status-en-route-bg: #082f49;
   --status-en-route-border: #0369a1;
   --status-en-route-text: #bae6fd;
@@ -225,10 +233,10 @@
   --status-on-scene-text: #bfdbfe;
   --status-on-scene-tag: #60a5fa;
 
-  --status-resolved-bg: #1e40af;
-  --status-resolved-border: #3b82f6;
-  --status-resolved-text: #ffffff;
-  --status-resolved-tag: #60a5fa;
+  --status-resolved-bg: #14532d;
+  --status-resolved-border: #16a34a;
+  --status-resolved-text: #bbf7d0;
+  --status-resolved-tag: #4ade80;
 
   --status-flagged-bg: #7f1d1d;
   --status-flagged-border: #991b1b;

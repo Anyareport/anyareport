@@ -84,7 +84,7 @@ const REPORT_TEMPLATES = [
   {
     category: 'Blotter Cases',
     description: 'Neighbor dispute over property boundary fence',
-    status: 'verified',
+    status: 'in_progress',
     offset: [-0.001, 0.002],
   },
   {
@@ -114,19 +114,19 @@ const REPORT_TEMPLATES = [
   {
     category: 'Public Concerns',
     description: 'Suspicious individuals loitering near chapel at night',
-    status: 'verified',
+    status: 'coordinating',
     offset: [-0.003, -0.001],
   },
   {
     category: 'Blotter Cases',
     description: 'Noise complaint escalated after repeated warnings',
-    status: 'flagged',
+    status: 'resolved',
     offset: [0.001, -0.001],
   },
   {
     category: 'Emergency Situations',
     description: 'Child missing, last seen near basketball court',
-    status: 'verified',
+    status: 'pending',
     offset: [-0.002, 0.002],
   },
   {
@@ -165,21 +165,22 @@ async function seed() {
     const t = REPORT_TEMPLATES[i];
     const submitter = SEED_USERS[i % 2].firebaseUid;
     const isResponderCategory = ['Emergency Situations', 'Public Concerns'].includes(t.category);
-    const isResponderResolved = t.status === 'resolved' && isResponderCategory;
     const statusHistory = [{ status: 'pending', updatedBy: submitter }];
-    if (['verified', 'acknowledged', 'in_progress', 'resolved'].includes(t.status)) {
-      statusHistory.push({ status: 'verified', updatedBy: 'seed-secretary-1' });
+    const acknowledgedBy =
+      isResponderCategory && t.status !== 'pending' ? 'seed-responder-1' : null;
+    if (isResponderCategory && ['coordinating', 'in_progress', 'resolved'].includes(t.status)) {
+      statusHistory.push({ status: 'coordinating', updatedBy: acknowledgedBy });
     }
-    if (['acknowledged', 'in_progress'].includes(t.status) || isResponderResolved) {
-      statusHistory.push({ status: 'acknowledged', updatedBy: 'seed-responder-1' });
+    if (isResponderCategory && ['in_progress', 'resolved'].includes(t.status)) {
+      statusHistory.push({ status: 'in_progress', updatedBy: acknowledgedBy });
     }
-    if (t.status === 'in_progress' || isResponderResolved) {
-      statusHistory.push({ status: 'in_progress', updatedBy: 'seed-responder-1' });
+    if (!isResponderCategory && ['in_progress', 'resolved'].includes(t.status)) {
+      statusHistory.push({ status: 'in_progress', updatedBy: 'seed-captain-1' });
     }
-    if (t.status === 'resolved' || t.status === 'flagged') {
+    if (t.status === 'resolved') {
       statusHistory.push({
-        status: t.status,
-        updatedBy: isResponderResolved ? 'seed-responder-1' : 'seed-secretary-1',
+        status: 'resolved',
+        updatedBy: isResponderCategory ? acknowledgedBy : 'seed-secretary-1',
       });
     }
     const report = await Report.create({
@@ -194,36 +195,35 @@ async function seed() {
       },
       status: t.status,
       aiSuggestedCategory: t.category,
-      verifiedBy: ['verified', 'acknowledged', 'in_progress', 'resolved'].includes(t.status)
-        ? 'seed-secretary-1'
-        : null,
-      acknowledgedBy:
-        ['acknowledged', 'in_progress'].includes(t.status) || isResponderResolved
-          ? 'seed-responder-1'
-          : null,
+      acknowledgedBy,
       statusHistory,
     });
     reports.push(report);
   }
 
   console.log('[Seed] Creating notifications...');
-  const verifiedReports = reports.filter((r) => r.status !== 'pending' && r.status !== 'flagged');
-  for (const report of verifiedReports.slice(0, 5)) {
-    await Notification.create({
-      recipientUid: 'seed-captain-1',
-      recipientRole: 'captain',
-      reportId: report._id,
-      type: 'incident_verified',
-      message: `Verified incident: ${report.category}`,
-      urgent: report.category === 'Emergency Situations',
-    });
-    await Notification.create({
-      recipientUid: 'seed-tanod-1',
-      recipientRole: 'tanod',
-      reportId: report._id,
-      type: 'incident_verified',
-      message: `Verified incident: ${report.category}`,
-    });
+  for (const report of reports.slice(0, 5)) {
+    const recipients =
+      report.category === 'Blotter Cases'
+        ? [
+            { uid: 'seed-captain-1', role: 'captain' },
+            { uid: 'seed-secretary-1', role: 'secretary' },
+          ]
+        : [
+            { uid: 'seed-captain-1', role: 'captain' },
+            { uid: 'seed-tanod-1', role: 'tanod' },
+            { uid: 'seed-responder-1', role: 'responder' },
+          ];
+    for (const recipient of recipients) {
+      await Notification.create({
+        recipientUid: recipient.uid,
+        recipientRole: recipient.role,
+        reportId: report._id,
+        type: 'incident_received',
+        message: `New report: ${report.category}`,
+        urgent: recipient.role === 'captain' && report.category === 'Emergency Situations',
+      });
+    }
   }
 
   console.log('[Seed] Creating audit logs...');

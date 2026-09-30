@@ -2,15 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Alert,
+  Avatar,
   Button,
-  Card,
-  Col,
-  Divider,
+  Empty,
   Image,
-  Row,
   Space,
   Spin,
-  Tag,
   Timeline,
   Typography,
   message,
@@ -18,23 +15,101 @@ import {
 import {
   ArrowLeftOutlined,
   CheckOutlined,
-  FlagOutlined,
-  RobotOutlined,
+  CompassOutlined,
+  DownloadOutlined,
   EnvironmentOutlined,
-  UserOutlined,
+  RobotOutlined,
   UserAddOutlined,
-  ClockCircleOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
-import { api, type Report } from '../../lib/api';
-import StatusTag, { formatStatus } from '../../components/StatusTag';
+import { api, type AuditLog, type Report } from '../../lib/api';
+import StatusTag from '../../components/StatusTag';
 import SeverityTag from '../../components/SeverityTag';
 import { StaticMap, RouteMap } from '../../components/map/MapPicker';
 import { useAuth } from '../../contexts/AuthContext';
+import {
+  BLOTTER_REPORT_CATEGORY,
+  getStatusLabel,
+  normalizeReportStatus,
+} from '../../lib/reportWorkflow';
+import IncidentStatusSteps from './IncidentStatusSteps';
+import './IncidentDetailPage.css';
 
-const { Paragraph, Text } = Typography;
+const { Paragraph, Text, Title } = Typography;
 
 interface IncidentDetailPageProps {
   variant: 'admin' | 'responder' | 'resident';
+}
+
+interface BackupRequestResponse {
+  report: Report;
+  alreadyRequested: boolean;
+}
+
+function getPhotoUrl(photo: string) {
+  return photo.startsWith('http') || photo.startsWith('data:')
+    ? photo
+    : `${import.meta.env.VITE_API_URL || ''}${photo}`;
+}
+
+function getAuditLabel(entry: AuditLog) {
+  const status = typeof entry.metadata?.status === 'string' ? entry.metadata.status : null;
+  switch (entry.action) {
+    case 'report_submitted':
+      return 'Report received';
+    case 'report_classified':
+      return 'Classified by AI';
+    case 'report_recipients_notified':
+      return 'Response team notified';
+    case 'report_acknowledged':
+      return `Acknowledged by ${entry.actorName || 'Responder'}`;
+    case 'backup_requested':
+      return 'Backup requested';
+    case 'backup_joined':
+      return `${entry.actorName || 'Responder'} joined as backup`;
+    case 'backup_request_closed':
+      return 'Backup request closed';
+    case 'status_updated':
+      return status
+        ? `${getStatusLabel(status)} by ${entry.actorName || 'Official'}`
+        : 'Status updated';
+    case 'report_flagged':
+      return 'Report flagged';
+    default:
+      return entry.action.replace(/_/g, ' ');
+  }
+}
+
+function getHistoryLabel(status: string, actor?: string) {
+  const canonicalStatus = normalizeReportStatus(status);
+  if (canonicalStatus === 'coordinating') return `Acknowledged by ${actor || 'Responder'}`;
+  if (canonicalStatus === 'pending') return 'Report received';
+  const label = getStatusLabel(status);
+  return actor ? `${label} by ${actor}` : label;
+}
+
+function getInitials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+}
+
+async function downloadFile(path: string, filename: string) {
+  try {
+    const blob = await api.download(path);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : 'Download failed');
+  }
 }
 
 export default function IncidentDetailPage({ variant }: IncidentDetailPageProps) {
@@ -50,64 +125,54 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     refetchInterval: 15000,
   });
 
+  const canViewReportAudit =
+    variant === 'admin' &&
+    (role === 'admin' || (role === 'secretary' && report?.category === BLOTTER_REPORT_CATEGORY));
+  const { data: auditEntries = [] } = useQuery({
+    queryKey: ['report-audit', id],
+    queryFn: () => api.get<AuditLog[]>(`/api/reports/${id}/audit`),
+    enabled: !!id && canViewReportAudit,
+    refetchInterval: 30000,
+  });
+
+  const invalidateReportViews = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['report', id] }),
+      queryClient.invalidateQueries({ queryKey: ['admin-reports'] }),
+      queryClient.invalidateQueries({ queryKey: ['responder-reports'] }),
+      queryClient.invalidateQueries({ queryKey: ['responder-alerts'] }),
+      queryClient.invalidateQueries({ queryKey: ['responder-handled-reports'] }),
+      queryClient.invalidateQueries({ queryKey: ['responder-history'] }),
+      queryClient.invalidateQueries({ queryKey: ['my-reports'] }),
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-reports'] }),
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-analytics'] }),
+      queryClient.invalidateQueries({ queryKey: ['admin-analytics'] }),
+      queryClient.invalidateQueries({ queryKey: ['secretary-intake'] }),
+      queryClient.invalidateQueries({ queryKey: ['captain-inactive-reports'] }),
+      queryClient.invalidateQueries({ queryKey: ['report-audit', id] }),
+    ]);
+  };
+
   const updateStatus = useMutation({
     mutationFn: (status: 'in_progress' | 'resolved') =>
-      api.patch(`/api/reports/${id}/status`, { status }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['report', id] });
-      await queryClient.invalidateQueries({ queryKey: ['admin-reports'] });
-      await queryClient.invalidateQueries({ queryKey: ['responder-reports'] });
-      await queryClient.invalidateQueries({ queryKey: ['responder-alerts'] });
-      await queryClient.invalidateQueries({ queryKey: ['responder-handled-reports'] });
-      await queryClient.invalidateQueries({ queryKey: ['responder-history'] });
-      await queryClient.invalidateQueries({ queryKey: ['my-reports'] });
-      await queryClient.invalidateQueries({ queryKey: ['admin-reports'] });
-      await queryClient.invalidateQueries({ queryKey: ['admin-dashboard-reports'] });
-      await queryClient.invalidateQueries({ queryKey: ['admin-dashboard-analytics'] });
-      await queryClient.invalidateQueries({ queryKey: ['secretary-intake'] });
-    },
-    onError: (error: Error) => message.error(error.message),
-  });
-
-  const verifyMutation = useMutation({
-    mutationFn: () => api.post(`/api/reports/${id}/verify`, {}),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['report', id] });
-      message.success('Report verified');
-    },
-    onError: (error: Error) => message.error(error.message),
-  });
-
-  const flagMutation = useMutation({
-    mutationFn: () => api.post(`/api/reports/${id}/flag`, {}),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['report', id] });
-      message.success('Report flagged');
-    },
+      api.patch<Report>(`/api/reports/${id}/status`, { status }),
+    onSuccess: invalidateReportViews,
     onError: (error: Error) => message.error(error.message),
   });
 
   const acknowledgeMutation = useMutation({
-    mutationFn: () => api.patch(`/api/reports/${id}/acknowledge`, {}),
+    mutationFn: () => api.patch<Report>(`/api/reports/${id}/acknowledge`, {}),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['report', id] });
-      await queryClient.invalidateQueries({ queryKey: ['responder-reports'] });
-      await queryClient.invalidateQueries({ queryKey: ['responder-alerts'] });
-      await queryClient.invalidateQueries({ queryKey: ['responder-handled-reports'] });
-      await queryClient.invalidateQueries({ queryKey: ['responder-history'] });
+      await invalidateReportViews();
       message.success('Incident acknowledged');
     },
     onError: (error: Error) => message.error(error.message),
   });
 
   const backupMutation = useMutation({
-    mutationFn: () =>
-      api.post<{ report: Report; alreadyRequested: boolean }>(`/api/reports/${id}/backup`, {}),
+    mutationFn: () => api.post<BackupRequestResponse>(`/api/reports/${id}/backup`, {}),
     onSuccess: async ({ alreadyRequested }) => {
-      await queryClient.invalidateQueries({ queryKey: ['report', id] });
-      await queryClient.invalidateQueries({ queryKey: ['responder-reports'] });
-      await queryClient.invalidateQueries({ queryKey: ['responder-alerts'] });
-      await queryClient.invalidateQueries({ queryKey: ['responder-handled-reports'] });
+      await invalidateReportViews();
       message.success(alreadyRequested ? 'Backup is already requested' : 'Backup requested');
     },
     onError: (error: Error) => message.error(error.message),
@@ -117,11 +182,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     mutationFn: () =>
       api.post<{ report: Report; alreadyJoined: boolean }>(`/api/reports/${id}/backup/join`, {}),
     onSuccess: async ({ alreadyJoined }) => {
-      await queryClient.invalidateQueries({ queryKey: ['report', id] });
-      await queryClient.invalidateQueries({ queryKey: ['responder-reports'] });
-      await queryClient.invalidateQueries({ queryKey: ['responder-alerts'] });
-      await queryClient.invalidateQueries({ queryKey: ['responder-handled-reports'] });
-      await queryClient.invalidateQueries({ queryKey: ['responder-history'] });
+      await invalidateReportViews();
       await queryClient.invalidateQueries({ queryKey: ['notifications'] });
       message.success(alreadyJoined ? 'You are already assisting' : 'You joined as backup');
     },
@@ -132,11 +193,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     mutationFn: () =>
       api.post<{ report: Report; alreadyClosed: boolean }>(`/api/reports/${id}/backup/close`, {}),
     onSuccess: async ({ alreadyClosed }) => {
-      await queryClient.invalidateQueries({ queryKey: ['report', id] });
-      await queryClient.invalidateQueries({ queryKey: ['responder-reports'] });
-      await queryClient.invalidateQueries({ queryKey: ['responder-alerts'] });
-      await queryClient.invalidateQueries({ queryKey: ['responder-handled-reports'] });
-      await queryClient.invalidateQueries({ queryKey: ['responder-history'] });
+      await invalidateReportViews();
       message.success(alreadyClosed ? 'Backup request is already closed' : 'No more backup needed');
     },
     onError: (error: Error) => message.error(error.message),
@@ -144,339 +201,477 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
 
   if (isLoading) {
     return (
-      <div style={{ display: 'grid', placeItems: 'center', minHeight: 320 }}>
+      <div className="incident-loading">
         <Spin size="large" />
       </div>
     );
   }
 
   if (!report) {
-    return <Card className="soft-card">Report not found</Card>;
+    return <Alert type="error" showIcon message="Report not found" />;
   }
 
-  const statusHistory = report.statusHistory ?? [];
-
-  const [lng, lat] = report.location?.coordinates || [0, 0];
   const isResident = variant === 'resident';
-  const isResponder = ['tanod', 'responder'].includes(role || '');
+  const isResponder = variant === 'responder' && ['tanod', 'responder'].includes(role || '');
+  const isBlotter = report.category === BLOTTER_REPORT_CATEGORY;
+  const status = normalizeReportStatus(report.status);
+  const isOwner = isResponder && report.acknowledgedBy === profile?.firebaseUid;
   const backupRequests = report.backupRequests ?? [];
   const openBackupRequest = backupRequests.find((request) => request.status === 'pending');
   const backupResponderUids = backupRequests.flatMap((request) => request.joinedBy ?? []);
   const backupResponderNames = [
     ...new Set(backupRequests.flatMap((request) => request.joinedByNames ?? [])),
   ];
-  const isOwner = isResponder && report.acknowledgedBy === profile?.firebaseUid;
   const isBackupResponder = isResponder && backupResponderUids.includes(profile?.firebaseUid || '');
+  const isParticipant = isOwner || isBackupResponder;
+  const canViewReporter =
+    (variant === 'responder' && isParticipant) ||
+    (variant === 'admin' && role === 'secretary' && isBlotter);
   const canJoinBackup =
     isResponder &&
     !!openBackupRequest &&
     report.acknowledgedBy !== profile?.firebaseUid &&
     !isBackupResponder &&
-    report.status !== 'resolved';
-  const isReservedByAnotherResponder =
-    isResponder && !!report.acknowledgedBy && !isOwner && !isBackupResponder;
-  const isOversightRole = role === 'captain' || role === 'secretary';
-  const responseActionsDisabled = report.status === 'resolved' || isReservedByAnotherResponder;
+    status !== 'resolved';
+  const photos = report.photos || [];
+  const [longitude, latitude] = report.location?.coordinates || [0, 0];
+  const title = report.description.trim() || report.subcategory || report.category;
+  const referenceLabel = 'Reference pending';
+  const reportHistory = report.statusHistory || [];
+  const showMobileResponderActions = isResponder;
+  const canStartBlotter =
+    isBlotter && status === 'pending' && ['captain', 'secretary'].includes(role || '');
+  const canResolveBlotter = isBlotter && status === 'in_progress' && role === 'secretary';
+  const canStartFieldWork = isResponder && isOwner && status === 'coordinating';
+  const canResolveFieldWork = isResponder && isParticipant && status === 'in_progress';
+  const actionBusy =
+    updateStatus.isPending ||
+    acknowledgeMutation.isPending ||
+    backupMutation.isPending ||
+    joinBackupMutation.isPending ||
+    closeBackupMutation.isPending;
 
-  // The main report card — shared across all variants
-  const reportCard = (
-    <Card
-      className="soft-card card-container"
-      title={report.category}
-      extra={<StatusTag status={report.status} />}
+  const responderAction = canJoinBackup ? (
+    <Button
+      block
+      size="large"
+      type="primary"
+      icon={<UserAddOutlined />}
+      loading={joinBackupMutation.isPending}
+      onClick={() => joinBackupMutation.mutate()}
     >
-      <Space direction="vertical" size={12} style={{ width: '100%' }}>
-        {/* Tag row — admin/responder show AI category + role label; resident omits these */}
-        {!isResident && (
-          <Space wrap>
-            {report.verifiedBy && <Tag color="geekblue">Reviewed</Tag>}
-            {/* {report.aiSuggestedCategory && (
-              <Tag color="purple">AI: {report.aiSuggestedCategory}</Tag>
-            )} */}
-            {/* <Tag>{getRoleLabel(profile?.role)}</Tag> */}
-          </Space>
-        )}
+      Join as assisting responder
+    </Button>
+  ) : isResponder && !report.acknowledgedBy && status === 'pending' ? (
+    <Button
+      block
+      size="large"
+      type="primary"
+      icon={<CheckOutlined />}
+      loading={acknowledgeMutation.isPending}
+      onClick={() => acknowledgeMutation.mutate()}
+    >
+      Acknowledge
+    </Button>
+  ) : canStartFieldWork ? (
+    <Button
+      block
+      size="large"
+      type="primary"
+      disabled={actionBusy}
+      loading={updateStatus.isPending}
+      onClick={() => updateStatus.mutate('in_progress')}
+    >
+      Start work
+    </Button>
+  ) : canResolveFieldWork ? (
+    <Button
+      block
+      size="large"
+      type="primary"
+      disabled={actionBusy}
+      loading={updateStatus.isPending}
+      onClick={() => updateStatus.mutate('resolved')}
+    >
+      Mark resolved
+    </Button>
+  ) : null;
 
-        {((report.subcategory && report.subcategory !== 'undefined') || report.severity) && (
-          <Space wrap>
-            {report.subcategory && report.subcategory !== 'undefined' && (
-              <Tag>{report.subcategory}</Tag>
-            )}
-            <SeverityTag severity={report.severity} />
-          </Space>
-        )}
+  const oversightAction = canStartBlotter ? (
+    <Button
+      block
+      size="large"
+      type="primary"
+      disabled={actionBusy}
+      loading={updateStatus.isPending}
+      onClick={() => updateStatus.mutate('in_progress')}
+    >
+      Start processing
+    </Button>
+  ) : canResolveBlotter ? (
+    <Button
+      block
+      size="large"
+      type="primary"
+      disabled={actionBusy}
+      loading={updateStatus.isPending}
+      onClick={() => updateStatus.mutate('resolved')}
+    >
+      Mark resolved
+    </Button>
+  ) : null;
 
-        {(report.aiSummary || report.aiSuggestedCategory) && (
-          <Alert
-            type="info"
-            showIcon
-            icon={<RobotOutlined />}
-            message={
-              <Space size={8} wrap>
-                <Text strong>AI Analysis</Text>
-                {report.aiSuggestedCategory && report.aiSuggestedCategory !== report.category && (
-                  <Tag color="blue">Suggested: {report.aiSuggestedCategory}</Tag>
-                )}
-              </Space>
-            }
-            description={report.aiSummary}
-          />
-        )}
-
-        <Paragraph>{report.description}</Paragraph>
-
-        <Space direction="vertical" size={10} style={{ width: '100%' }}>
-          {report.location?.address && (
-            <Space size={6}>
-              <EnvironmentOutlined />
-              <Text strong>{report.location.address}</Text>
-            </Space>
-          )}
-
-          <Space size={16}>
-            <Space size={4}>
-              <ClockCircleOutlined />
-              <Text type="secondary">{new Date(report.createdAt).toLocaleString()}</Text>
-            </Space>
-
-            <Space size={4}>
-              {!isResident && report.submitterName && (
-                <Space size={4}>
-                  <UserOutlined />
-                  <Text type="secondary">{report.submitterName}</Text>
-                </Space>
-              )}
-            </Space>
-          </Space>
+  const actionPanel = isResident ? null : isResponder ? (
+    <section className="incident-side-section" aria-labelledby="incident-actions-heading">
+      <h2 id="incident-actions-heading">Response</h2>
+      {responderAction || (
+        <Text type="secondary">
+          {status === 'resolved'
+            ? 'This incident is resolved.'
+            : report.acknowledgedBy
+              ? `Being handled by ${report.acknowledgedByName || 'the lead responder'}.`
+              : 'No response action is available for this report.'}
+        </Text>
+      )}
+      {isOwner && status !== 'resolved' && (
+        <Button
+          block
+          disabled={actionBusy || !!openBackupRequest}
+          loading={backupMutation.isPending}
+          onClick={() => backupMutation.mutate()}
+        >
+          {openBackupRequest ? 'Backup requested' : 'Request backup'}
+        </Button>
+      )}
+      {isOwner && openBackupRequest && (
+        <Button
+          block
+          icon={<CheckOutlined />}
+          disabled={actionBusy}
+          loading={closeBackupMutation.isPending}
+          onClick={() => closeBackupMutation.mutate()}
+        >
+          Enough help
+        </Button>
+      )}
+      {isResponder && status !== 'resolved' && (
+        <Space className="incident-quick-actions" wrap>
+          <Button
+            icon={<CompassOutlined />}
+            href={`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Navigate
+          </Button>
         </Space>
-
-        {!isResident && report.acknowledgedBy && (
-          <Space direction="vertical" size={4}>
-            <Text>Lead responder: {report.acknowledgedByName || report.acknowledgedBy}</Text>
-            {backupResponderNames.length > 0 && (
-              <Text type="secondary">Backup: {backupResponderNames.join(', ')}</Text>
-            )}
-          </Space>
-        )}
-
-        {/* Map — responder gets route view, everyone else gets static */}
-        {variant === 'responder' ? (
-          <Card size="small">
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <Text strong>Routing view</Text>
-              <RouteMap incidentLat={lat} incidentLng={lng} />
-            </Space>
-          </Card>
-        ) : (
-          <StaticMap latitude={lat} longitude={lng} />
-        )}
-
-        {/* Photo gallery — shown to resident (their own submission) */}
-        {report.photos?.length > 0 && (
-          <div style={{ marginTop: 8 }}>
-            <Image.PreviewGroup>
-              {report.photos.map((p, i) => (
-                <Image
-                  key={i}
-                  src={
-                    p.startsWith('http') || p.startsWith('data:')
-                      ? p
-                      : `${import.meta.env.VITE_API_URL || ''}${p}`
-                  }
-                  width={120}
-                  style={{ marginRight: 8 }}
-                />
-              ))}
-            </Image.PreviewGroup>
-          </div>
-        )}
-
-        <Divider />
-
-        {/* Timeline — resident sees "status — date"; admin/responder see "status by X at date" */}
-        <Timeline>
-          {statusHistory.map((entry, i) => {
-            const isLatest = i === statusHistory.length - 1;
-            return (
-              <Timeline.Item key={i} color={isLatest ? 'var(--brand-primary)' : 'gray'}>
-                <Text type={isLatest ? undefined : 'secondary'} strong={isLatest}>
-                  {isResident
-                    ? `${formatStatus(entry.status)} — ${new Date(entry.timestamp).toLocaleString()}`
-                    : `${formatStatus(entry.status)} by ${entry.updatedBy} at ${new Date(entry.timestamp).toLocaleString()}`}
-                </Text>
-              </Timeline.Item>
-            );
-          })}
-        </Timeline>
-      </Space>
-    </Card>
+      )}
+    </section>
+  ) : role === 'admin' ? (
+    <section className="incident-side-section" aria-labelledby="incident-access-heading">
+      <h2 id="incident-access-heading">Access</h2>
+      <Text type="secondary">
+        Read-only. Admins manage accounts and system logs, not incident status.
+      </Text>
+      <Button
+        block
+        icon={<DownloadOutlined />}
+        onClick={() => downloadFile('/api/audit-logs?format=csv', 'anyareport-audit.csv')}
+      >
+        Export system log
+      </Button>
+    </section>
+  ) : isBlotter ? (
+    <section className="incident-side-section" aria-labelledby="incident-actions-heading">
+      <h2 id="incident-actions-heading">Actions</h2>
+      {oversightAction || (
+        <Text type="secondary">
+          {role === 'captain'
+            ? 'Only the Secretary can mark a blotter case as resolved.'
+            : status === 'resolved'
+              ? 'This blotter case is resolved.'
+              : 'Blotter processing is managed by the Captain and Secretary.'}
+        </Text>
+      )}
+      {role === 'secretary' && (
+        <Button
+          block
+          icon={<DownloadOutlined />}
+          disabled={!auditEntries.length}
+          onClick={() =>
+            downloadFile(`/api/reports/${id}/audit?format=csv`, `report-${id}-audit.csv`)
+          }
+        >
+          Export case audit
+        </Button>
+      )}
+    </section>
+  ) : (
+    <section className="incident-side-section" aria-labelledby="incident-actions-heading">
+      <h2 id="incident-actions-heading">Monitoring</h2>
+      <Text type="secondary">Field status changes are handled by tanods and responders.</Text>
+    </section>
   );
 
-  // Resident: simple full-width layout, no actions panel
-  if (isResident) {
-    return (
-      <div className="page-shell">
-        <Button
-          icon={<ArrowLeftOutlined />}
-          onClick={() => navigate(-1)}
-          style={{ marginBottom: 16 }}
-        >
+  const historyTimeline = (
+    <Timeline
+      items={reportHistory.map((entry, index) => ({
+        color: index === reportHistory.length - 1 ? 'blue' : 'gray',
+        children: (
+          <div className="incident-timeline-entry">
+            <Text strong>
+              {getHistoryLabel(entry.status, isResident ? undefined : entry.updatedBy)}
+            </Text>
+            <Text type="secondary">{new Date(entry.timestamp).toLocaleString()}</Text>
+          </div>
+        ),
+      }))}
+    />
+  );
+
+  const auditTimeline = (
+    <Timeline
+      items={auditEntries.map((entry) => ({
+        color: 'blue',
+        children: (
+          <div className="incident-timeline-entry">
+            <Text strong>{getAuditLabel(entry)}</Text>
+            <Text type="secondary">
+              {new Date(entry.timestamp).toLocaleString()}
+              {entry.actorName ? ` · ${entry.actorName}` : ' · System'}
+            </Text>
+          </div>
+        ),
+      }))}
+    />
+  );
+
+  const titleBlock = (
+    <div className="incident-title-block">
+      <Text className="incident-eyebrow">
+        {isBlotter ? 'Blotter case' : report.category}
+        {report.subcategory ? ` · ${report.subcategory}` : ''}
+      </Text>
+      <Title level={1}>{title}</Title>
+      <Space wrap size={[8, 8]} className="incident-meta-tags">
+        <SeverityTag severity={report.severity} />
+        <StatusTag status={status} />
+      </Space>
+      <Space wrap className="incident-reference-line">
+        <Text>{referenceLabel}</Text>
+        <Text type="secondary">{new Date(report.createdAt).toLocaleString()}</Text>
+      </Space>
+    </div>
+  );
+
+  const progress = <IncidentStatusSteps category={report.category} status={status} />;
+
+  const reportHero = (
+    <section
+      className="incident-hero"
+      aria-label={photos.length ? 'Report photo' : 'Incident location'}
+    >
+      {photos.length > 0 ? (
+        <Image.PreviewGroup>
+          <Image
+            className="incident-hero-photo"
+            src={getPhotoUrl(photos[0])}
+            alt="Photo submitted with this report"
+          />
+          {photos.length > 1 && (
+            <div className="incident-photo-thumbnails">
+              {photos.slice(1).map((photo, index) => (
+                <Image
+                  key={`${photo}-${index}`}
+                  src={getPhotoUrl(photo)}
+                  alt={`Additional report photo ${index + 2}`}
+                  width={82}
+                  height={64}
+                  preview
+                />
+              ))}
+            </div>
+          )}
+        </Image.PreviewGroup>
+      ) : (
+        <div className="incident-hero-map">
+          {variant === 'responder' ? (
+            <RouteMap incidentLat={latitude} incidentLng={longitude} />
+          ) : (
+            <StaticMap latitude={latitude} longitude={longitude} height={340} />
+          )}
+        </div>
+      )}
+    </section>
+  );
+
+  return (
+    <main className={`incident-detail incident-detail--${variant}`}>
+      <header className="incident-detail-header">
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
           Back
         </Button>
-        {reportCard}
-      </div>
-    );
-  }
+        {variant === 'admin' && <Text className="incident-role-label">{role?.toUpperCase()}</Text>}
+      </header>
 
-  // Admin / responder: two-column layout with actions panel on the right
-  return (
-    <div className="page-shell">
-      <Button
-        icon={<ArrowLeftOutlined />}
-        onClick={() => navigate(-1)}
-        style={{ marginBottom: 16 }}
-      >
-        Back
-      </Button>
+      <div className="incident-detail-grid">
+        <article className="incident-main">
+          {variant === 'admin' ? (
+            <>
+              {titleBlock}
+              {progress}
+              {reportHero}
+            </>
+          ) : (
+            <>
+              {reportHero}
+              {titleBlock}
+              {progress}
+            </>
+          )}
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} xl={16}>
-          {reportCard}
-        </Col>
-
-        <Col xs={24} xl={8}>
-          <Card className="soft-card" title="Actions">
-            <Space direction="vertical" size={12} style={{ width: '100%' }}>
-              {isResponder && !report.acknowledgedBy && (
-                <Button
-                  block
-                  type="primary"
-                  icon={<CheckOutlined />}
-                  disabled={
-                    responseActionsDisabled || !['pending', 'verified'].includes(report.status)
-                  }
-                  onClick={() => acknowledgeMutation.mutate()}
-                  loading={acknowledgeMutation.isPending}
-                >
-                  Acknowledge
-                </Button>
+          {report.aiSummary && (
+            <section className="incident-ai-summary">
+              <div className="incident-section-label">
+                <RobotOutlined /> <Text strong>AI summary</Text>
+              </div>
+              <Paragraph>{report.aiSummary}</Paragraph>
+              {report.aiSuggestedCategory && report.aiSuggestedCategory !== report.category && (
+                <Text type="secondary">Suggested category: {report.aiSuggestedCategory}</Text>
               )}
+            </section>
+          )}
 
-              {canJoinBackup && (
-                <Button
-                  block
-                  type="primary"
-                  icon={<UserAddOutlined />}
-                  onClick={() => joinBackupMutation.mutate()}
-                  loading={joinBackupMutation.isPending}
-                >
-                  Join as backup
-                </Button>
-              )}
-
-              {isResponder &&
-                !isOwner &&
-                !isBackupResponder &&
-                report.acknowledgedBy &&
-                !openBackupRequest &&
-                report.status !== 'resolved' && (
+          <section className="incident-facts" aria-label="Report details">
+            <div className="incident-fact">
+              <EnvironmentOutlined />
+              <Text>{report.location?.address || 'Location unavailable'}</Text>
+            </div>
+            {report.description.trim() !== title && (
+              <Paragraph className="incident-description">{report.description}</Paragraph>
+            )}
+            {!isResident && canViewReporter && (
+              <div className="incident-fact">
+                <UserOutlined />
+                {report.submitterName ? (
+                  <Text>
+                    Reporter: {report.submitterName}
+                    {variant === 'admin' && role === 'secretary'
+                      ? report.submitterPhone
+                        ? ` · ${report.submitterPhone}`
+                        : ' · No contact on file'
+                      : ''}
+                  </Text>
+                ) : (
                   <Text type="secondary">
-                    Being handled by {report.acknowledgedByName || report.acknowledgedBy}
+                    {isResponder && report.acknowledgedBy !== profile?.firebaseUid
+                      ? 'Reporter hidden until you acknowledge'
+                      : 'Reporter details unavailable'}
                   </Text>
                 )}
+              </div>
+            )}
+            {isResponder && !canViewReporter && (
+              <div className="incident-fact">
+                <UserOutlined />
+                <Text type="secondary">Reporter hidden until you acknowledge</Text>
+              </div>
+            )}
+            {!isResident && report.acknowledgedBy && (
+              <div className="incident-participants">
+                <div className="incident-participant-group">
+                  <Text strong>Lead</Text>
+                  <span className="incident-participant-chip">
+                    <Avatar size={22}>
+                      {getInitials(report.acknowledgedByName || 'Responder')}
+                    </Avatar>
+                    {report.acknowledgedByName || 'Responder'}
+                  </span>
+                </div>
+                {backupResponderNames.length > 0 && (
+                  <div className="incident-participant-group">
+                    <Text strong>Backup</Text>
+                    <div className="incident-participant-list">
+                      {backupResponderNames.map((name) => (
+                        <span key={name} className="incident-participant-chip">
+                          <Avatar size={22}>{getInitials(name)}</Avatar>
+                          {name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
 
-              {isOwner && (
-                <>
-                  {report.status === 'acknowledged' && (
+          {photos.length > 0 && (
+            <section className="incident-location-section">
+              <h2>Location</h2>
+              {variant === 'responder' ? (
+                <RouteMap incidentLat={latitude} incidentLng={longitude} />
+              ) : (
+                <StaticMap latitude={latitude} longitude={longitude} height={250} />
+              )}
+            </section>
+          )}
+
+          {variant === 'resident' && (
+            <section className="incident-history-section">
+              <h2>Report history</h2>
+              {reportHistory.length ? historyTimeline : <Empty description="No updates yet" />}
+            </section>
+          )}
+        </article>
+
+        {!isResident && (
+          <aside className="incident-aside">
+            {actionPanel}
+
+            {variant === 'admin' && role !== 'admin' && (
+              <section
+                className="incident-side-section"
+                aria-labelledby="incident-timeline-heading"
+              >
+                <h2 id="incident-timeline-heading">Timeline</h2>
+                {reportHistory.length ? (
+                  historyTimeline
+                ) : (
+                  <Empty description="No activity recorded" />
+                )}
+              </section>
+            )}
+
+            {canViewReportAudit && (
+              <section className="incident-side-section" aria-labelledby="incident-audit-heading">
+                <div className="incident-panel-heading">
+                  <h2 id="incident-audit-heading">
+                    {role === 'admin' ? 'Audit trail' : 'Case activity'}
+                  </h2>
+                  {role === 'admin' && (
                     <Button
-                      block
-                      type="primary"
-                      disabled={responseActionsDisabled}
-                      onClick={() => updateStatus.mutate('in_progress')}
-                      loading={updateStatus.isPending}
+                      size="small"
+                      icon={<DownloadOutlined />}
+                      onClick={() =>
+                        downloadFile('/api/audit-logs?format=csv', 'anyareport-audit.csv')
+                      }
                     >
-                      Mark in progress
+                      Export system log
                     </Button>
                   )}
-                </>
-              )}
-
-              {isResponder &&
-                (isOwner || isBackupResponder) &&
-                ['in_progress', 'en_route', 'on_scene'].includes(report.status) && (
-                  <Button
-                    block
-                    type="primary"
-                    disabled={responseActionsDisabled}
-                    onClick={() => updateStatus.mutate('resolved')}
-                    loading={updateStatus.isPending}
-                  >
-                    Mark resolved
-                  </Button>
+                </div>
+                {auditEntries.length ? (
+                  auditTimeline
+                ) : (
+                  <Empty description="No audit events recorded" />
                 )}
+              </section>
+            )}
+          </aside>
+        )}
+      </div>
 
-              {isOversightRole && (role === 'captain' || report.category === 'Blotter Cases') && (
-                <Button
-                  block
-                  type="primary"
-                  disabled={report.status === 'resolved'}
-                  onClick={() => updateStatus.mutate('resolved')}
-                  loading={updateStatus.isPending}
-                >
-                  Mark resolved
-                </Button>
-              )}
-
-              {role === 'secretary' && report.status === 'pending' && (
-                <>
-                  <Button
-                    block
-                    type="primary"
-                    icon={<CheckOutlined />}
-                    onClick={() => verifyMutation.mutate()}
-                    loading={verifyMutation.isPending}
-                  >
-                    Verify report
-                  </Button>
-                  <Button
-                    block
-                    danger
-                    icon={<FlagOutlined />}
-                    onClick={() => flagMutation.mutate()}
-                    loading={flagMutation.isPending}
-                  >
-                    Flag report
-                  </Button>
-                </>
-              )}
-
-              {isOwner && openBackupRequest && (
-                <Button
-                  block
-                  icon={<CheckOutlined />}
-                  disabled={responseActionsDisabled}
-                  onClick={() => closeBackupMutation.mutate()}
-                  loading={closeBackupMutation.isPending}
-                >
-                  Enough help
-                </Button>
-              )}
-
-              {isOwner && !openBackupRequest && (
-                <Button
-                  block
-                  danger
-                  disabled={responseActionsDisabled}
-                  onClick={() => backupMutation.mutate()}
-                  loading={backupMutation.isPending}
-                >
-                  {openBackupRequest ? 'Backup requested' : 'Request backup'}
-                </Button>
-              )}
-            </Space>
-          </Card>
-        </Col>
-      </Row>
-    </div>
+      {showMobileResponderActions && <div className="incident-mobile-actions">{actionPanel}</div>}
+    </main>
   );
 }

@@ -1,3 +1,4 @@
+import { Parser } from 'json2csv';
 import AuditLog from '../models/AuditLog.js';
 import Report from '../models/Report.js';
 import User from '../models/User.js';
@@ -30,6 +31,19 @@ export async function getAuditLogs(req, res) {
       ...l.toObject(),
       actorName: l.actorUid ? nameMap[l.actorUid] || null : null,
     }));
+
+    if (req.query.format === 'csv') {
+      const parser = new Parser({
+        fields: ['timestamp', 'action', 'actorName', 'reportId', 'metadata', 'ip', 'userAgent'],
+      });
+      const rows = result.map((entry) => ({
+        ...entry,
+        metadata: JSON.stringify(entry.metadata || {}),
+      }));
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename=anyareport-audit.csv');
+      return res.send(`\uFEFF${parser.parse(rows)}`);
+    }
 
     res.json(result);
   } catch (err) {

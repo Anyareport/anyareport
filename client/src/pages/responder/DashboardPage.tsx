@@ -40,7 +40,7 @@ export default function ResponderDashboardPage() {
       reports
         .filter(
           (report) =>
-            ['pending', 'verified'].includes(report.status) &&
+            report.status === 'pending' &&
             !report.acknowledgedBy &&
             ['Emergency Situations', 'Public Concerns'].includes(report.category)
         )
@@ -105,11 +105,7 @@ export default function ResponderDashboardPage() {
           <Card className="soft-card">
             <Statistic
               title="In progress"
-              value={
-                myActiveReports.filter((report) =>
-                  ['in_progress', 'en_route', 'on_scene'].includes(report.status)
-                ).length
-              }
+              value={myActiveReports.filter((report) => report.status === 'in_progress').length}
               prefix={<EnvironmentOutlined />}
             />
           </Card>

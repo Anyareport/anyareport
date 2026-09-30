@@ -18,7 +18,7 @@ export default function ResponderShell() {
   });
 
   const alertCount = reports.filter(
-    (report) => ['pending', 'verified'].includes(report.status) && !report.acknowledgedBy
+    (report) => report.status === 'pending' && !report.acknowledgedBy
   ).length;
 
   const { data: notifications = [] } = useQuery({

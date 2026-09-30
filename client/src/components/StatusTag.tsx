@@ -1,4 +1,5 @@
 import { Tag } from 'antd';
+import { getStatusLabel, normalizeReportStatus } from '../lib/reportWorkflow';
 
 const statusStyles: Record<
   string,
@@ -8,6 +9,11 @@ const statusStyles: Record<
     backgroundColor: 'var(--status-pending-bg)',
     borderColor: 'var(--status-pending-border)',
     color: 'var(--status-pending-text)',
+  },
+  coordinating: {
+    backgroundColor: 'var(--status-coordinating-bg)',
+    borderColor: 'var(--status-coordinating-border)',
+    color: 'var(--status-coordinating-text)',
   },
   verified: {
     backgroundColor: 'var(--status-verified-bg)',
@@ -47,7 +53,7 @@ const statusStyles: Record<
 };
 
 export default function StatusTag({ status }: { status: string }) {
-  const displayStatus = ['en_route', 'on_scene'].includes(status) ? 'in_progress' : status;
+  const displayStatus = normalizeReportStatus(status);
   const style = statusStyles[displayStatus] ?? {
     backgroundColor: 'var(--neutral-100)',
     borderColor: 'var(--border-default)',
@@ -58,6 +64,5 @@ export default function StatusTag({ status }: { status: string }) {
 }
 
 export function formatStatus(status: string) {
-  const displayStatus = ['en_route', 'on_scene'].includes(status) ? 'in_progress' : status;
-  return displayStatus.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  return getStatusLabel(status);
 }

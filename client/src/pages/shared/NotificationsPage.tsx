@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { api, type Notification } from '../../lib/api';
 import { getSocket } from '../../lib/socket';
 import PageHero from '../../components/PageHero';
+import { useAuth } from '../../contexts/AuthContext';
 
 const { Text } = Typography;
 
@@ -16,6 +17,7 @@ interface NotificationsPageProps {
 export default function NotificationsPage({ title }: NotificationsPageProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { role } = useAuth();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
   const { data: notifications = [], isLoading } = useQuery({
@@ -63,19 +65,18 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
             renderItem={(notification) => (
               <List.Item
                 onClick={() => {
-                  if (
-                    !['backup_requested', 'backup_joined'].includes(notification.type) ||
-                    !notification.reportId
-                  )
-                    return;
+                  if (!notification.reportId) return;
                   if (!notification.read) markRead.mutate(notification._id);
-                  navigate(`/responder/incidents/${notification.reportId}`);
+                  const basePath =
+                    role === 'resident'
+                      ? '/resident/reports'
+                      : ['tanod', 'responder'].includes(role || '')
+                        ? '/responder/incidents'
+                        : '/admin/incidents';
+                  navigate(`${basePath}/${notification.reportId}`);
                 }}
                 style={{
-                  ...(['backup_requested', 'backup_joined'].includes(notification.type) &&
-                  notification.reportId
-                    ? { cursor: 'pointer' }
-                    : {}),
+                  ...(notification.reportId ? { cursor: 'pointer' } : {}),
                   flexDirection: isMobile ? 'column' : 'row',
                   alignItems: isMobile ? 'stretch' : 'center',
                   gap: 12,

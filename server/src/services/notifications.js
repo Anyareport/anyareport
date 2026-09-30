@@ -7,10 +7,12 @@ export function setSocketIO(io) {
   ioInstance = io;
 }
 
-export async function notifyOnVerification(report) {
+export async function notifyOnNewReport(report) {
   const isEmergency = report.category === 'Emergency Situations';
   const rolesToNotify =
-    report.category === 'Blotter Cases' ? ['captain'] : ['tanod', 'responder', 'captain'];
+    report.category === 'Blotter Cases'
+      ? ['captain', 'secretary']
+      : ['tanod', 'responder', 'captain'];
   const users = await User.find({ role: { $in: rolesToNotify }, status: 'active' });
 
   const notifications = [];
@@ -19,8 +21,8 @@ export async function notifyOnVerification(report) {
       recipientUid: user.firebaseUid,
       recipientRole: user.role,
       reportId: report._id,
-      type: 'incident_verified',
-      message: `Verified incident: ${report.category} — ${report.description.slice(0, 80)}`,
+      type: 'incident_received',
+      message: `New report: ${report.category} — ${report.description.slice(0, 80)}`,
       urgent: user.role === 'captain' && isEmergency,
     });
     notifications.push(notif);
