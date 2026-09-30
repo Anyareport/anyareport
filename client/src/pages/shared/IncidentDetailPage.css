@@ -335,6 +335,10 @@
   font-size: 12px;
 }
 
+.incident-participant-group > .incident-participant-chip {
+  justify-self: start;
+}
+
 .incident-participant-list {
   display: flex;
   flex-wrap: wrap;

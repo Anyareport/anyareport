@@ -242,7 +242,8 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const activePhoto = photos[activePhotoIndex];
   const activePhotoUrl = activePhoto ? getPhotoUrl(activePhoto) : undefined;
   const [longitude, latitude] = report.location?.coordinates || [0, 0];
-  const title = report.description.trim() || report.subcategory || report.category;
+  const description = report.description.trim();
+  const title = description || report.subcategory || report.category;
   const referenceLabel = 'Reference pending';
   const reportHistory = report.statusHistory || [];
   const showMobileResponderActions = isResponder;
@@ -616,8 +617,8 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
               <EnvironmentOutlined />
               <Text>{report.location?.address || 'Location unavailable'}</Text>
             </div>
-            {report.description.trim() !== title && (
-              <Paragraph className="incident-description">{report.description}</Paragraph>
+            {description && description !== title && (
+              <Paragraph className="incident-description">{description}</Paragraph>
             )}
             {!isResident && canViewReporter && (
               <div className="incident-fact">
