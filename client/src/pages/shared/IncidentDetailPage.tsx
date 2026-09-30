@@ -134,6 +134,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const canViewReportAudit =
     variant === 'admin' &&
     (role === 'admin' || (role === 'secretary' && report?.category === BLOTTER_REPORT_CATEGORY));
+  const showStatusTimeline = variant !== 'admin' || role !== 'admin';
   const { data: auditEntries = [] } = useQuery({
     queryKey: ['report-audit', id],
     queryFn: () => api.get<AuditLog[]>(`/api/reports/${id}/audit`),
@@ -369,7 +370,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
 
   const actionPanel = isResident ? null : isResponder ? (
     <Card
-      className="soft-card incident-side-section"
+      className="soft-card incident-side-section incident-mobile-hide-panel"
       role="region"
       aria-labelledby="incident-actions-heading"
     >
@@ -419,7 +420,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     </Card>
   ) : role === 'admin' ? (
     <Card
-      className="soft-card incident-side-section"
+      className="soft-card incident-side-section incident-mobile-hide-panel"
       role="region"
       aria-labelledby="incident-access-heading"
     >
@@ -437,7 +438,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     </Card>
   ) : isBlotter ? (
     <Card
-      className="soft-card incident-side-section"
+      className="soft-card incident-side-section incident-mobile-hide-panel"
       role="region"
       aria-labelledby="incident-actions-heading"
     >
@@ -466,7 +467,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     </Card>
   ) : (
     <Card
-      className="soft-card incident-side-section"
+      className="soft-card incident-side-section incident-mobile-hide-panel"
       role="region"
       aria-labelledby="incident-actions-heading"
     >
@@ -707,66 +708,57 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                 )}
               </section>
             )}
-
-            {variant === 'resident' && (
-              <section className="incident-history-section">
-                <h2>Report history</h2>
-                {reportHistory.length ? historyTimeline : <Empty description="No updates yet" />}
-              </section>
-            )}
           </article>
         </Card>
 
-        {!isResident && (
-          <aside className="incident-aside">
-            {actionPanel}
+        <aside className="incident-aside">
+          {!isResident && actionPanel}
 
-            {variant === 'admin' && role !== 'admin' && (
-              <Card
-                className="soft-card incident-side-section"
-                role="region"
-                aria-labelledby="incident-timeline-heading"
-              >
-                <h2 id="incident-timeline-heading">Timeline</h2>
-                {reportHistory.length ? (
-                  historyTimeline
-                ) : (
-                  <Empty description="No activity recorded" />
-                )}
-              </Card>
-            )}
+          {showStatusTimeline && (
+            <Card
+              className="soft-card incident-side-section"
+              role="region"
+              aria-labelledby="incident-timeline-heading"
+            >
+              <h2 id="incident-timeline-heading">Timeline</h2>
+              {reportHistory.length ? (
+                historyTimeline
+              ) : (
+                <Empty description="No activity recorded" />
+              )}
+            </Card>
+          )}
 
-            {canViewReportAudit && (
-              <Card
-                className="soft-card incident-side-section"
-                role="region"
-                aria-labelledby="incident-audit-heading"
-              >
-                <div className="incident-panel-heading">
-                  <h2 id="incident-audit-heading">
-                    {role === 'admin' ? 'Audit trail' : 'Case activity'}
-                  </h2>
-                  {role === 'admin' && (
-                    <Button
-                      size="small"
-                      icon={<DownloadOutlined />}
-                      onClick={() =>
-                        downloadFile('/api/audit-logs?format=csv', 'anyareport-audit.csv')
-                      }
-                    >
-                      Export system log
-                    </Button>
-                  )}
-                </div>
-                {auditEntries.length ? (
-                  auditTimeline
-                ) : (
-                  <Empty description="No audit events recorded" />
+          {canViewReportAudit && (
+            <Card
+              className="soft-card incident-side-section"
+              role="region"
+              aria-labelledby="incident-audit-heading"
+            >
+              <div className="incident-panel-heading">
+                <h2 id="incident-audit-heading">
+                  {role === 'admin' ? 'Audit trail' : 'Case activity'}
+                </h2>
+                {role === 'admin' && (
+                  <Button
+                    size="small"
+                    icon={<DownloadOutlined />}
+                    onClick={() =>
+                      downloadFile('/api/audit-logs?format=csv', 'anyareport-audit.csv')
+                    }
+                  >
+                    Export system log
+                  </Button>
                 )}
-              </Card>
-            )}
-          </aside>
-        )}
+              </div>
+              {auditEntries.length ? (
+                auditTimeline
+              ) : (
+                <Empty description="No audit events recorded" />
+              )}
+            </Card>
+          )}
+        </aside>
       </div>
 
       {showMobileResponderActions && <div className="incident-mobile-actions">{actionPanel}</div>}

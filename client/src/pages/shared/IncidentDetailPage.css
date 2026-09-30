@@ -28,11 +28,6 @@
   gap: 20px;
 }
 
-.incident-detail--resident .incident-detail-grid {
-  grid-template-columns: minmax(0, 860px);
-  justify-content: center;
-}
-
 .incident-main,
 .incident-aside {
   min-width: 0;
@@ -452,10 +447,6 @@
     gap: 16px;
   }
 
-  .incident-detail--resident .incident-aside {
-    display: none;
-  }
-
   .incident-title-block h1.ant-typography {
     font-size: 23px;
   }
@@ -491,7 +482,7 @@
     min-height: 280px;
   }
 
-  .incident-aside > .incident-side-section:first-child {
+  .incident-aside > .incident-mobile-hide-panel {
     display: none;
   }
 
