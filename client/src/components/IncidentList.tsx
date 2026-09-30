@@ -9,6 +9,18 @@ import { compareSeverity, compareStatus, compareCreatedAt } from '../lib/sortUti
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
+function getIncidentLabel(report: Report) {
+  const aiTitle = report.aiTitle?.trim();
+  if (aiTitle) return aiTitle;
+
+  const description = report.description.trim();
+  if (description) {
+    return description.length > 80 ? `${description.slice(0, 80).trimEnd()}…` : description;
+  }
+
+  return report.subcategory || report.category;
+}
+
 interface IncidentListProps {
   reports: Report[];
   loading?: boolean;
@@ -50,7 +62,9 @@ export default function IncidentList({
                   {new Date(r.createdAt).toLocaleDateString()}
                 </Text>
               </div>
-              <Text strong>{r.aiTitle?.trim() || r.subcategory || r.category}</Text>
+              <Text strong ellipsis={{ tooltip: getIncidentLabel(r) }}>
+                {getIncidentLabel(r)}
+              </Text>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 {r.category}
                 {r.subcategory ? ` · ${r.subcategory}` : ''}
@@ -64,7 +78,9 @@ export default function IncidentList({
                 {r.location?.address ||
                   `${r.location?.coordinates?.[1]?.toFixed(4)}, ${r.location?.coordinates?.[0]?.toFixed(4)}`}
               </Text>
-              <Text ellipsis={{ tooltip: r.description }}>{r.description}</Text>
+              {r.aiTitle?.trim() && r.description.trim() && (
+                <Text ellipsis={{ tooltip: r.description }}>{r.description}</Text>
+              )}
             </Space>
           </Card>
         ))}
@@ -73,6 +89,13 @@ export default function IncidentList({
   }
 
   const columns: ColumnsType<Report> = [
+    {
+      title: 'Incident',
+      key: 'aiTitle',
+      render: (_: unknown, report: Report) => (
+        <Text ellipsis={{ tooltip: report.description }}>{getIncidentLabel(report)}</Text>
+      ),
+    },
     {
       title: 'Status',
       dataIndex: 'status',
@@ -90,15 +113,6 @@ export default function IncidentList({
       render: (s: string | null) => <SeverityTag severity={s} />,
     },
     { title: 'Category', dataIndex: 'category', key: 'category' },
-    ...(showSubmitter
-      ? [
-          {
-            title: 'Submitted By',
-            key: 'submitterName',
-            render: (_: unknown, r: Report) => r.submitterName || '—',
-          },
-        ]
-      : []),
     {
       title: 'Location',
       key: 'location',
@@ -112,15 +126,15 @@ export default function IncidentList({
       sortDirections: ['descend', 'ascend'],
       render: (d: string) => new Date(d).toLocaleString(),
     },
-    {
-      title: 'Incident',
-      key: 'aiTitle',
-      render: (_: unknown, r: Report) => (
-        <Text ellipsis={{ tooltip: r.description }}>
-          {r.aiTitle?.trim() || r.subcategory || r.category}
-        </Text>
-      ),
-    },
+    ...(showSubmitter
+      ? [
+          {
+            title: 'Submitted By',
+            key: 'submitterName',
+            render: (_: unknown, r: Report) => r.submitterName || '—',
+          },
+        ]
+      : []),
   ];
 
   return (
