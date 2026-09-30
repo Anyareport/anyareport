@@ -127,6 +127,11 @@ export default function AdminDashboardPage() {
                           {report.category}
                           {report.subcategory ? ` · ${report.subcategory}` : ''}
                         </Text>
+                        {report.referenceNumber && (
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            Reference {report.referenceNumber}
+                          </Text>
+                        )}
                         <Text type="secondary" style={{ fontSize: 12 }}>
                           {report.description.length > 80
                             ? report.description.slice(0, 80) + '…'

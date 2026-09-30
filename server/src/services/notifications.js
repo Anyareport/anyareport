@@ -10,6 +10,7 @@ export function setSocketIO(io) {
 export async function notifyOnNewReport(report) {
   const isEmergency = report.category === 'Emergency Situations';
   const reportTitle = report.aiTitle?.trim() || report.subcategory || report.category;
+  const reference = report.referenceNumber ? ` (${report.referenceNumber})` : '';
   const rolesToNotify =
     report.category === 'Blotter Cases'
       ? ['captain', 'secretary']
@@ -23,7 +24,7 @@ export async function notifyOnNewReport(report) {
       recipientRole: user.role,
       reportId: report._id,
       type: 'incident_received',
-      message: `New report: ${reportTitle}`,
+      message: `New report${reference}: ${reportTitle}`,
       urgent: user.role === 'captain' && isEmergency,
     });
     notifications.push(notif);
@@ -43,13 +44,14 @@ export async function notifyOnNewReport(report) {
 export async function notifyOnStatusUpdate(report, status, updatedBy) {
   const user = await User.findOne({ firebaseUid: report.submittedBy });
   if (!user) return null;
+  const reference = report.referenceNumber ? ` (${report.referenceNumber})` : '';
 
   const notification = await Notification.create({
     recipientUid: user.firebaseUid,
     recipientRole: user.role,
     reportId: report._id,
     type: 'report_status_updated',
-    message: `Your report status was updated to ${status.replace(/_/g, ' ')} by ${updatedBy}.`,
+    message: `Your report${reference} status was updated to ${status.replace(/_/g, ' ')} by ${updatedBy}.`,
   });
 
   if (ioInstance) {
@@ -60,6 +62,7 @@ export async function notifyOnStatusUpdate(report, status, updatedBy) {
 }
 
 export async function notifyBackupRequest(report, requesterName) {
+  const reference = report.referenceNumber ? ` (${report.referenceNumber})` : '';
   const users = await User.find({
     role: { $in: ['tanod', 'responder'] },
     status: 'active',
@@ -73,7 +76,7 @@ export async function notifyBackupRequest(report, requesterName) {
         recipientRole: user.role,
         reportId: report._id,
         type: 'backup_requested',
-        message: `${requesterName} requested backup for ${report.category}.`,
+        message: `${requesterName} requested backup for ${report.category}${reference}.`,
         urgent: true,
       })
     )
@@ -93,13 +96,14 @@ export async function notifyBackupJoined(report, helperName) {
     .select('firebaseUid role')
     .lean();
   if (!owner) return null;
+  const reference = report.referenceNumber ? ` (${report.referenceNumber})` : '';
 
   const notification = await Notification.create({
     recipientUid: owner.firebaseUid,
     recipientRole: owner.role,
     reportId: report._id,
     type: 'backup_joined',
-    message: `${helperName} joined your incident as backup.`,
+    message: `${helperName} joined your incident${reference} as backup.`,
   });
 
   if (ioInstance) {

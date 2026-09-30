@@ -49,6 +49,11 @@ export default function ResponderAlertsPage() {
                   {report.category}
                   {report.subcategory ? ` · ${report.subcategory}` : ''}
                 </Text>
+                {report.referenceNumber && (
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    Reference {report.referenceNumber}
+                  </Text>
+                )}
                 <Text>{report.description}</Text>
                 <Tag color={report.category === 'Emergency Situations' ? 'red' : 'blue'}>
                   {report.category === 'Emergency Situations'

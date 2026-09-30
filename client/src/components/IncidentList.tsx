@@ -65,6 +65,11 @@ export default function IncidentList({
               <Text strong ellipsis={{ tooltip: getIncidentLabel(r) }}>
                 {getIncidentLabel(r)}
               </Text>
+              {r.referenceNumber && (
+                <Text type="secondary" style={{ fontSize: 11 }}>
+                  Reference {r.referenceNumber}
+                </Text>
+              )}
               <Text type="secondary" style={{ fontSize: 12 }}>
                 {r.category}
                 {r.subcategory ? ` · ${r.subcategory}` : ''}
@@ -93,7 +98,14 @@ export default function IncidentList({
       title: 'Incident',
       key: 'aiTitle',
       render: (_: unknown, report: Report) => (
-        <Text ellipsis={{ tooltip: report.description }}>{getIncidentLabel(report)}</Text>
+        <Space direction="vertical" size={0}>
+          <Text ellipsis={{ tooltip: report.description }}>{getIncidentLabel(report)}</Text>
+          {report.referenceNumber && (
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              Reference {report.referenceNumber}
+            </Text>
+          )}
+        </Space>
       ),
     },
     {

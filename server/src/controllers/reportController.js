@@ -282,7 +282,7 @@ export async function getReportById(req, res) {
 
 export async function getReportAudit(req, res) {
   try {
-    const report = await Report.findById(req.params.id).select('_id category');
+    const report = await Report.findById(req.params.id).select('_id category referenceNumber');
     if (!report) return res.status(404).json({ error: 'Report not found' });
     if (req.userRole === 'secretary' && report.category !== BLOTTER_CATEGORY) {
       return res
@@ -301,13 +301,19 @@ export async function getReportAudit(req, res) {
     const namesByUid = Object.fromEntries(users.map((user) => [user.firebaseUid, user.name]));
     const rows = logs.map((entry) => ({
       ...entry.toObject(),
+      reportReferenceNumber: report.referenceNumber || null,
       actorName: entry.actorUid ? namesByUid[entry.actorUid] || null : null,
     }));
 
     if (req.query.format === 'csv') {
-      const parser = new Parser({ fields: ['timestamp', 'action', 'actorName', 'metadata'] });
+      const parser = new Parser({
+        fields: ['reportReferenceNumber', 'timestamp', 'action', 'actorName', 'metadata'],
+      });
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename=report-${report._id}-audit.csv`);
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=report-${report.referenceNumber || report._id}-audit.csv`
+      );
       return res.send(`\uFEFF${parser.parse(rows)}`);
     }
 

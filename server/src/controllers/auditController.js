@@ -22,19 +22,36 @@ export async function getAuditLogs(req, res) {
     const logs = await AuditLog.find(query).sort({ timestamp: -1 }).limit(100);
 
     const uids = [...new Set(logs.map((l) => l.actorUid).filter(Boolean))];
+    const reportIds = [...new Set(logs.map((log) => log.reportId?.toString()).filter(Boolean))];
     const users = await User.find({ firebaseUid: { $in: uids } })
       .select('firebaseUid name')
       .lean();
+    const reports = await Report.find({ _id: { $in: reportIds } })
+      .select('_id referenceNumber')
+      .lean();
     const nameMap = Object.fromEntries(users.map((u) => [u.firebaseUid, u.name]));
+    const referenceMap = Object.fromEntries(
+      reports.map((report) => [report._id.toString(), report.referenceNumber || null])
+    );
 
     const result = logs.map((l) => ({
       ...l.toObject(),
       actorName: l.actorUid ? nameMap[l.actorUid] || null : null,
+      reportReferenceNumber: l.reportId ? referenceMap[l.reportId.toString()] || null : null,
     }));
 
     if (req.query.format === 'csv') {
       const parser = new Parser({
-        fields: ['timestamp', 'action', 'actorName', 'reportId', 'metadata', 'ip', 'userAgent'],
+        fields: [
+          'timestamp',
+          'action',
+          'actorName',
+          'reportReferenceNumber',
+          'reportId',
+          'metadata',
+          'ip',
+          'userAgent',
+        ],
       });
       const rows = result.map((entry) => ({
         ...entry,

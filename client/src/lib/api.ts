@@ -135,6 +135,7 @@ export interface AuditLog {
   actorUid: string | null;
   actorName: string | null;
   reportId: string | null;
+  reportReferenceNumber?: string | null;
   ip: string | null;
   userAgent: string | null;
   metadata: Record<string, unknown>;
