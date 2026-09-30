@@ -77,6 +77,7 @@ export default function AdminDashboardPage() {
         >
           <List
             dataSource={inactivityMonitor?.reports ?? []}
+            pagination={{ pageSize: 5, hideOnSinglePage: true }}
             locale={{ emptyText: 'No open incidents have exceeded the inactivity threshold.' }}
             renderItem={(report) => (
               <List.Item
