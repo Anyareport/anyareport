@@ -58,7 +58,7 @@ export default function IncidentHistoryPage({ variant = 'admin' }: IncidentHisto
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <PageHero
         title="Incidents"
-        description="Desktop table on larger screens, card-per-incident layout below tablet width."
+        description="Review incidents by urgency, status, and location."
       />
 
       <StatusFilter value={status} onChange={setStatus} />

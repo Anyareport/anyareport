@@ -60,7 +60,7 @@ export default function StatusTag({ status }: { status: string }) {
     color: 'var(--text-secondary)',
   };
 
-  return <Tag style={style}>{formatStatus(status).toUpperCase()}</Tag>;
+  return <Tag style={style}>{formatStatus(status)}</Tag>;
 }
 
 export function formatStatus(status: string) {

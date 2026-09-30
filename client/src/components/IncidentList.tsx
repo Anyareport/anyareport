@@ -3,11 +3,17 @@ import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
 import type { Report } from '../lib/api';
 import StatusTag from './StatusTag';
-import SeverityTag from './SeverityTag';
+import SeverityTag, { getSeverityStyle } from './SeverityTag';
 import { compareSeverity, compareStatus, compareCreatedAt } from '../lib/sortUtils';
 
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
+
+const SHORT_CATEGORY_LABELS: Record<string, string> = {
+  'Blotter Cases': 'Blotter',
+  'Emergency Situations': 'Emergency',
+  'Public Concerns': 'Public concern',
+};
 
 function getIncidentLabel(report: Report) {
   const aiTitle = report.aiTitle?.trim();
@@ -19,6 +25,30 @@ function getIncidentLabel(report: Report) {
   }
 
   return report.subcategory || report.category;
+}
+
+function getIncidentMeta(report: Report) {
+  const category = SHORT_CATEGORY_LABELS[report.category] || report.category;
+  const categoryDetail = report.subcategory ? `${category} · ${report.subcategory}` : category;
+  return [report.referenceNumber, categoryDetail].filter(Boolean).join(' · ');
+}
+
+function getLocationLabel(report: Report) {
+  const address = report.location?.address?.trim();
+  if (!address) return 'Location unavailable';
+
+  return address.replace(/,?\s*Don Mariano Marcos\s*$/i, '').trim() || 'Location unavailable';
+}
+
+function formatRelativeDate(value: string) {
+  const date = new Date(value);
+  const daysAgo = Math.floor((Date.now() - date.getTime()) / 86_400_000);
+
+  if (!Number.isFinite(daysAgo) || daysAgo < 0) return date.toLocaleDateString();
+  if (daysAgo === 0) return 'Today';
+  if (daysAgo === 1) return 'Yesterday';
+  if (daysAgo < 30) return `${daysAgo} days ago`;
+  return date.toLocaleDateString();
 }
 
 interface IncidentListProps {
@@ -49,43 +79,45 @@ export default function IncidentList({
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {reports.map((r) => (
-          <Card key={r._id} hoverable onClick={() => handleClick(r._id)} size="small">
+          <Card
+            key={r._id}
+            hoverable
+            onClick={() => handleClick(r._id)}
+            size="small"
+            style={{
+              borderInlineStart: `4px solid ${getSeverityStyle(r.severity).borderColor || 'var(--border-light)'}`,
+            }}
+          >
             <Space direction="vertical" size={4} style={{ width: '100%' }}>
               <div
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
               >
-                <Space size={4}>
+                <Space size={4} wrap>
                   <StatusTag status={r.status} />
                   <SeverityTag severity={r.severity} />
                 </Space>
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  {new Date(r.createdAt).toLocaleDateString()}
+                <Text
+                  type="secondary"
+                  title={new Date(r.createdAt).toLocaleString()}
+                  style={{ fontSize: 12 }}
+                >
+                  {formatRelativeDate(r.createdAt)}
                 </Text>
               </div>
               <Text strong ellipsis={{ tooltip: getIncidentLabel(r) }}>
                 {getIncidentLabel(r)}
               </Text>
-              {r.referenceNumber && (
-                <Text type="secondary" style={{ fontSize: 11 }}>
-                  Reference {r.referenceNumber}
-                </Text>
-              )}
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                {r.category}
-                {r.subcategory ? ` · ${r.subcategory}` : ''}
+              <Text
+                type="secondary"
+                style={{ fontSize: 12 }}
+                ellipsis={{ tooltip: getIncidentMeta(r) }}
+              >
+                {getIncidentMeta(r)}
               </Text>
-              {showSubmitter && r.submitterName && (
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  By {r.submitterName}
-                </Text>
-              )}
-              <Text type="secondary" ellipsis>
-                {r.location?.address ||
-                  `${r.location?.coordinates?.[1]?.toFixed(4)}, ${r.location?.coordinates?.[0]?.toFixed(4)}`}
+              <Text type="secondary" ellipsis={{ tooltip: getLocationLabel(r) }}>
+                {getLocationLabel(r)}
+                {showSubmitter && r.submitterName ? ` · ${r.submitterName}` : ''}
               </Text>
-              {r.aiTitle?.trim() && r.description.trim() && (
-                <Text ellipsis={{ tooltip: r.description }}>{r.description}</Text>
-              )}
             </Space>
           </Card>
         ))}
@@ -100,13 +132,19 @@ export default function IncidentList({
       render: (_: unknown, report: Report) => (
         <Space direction="vertical" size={0}>
           <Text ellipsis={{ tooltip: report.description }}>{getIncidentLabel(report)}</Text>
-          {report.referenceNumber && (
-            <Text type="secondary" style={{ fontSize: 11 }}>
-              Reference {report.referenceNumber}
-            </Text>
-          )}
+          <Text type="secondary" style={{ fontSize: 11 }}>
+            {getIncidentMeta(report)}
+          </Text>
         </Space>
       ),
+    },
+    {
+      title: 'Severity',
+      dataIndex: 'severity',
+      key: 'severity',
+      sorter: compareSeverity,
+      sortDirections: ['ascend', 'descend'],
+      render: (severity: string | null) => (severity ? <SeverityTag severity={severity} /> : '—'),
     },
     {
       title: 'Status',
@@ -117,18 +155,9 @@ export default function IncidentList({
       render: (s: string) => <StatusTag status={s} />,
     },
     {
-      title: 'Severity',
-      dataIndex: 'severity',
-      key: 'severity',
-      sorter: compareSeverity,
-      sortDirections: ['ascend', 'descend'],
-      render: (s: string | null) => <SeverityTag severity={s} />,
-    },
-    { title: 'Category', dataIndex: 'category', key: 'category' },
-    {
       title: 'Location',
       key: 'location',
-      render: (_: unknown, r: Report) => r.location?.address || '—',
+      render: (_: unknown, r: Report) => getLocationLabel(r),
     },
     {
       title: 'Submitted',
@@ -136,14 +165,25 @@ export default function IncidentList({
       key: 'createdAt',
       sorter: compareCreatedAt,
       sortDirections: ['descend', 'ascend'],
-      render: (d: string) => new Date(d).toLocaleString(),
+      render: (createdAt: string) => (
+        <Text title={new Date(createdAt).toLocaleString()}>
+          {new Date(createdAt).toLocaleString()}
+        </Text>
+      ),
     },
     ...(showSubmitter
       ? [
           {
             title: 'Submitted By',
-            key: 'submitterName',
-            render: (_: unknown, r: Report) => r.submitterName || '—',
+            key: 'submittedBy',
+            render: (_: unknown, report: Report) => (
+              <Space direction="vertical" size={0}>
+                <Text type="secondary" title={new Date(report.createdAt).toLocaleString()}>
+                  {formatRelativeDate(report.createdAt)}
+                </Text>
+                <Text>{report.submitterName || '—'}</Text>
+              </Space>
+            ),
           },
         ]
       : []),
