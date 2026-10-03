@@ -351,17 +351,22 @@ export function setDemoDbSnapshot(db: DemoDb) {
   writeDb(db);
 }
 
-export function getDemoAnalytics(): Analytics {
+export function getDemoAnalytics(period: 'all' | 'week' | 'month' | 'year' = 'month'): Analytics {
   const db = readDb();
-  const total = db.reports.length;
-  const resolved = db.reports.filter((report) => report.status === 'resolved').length;
-  const pending = db.reports.filter((report) => report.status === 'pending').length;
+  const periodDays = period === 'all' ? null : { week: 7, month: 30, year: 365 }[period];
+  const since = periodDays === null ? null : Date.now() - periodDays * 24 * 60 * 60 * 1000;
+  const reports = since === null
+    ? db.reports
+    : db.reports.filter((report) => new Date(report.createdAt).getTime() >= since);
+  const total = reports.length;
+  const resolved = reports.filter((report) => report.status === 'resolved').length;
+  const pending = reports.filter((report) => report.status === 'pending').length;
 
   const byCategoryMap = new Map<string, number>();
   const byStatusMap = new Map<string, number>();
   const last30DaysMap = new Map<string, number>();
 
-  db.reports.forEach((report) => {
+  reports.forEach((report) => {
     byCategoryMap.set(report.category, (byCategoryMap.get(report.category) || 0) + 1);
     byStatusMap.set(report.status, (byStatusMap.get(report.status) || 0) + 1);
     const key = report.createdAt.slice(0, 10);

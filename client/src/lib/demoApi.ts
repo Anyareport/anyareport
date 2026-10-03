@@ -69,7 +69,10 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
   }
 
   if (pathname === '/api/reports/analytics' && method === 'GET') {
-    return getDemoAnalytics() as T;
+    const period = new URLSearchParams(window.location.search).get('period') || 'month';
+    return getDemoAnalytics(
+      period === 'all' || period === 'week' || period === 'year' ? period : 'month',
+    ) as T;
   }
 
   if (pathname === '/api/reports/heatmap' && method === 'GET') {

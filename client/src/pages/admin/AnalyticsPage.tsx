@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { Card, Col, Row, Space, Statistic, theme } from 'antd';
+import { Card, Col, Row, Select, Space, Statistic, theme } from 'antd';
+import { useState } from 'react';
 import {
   Pie,
   PieChart,
@@ -20,9 +21,10 @@ import PageHero from '../../components/PageHero';
 const COLORS = ['#E63333', '#5b6b9a', '#ff9f43', '#2ecc71', '#8e44ad', '#06b6d4'];
 
 export default function AdminAnalyticsPage() {
+  const [period, setPeriod] = useState<'all' | 'week' | 'month' | 'year'>('month');
   const { data: analytics } = useQuery({
-    queryKey: ['admin-analytics'],
-    queryFn: () => api.get<Analytics>('/api/reports/analytics'),
+    queryKey: ['admin-analytics', period],
+    queryFn: () => api.get<Analytics>(`/api/reports/analytics?period=${period}`),
     refetchInterval: 30000,
   });
 
@@ -37,6 +39,21 @@ export default function AdminAnalyticsPage() {
         title="Analytics"
         description="Operational metrics for barangay-wide or committee-scoped oversight."
       />
+
+      <Row justify="start">
+        <Select
+          aria-label="Analytics period"
+          value={period}
+          style={{ width: 200 }}
+          onChange={setPeriod}
+          options={[
+            { value: 'all', label: 'All' },
+            { value: 'week', label: 'Weekly' },
+            { value: 'month', label: 'Monthly' },
+            { value: 'year', label: 'Yearly' },
+          ]}
+        />
+      </Row>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} md={8}>
@@ -92,7 +109,7 @@ export default function AdminAnalyticsPage() {
         </Col>
       </Row>
 
-      <Card className="soft-card" title="Last 30 days">
+      <Card className="soft-card" title={period === 'all' ? 'All time' : period === 'week' ? 'Last 7 days' : period === 'year' ? 'Last 365 days' : 'Last 30 days'}>
         <ResponsiveContainer width="100%" height={280}>
           <LineChart data={analytics?.last30Days || []}>
             <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />

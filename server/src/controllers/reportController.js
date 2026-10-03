@@ -720,6 +720,11 @@ export async function getCategories(req, res) {
 export async function getAnalytics(req, res) {
   try {
     const match = {};
+    const period = ['all', 'week', 'month', 'year'].includes(req.query.period) ? req.query.period : 'month';
+    if (period !== 'all') {
+      const periodDays = { week: 7, month: 30, year: 365 }[period];
+      match.createdAt = { $gte: new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000) };
+    }
 
     const byCategory = await Report.aggregate([
       { $match: match },
@@ -749,7 +754,6 @@ export async function getAnalytics(req, res) {
       {
         $match: {
           ...match,
-          createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
         },
       },
       {
