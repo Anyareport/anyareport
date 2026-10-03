@@ -3,7 +3,7 @@ import { Card, Col, Row, Statistic, Space, Typography, List, Button } from 'antd
 import { useNavigate } from 'react-router-dom';
 import { api, type Analytics, type Notification, type Report } from '../../lib/api';
 import { adminDashboardRoles } from '../../lib/roles';
-import StatusTag from '../../components/StatusTag';
+import IncidentCard from '../../components/IncidentCard';
 import PageHero from '../../components/PageHero';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -80,16 +80,11 @@ export default function AdminDashboardPage() {
             pagination={{ pageSize: 5, hideOnSinglePage: true }}
             locale={{ emptyText: 'No open incidents have exceeded the inactivity threshold.' }}
             renderItem={(report) => (
-              <List.Item
-                style={{ cursor: 'pointer' }}
+              <IncidentCard
+                report={report}
                 onClick={() => navigate(`/admin/incidents/${report._id}`)}
                 extra={<Text type="secondary">{report.inactiveHours}h inactive</Text>}
-              >
-                <List.Item.Meta
-                  title={`${report.category} · ${report.location?.address || 'Location unavailable'}`}
-                  description={<StatusTag status={report.status} />}
-                />
-              </List.Item>
+              />
             )}
           />
         </Card>
@@ -110,54 +105,22 @@ export default function AdminDashboardPage() {
               </Button>
             }
           >
-            <List
-              dataSource={reports.slice(0, 5)}
-              locale={{ emptyText: 'No incidents yet' }}
-              renderItem={(report) => (
-                <List.Item
-                  style={{ cursor: 'pointer' }}
+            {reports.length === 0 ? (
+              <Text type="secondary">No incidents yet</Text>
+            ) : (
+              <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                {reports.slice(0, 5).map((report) => (
+                  <IncidentCard
+                    key={report._id}
+                    report={report}
                   onClick={() => navigate(`/admin/incidents/${report._id}`)}
-                  extra={<StatusTag status={report.status} />}
-                >
-                  <List.Item.Meta
-                    title={report.aiTitle?.trim() || report.subcategory || report.category}
-                    description={
-                      <Space direction="vertical" size={2}>
-                        <Text type="secondary" style={{ fontSize: 12 }}>
-                          {report.category}
-                          {report.subcategory ? ` · ${report.subcategory}` : ''}
-                        </Text>
-                        {report.referenceNumber && (
-                          <Text type="secondary" style={{ fontSize: 12 }}>
-                            Reference {report.referenceNumber}
-                          </Text>
-                        )}
-                        <Text type="secondary" style={{ fontSize: 12 }}>
-                          {report.description.length > 80
-                            ? report.description.slice(0, 80) + '…'
-                            : report.description}
-                        </Text>
-                        <Space size={8}>
-                          <Text type="secondary" style={{ fontSize: 12 }}>
-                            {new Date(report.createdAt).toLocaleString()}
-                          </Text>
-                          {report.submitterName && (
-                            <Text type="secondary" style={{ fontSize: 12 }}>
-                              · {report.submitterName}
-                            </Text>
-                          )}
-                          {report.location?.address && (
-                            <Text type="secondary" style={{ fontSize: 12 }}>
-                              · {report.location.address}
-                            </Text>
-                          )}
-                        </Space>
-                      </Space>
-                    }
+                    showSubmitter
+                    showDescription
+                    descriptionMaxLength={160}
                   />
-                </List.Item>
-              )}
-            />
+                ))}
+              </Space>
+            )}
           </Card>
         </Col>
         <Col xs={24} xl={8}>

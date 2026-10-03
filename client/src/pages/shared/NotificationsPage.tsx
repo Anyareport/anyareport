@@ -104,6 +104,7 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
                             flex: '1 1 auto',
                             whiteSpace: 'normal',
                             overflowWrap: 'anywhere',
+                            textTransform: 'capitalize',
                           }}
                         >
                           {notification.message}
@@ -130,7 +131,6 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
                   >
                     <Button
                       type={notification.read ? 'default' : 'primary'}
-                   
                       onClick={(event) => {
                         event.stopPropagation();
                         markRead.mutate(notification._id);
