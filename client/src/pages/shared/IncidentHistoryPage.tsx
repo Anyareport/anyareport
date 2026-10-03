@@ -46,9 +46,9 @@ export default function IncidentHistoryPage({ variant = 'admin' }: IncidentHisto
           description="Closed and reviewed incidents remain searchable for follow-up and after-action review."
         />
 
-        <Card className="soft-card" title="Incident history">
-          <IncidentList reports={filtered} basePath="/responder/incidents" />
-        </Card>
+        {/* <Card className="soft-card" title="Incident history"> */}
+        <IncidentList reports={filtered} basePath="/responder/incidents" />
+        {/* </Card> */}
       </Space>
     );
   }
@@ -63,13 +63,11 @@ export default function IncidentHistoryPage({ variant = 'admin' }: IncidentHisto
 
       <StatusFilter value={status} onChange={setStatus} />
 
-      <Card className="soft-card" title="Incident monitor">
-        <IncidentList
-          reports={filtered}
-          basePath="/admin/incidents"
-          showSubmitter={role !== 'admin'}
-        />
-      </Card>
+      <IncidentList
+        reports={filtered}
+        basePath="/admin/incidents"
+        showSubmitter={role !== 'admin'}
+      />
     </Space>
   );
 }

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Card, Space, Typography } from 'antd';
 import type { Report } from '../lib/api';
+import { UserOutlined, EnvironmentOutlined } from '@ant-design/icons';
 import SeverityTag, { getSeverityStyle } from './SeverityTag';
 import StatusTag from './StatusTag';
 
@@ -119,14 +120,19 @@ export default function IncidentCard({
           {getIncidentMeta(report)}
         </Text>
         {showDescription && displayedDescription && (
-          <Text type="secondary" style={{ overflowWrap: 'anywhere' }}>
+          <Text type="primary" style={{ overflowWrap: 'anywhere' }}>
             {displayedDescription}
           </Text>
         )}
         {children}
         <Text type="secondary" style={{ overflowWrap: 'anywhere' }}>
-          {getLocationLabel(report)}
-          {showSubmitter && report.submitterName ? ` · ${report.submitterName}` : ''}
+          <EnvironmentOutlined /> {getLocationLabel(report)}
+          {showSubmitter && report.submitterName && (
+            <>
+              {' · '}
+              <UserOutlined /> {report.submitterName}
+            </>
+          )}
         </Text>
       </Space>
     </Card>

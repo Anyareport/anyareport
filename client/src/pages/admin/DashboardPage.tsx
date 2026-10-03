@@ -113,7 +113,7 @@ export default function AdminDashboardPage() {
                   <IncidentCard
                     key={report._id}
                     report={report}
-                  onClick={() => navigate(`/admin/incidents/${report._id}`)}
+                    onClick={() => navigate(`/admin/incidents/${report._id}`)}
                     showSubmitter
                     showDescription
                     descriptionMaxLength={160}

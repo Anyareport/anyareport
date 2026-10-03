@@ -29,9 +29,9 @@ export default function SecretaryIntakePage() {
 
       <StatusFilter value={status} onChange={setStatus} />
 
-      <Card className="soft-card" title="Intake monitor">
-        <IncidentList reports={sorted} basePath="/admin/incidents" />
-      </Card>
+      {/* <Card className="soft-card" title="Intake monitor"> */}
+      <IncidentList reports={sorted} basePath="/admin/incidents" />
+      {/* </Card> */}
     </Space>
   );
 }
