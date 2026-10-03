@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge, Button, Card, Empty, Grid, List, Space, Typography, message } from 'antd';
-import { CheckOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { api, type Notification } from '../../lib/api';
 import { getSocket } from '../../lib/socket';
