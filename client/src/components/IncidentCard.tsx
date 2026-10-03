@@ -120,9 +120,7 @@ export default function IncidentCard({
           {getIncidentMeta(report)}
         </Text>
         {showDescription && displayedDescription && (
-          <Text type="primary" style={{ overflowWrap: 'anywhere' }}>
-            {displayedDescription}
-          </Text>
+          <Text style={{ overflowWrap: 'anywhere' }}>{displayedDescription}</Text>
         )}
         {children}
         <Text type="secondary" style={{ overflowWrap: 'anywhere' }}>

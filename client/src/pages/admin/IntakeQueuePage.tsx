@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Card, Space } from 'antd';
+import { Space } from 'antd';
 import { useState, useMemo } from 'react';
 import { api, type Report } from '../../lib/api';
 import IncidentList from '../../components/IncidentList';

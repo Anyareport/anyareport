@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Space } from 'antd';
+import { Space } from 'antd';
 import { api, type Report } from '../../lib/api';
 import IncidentList from '../../components/IncidentList';
 import StatusFilter from '../../components/StatusFilter';
