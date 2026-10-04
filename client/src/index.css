@@ -179,6 +179,10 @@ a {
   box-shadow: none;
 }
 
+.notification-card--unread.ant-card {
+  border-inline-start-color: var(--brand-color-info);
+}
+
 .notification-card .ant-card-body {
   padding: 12px 14px;
 }
