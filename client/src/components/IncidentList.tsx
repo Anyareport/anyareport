@@ -66,7 +66,9 @@ export default function IncidentList({
           <Text strong ellipsis={{ tooltip: report.description }}>
             {getIncidentLabel(report)}
           </Text>
-          <Text style={{ fontSize: 11 }}>{getIncidentMeta(report)}</Text>
+          <Text type="secondary" style={{ fontSize: 11 }}>
+            {getIncidentMeta(report)}
+          </Text>
         </Space>
       ),
     },
