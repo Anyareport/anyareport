@@ -5,12 +5,13 @@ import type { Report } from '../lib/api';
 import StatusTag from './StatusTag';
 import SeverityTag from './SeverityTag';
 import { compareSeverity, compareStatus, compareCreatedAt } from '../lib/sortUtils';
-import IncidentCard, {
+import IncidentCard from './IncidentCard';
+import {
   formatRelativeDate,
   getIncidentLabel,
   getIncidentMeta,
   getLocationLabel,
-} from './IncidentCard';
+} from '../lib/incidentUtils';
 
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
