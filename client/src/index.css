@@ -104,6 +104,15 @@ a {
   border-radius: 8px;
 }
 
+.feed-card.ant-card-hoverable {
+  transition: box-shadow 0.2s ease;
+}
+
+.feed-card.ant-card-hoverable:hover,
+.feed-card.ant-card-hoverable:focus-within {
+  box-shadow: var(--shadow-md);
+}
+
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
