@@ -536,10 +536,11 @@
 
   .incident-mobile-actions__chevron {
     transition: transform 150ms ease;
+    transform: rotate(180deg);
   }
 
   .incident-mobile-actions[open] .incident-mobile-actions__chevron {
-    transform: rotate(180deg);
+    transform: none;
   }
 
   .incident-mobile-actions__content {
