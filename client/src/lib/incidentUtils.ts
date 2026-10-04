@@ -1,11 +1,5 @@
 import type { Report } from './api';
 
-const SHORT_CATEGORY_LABELS: Record<string, string> = {
-  'Blotter Cases': 'Blotter',
-  'Emergency Situations': 'Emergency',
-  'Public Concerns': 'Public concern',
-};
-
 export function getIncidentLabel(report: Report) {
   const aiTitle = report.aiTitle?.trim();
   if (aiTitle) return aiTitle;
@@ -19,8 +13,9 @@ export function getIncidentLabel(report: Report) {
 }
 
 export function getIncidentMeta(report: Report) {
-  const category = SHORT_CATEGORY_LABELS[report.category] || report.category;
-  const categoryDetail = report.subcategory ? `${category} · ${report.subcategory}` : category;
+  const categoryDetail = report.subcategory
+    ? `${report.category} · ${report.subcategory}`
+    : report.category;
   return [report.referenceNumber, categoryDetail].filter(Boolean).join(' · ');
 }
 
