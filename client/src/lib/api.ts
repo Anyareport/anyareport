@@ -129,6 +129,58 @@ export interface Notification {
   updatedAt?: string;
 }
 
+export interface NotificationEvent {
+  id: string;
+  type: string;
+  message: string;
+  read: boolean;
+  urgent: boolean;
+  createdAt: string;
+  status: string | null;
+  actorRole: string | null;
+  actorName: string | null;
+}
+
+export interface NotificationFeedItem {
+  id: string;
+  kind: 'event' | 'status_group';
+  bucket: 'alerts' | 'updates';
+  type: string;
+  latestEventId: string;
+  message: string;
+  reportId: string | null;
+  report: {
+    referenceNumber: string | null;
+    category: string | null;
+    subcategory: string | null;
+    title: string | null;
+    severity: string | null;
+    location: string | null;
+  };
+  status: string | null;
+  actorRole: string | null;
+  actorName: string | null;
+  read: boolean;
+  unreadEventCount: number;
+  eventCount: number;
+  urgent: boolean;
+  createdAt: string;
+  earlierUpdates: NotificationEvent[];
+}
+
+export interface NotificationFeedResponse {
+  items: NotificationFeedItem[];
+  unreadCount: number;
+  unreadEventCount: number;
+  counts: {
+    all: number;
+    unread: number;
+    alerts: number;
+    updates: number;
+  };
+  nextCursor: string | null;
+}
+
 export interface AuditLog {
   _id: string;
   action: string;

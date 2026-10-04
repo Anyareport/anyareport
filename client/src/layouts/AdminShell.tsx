@@ -15,16 +15,13 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import AppShell from './AppShell';
 import { useAuth } from '../contexts/AuthContext';
-import { api, type Notification, type Report } from '../lib/api';
+import { api, type Report } from '../lib/api';
+import { useNotificationFeed } from '../lib/notificationFeed';
 
 export default function AdminShell() {
   const { role } = useAuth();
 
-  const { data: notifications = [] } = useQuery({
-    queryKey: ['admin-notifications'],
-    queryFn: () => api.get<Notification[]>('/api/notifications'),
-    refetchInterval: 30000,
-  });
+  const { data: notificationFeed } = useNotificationFeed();
 
   const { data: pendingReports = [] } = useQuery({
     queryKey: ['pending-reports'],
@@ -33,7 +30,7 @@ export default function AdminShell() {
     refetchInterval: 30000,
   });
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = notificationFeed?.pages[0]?.unreadCount ?? 0;
 
   const menuItems = useMemo(() => {
     const items = [

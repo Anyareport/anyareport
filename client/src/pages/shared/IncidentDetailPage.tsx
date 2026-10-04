@@ -32,6 +32,7 @@ import StatusTag from '../../components/StatusTag';
 import SeverityTag from '../../components/SeverityTag';
 import { StaticMap, RouteMap } from '../../components/map/MapPicker';
 import { useAuth } from '../../contexts/AuthContext';
+import { notificationFeedQueryKey } from '../../lib/notificationFeed';
 import {
   BLOTTER_REPORT_CATEGORY,
   getStatusLabel,
@@ -191,7 +192,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       api.post<{ report: Report; alreadyJoined: boolean }>(`/api/reports/${id}/backup/join`, {}),
     onSuccess: async ({ alreadyJoined }) => {
       await invalidateReportViews();
-      await queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      await queryClient.invalidateQueries({ queryKey: notificationFeedQueryKey });
       message.success(alreadyJoined ? 'You are already assisting' : 'You joined as backup');
     },
     onError: (error: Error) => message.error(error.message),

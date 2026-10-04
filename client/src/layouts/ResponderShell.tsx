@@ -8,7 +8,8 @@ import {
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import AppShell from './AppShell';
-import { api, type Notification, type Report } from '../lib/api';
+import { api, type Report } from '../lib/api';
+import { useNotificationFeed } from '../lib/notificationFeed';
 
 export default function ResponderShell() {
   const { data: reports = [] } = useQuery({
@@ -21,13 +22,8 @@ export default function ResponderShell() {
     (report) => report.status === 'pending' && !report.acknowledgedBy
   ).length;
 
-  const { data: notifications = [] } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: () => api.get<Notification[]>('/api/notifications'),
-    refetchInterval: 30000,
-  });
-
-  const unreadCount = notifications.filter((notification) => !notification.read).length;
+  const { data: notificationFeed } = useNotificationFeed();
+  const unreadCount = notificationFeed?.pages[0]?.unreadCount ?? 0;
 
   const menuItems = useMemo(
     () => [

@@ -1,159 +1,179 @@
-import { useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Badge, Button, Card, Empty, Grid, List, Space, Typography, message } from 'antd';
-import { useNavigate } from 'react-router-dom';
-import { api, type Notification } from '../../lib/api';
-import { getSocket } from '../../lib/socket';
-import PageHero from '../../components/PageHero';
+import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Alert, Button, Empty, Space, Spin, Typography, message } from 'antd';
+import { CheckOutlined } from '@ant-design/icons';
+import { api, type NotificationFeedItem } from '../../lib/api';
+import { notificationFeedQueryKey, useNotificationFeed } from '../../lib/notificationFeed';
+import NotificationCard from '../../components/NotificationCard';
 import { useAuth } from '../../contexts/AuthContext';
+import PageHero from '../../components/PageHero';
+import { FilterControl } from '../../components/StatusFilter';
 
-const { Text } = Typography;
+const { Title, Text } = Typography;
+type NotificationFilter = 'all' | 'unread' | 'alerts' | 'updates';
 
 interface NotificationsPageProps {
   title: string;
 }
 
+function getDayGroup(value: string) {
+  const date = new Date(value);
+  const today = new Date();
+  const yesterday = new Date(today);
+  today.setHours(0, 0, 0, 0);
+  yesterday.setDate(yesterday.getDate() - 1);
+  yesterday.setHours(0, 0, 0, 0);
+
+  if (date >= today) return 'Today';
+  if (date >= yesterday) return 'Yesterday';
+  return 'Earlier';
+}
+
 export default function NotificationsPage({ title }: NotificationsPageProps) {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { role } = useAuth();
-  const screens = Grid.useBreakpoint();
-  const isMobile = !screens.md;
-  const { data: notifications = [], isLoading } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: () => api.get<Notification[]>('/api/notifications'),
-    refetchInterval: 30000,
+  const feed = useNotificationFeed();
+  const [filter, setFilter] = useState<NotificationFilter>('all');
+  const pages = feed.data?.pages || [];
+  const firstPage = pages[0];
+  const counts = firstPage?.counts || { all: 0, unread: 0, alerts: 0, updates: 0 };
+  const unreadCount = firstPage?.unreadCount || 0;
+  const loadedItems = pages.flatMap((page) => page.items);
+  const filteredItems = loadedItems.filter((item) => {
+    if (filter === 'unread') return !item.read;
+    if (filter === 'alerts' || filter === 'updates') return item.bucket === filter;
+    return true;
   });
 
-  useEffect(() => {
-    const socket = getSocket();
-    const handleNotification = () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    };
-
-    socket.on('notification', handleNotification);
-    return () => {
-      socket.off('notification', handleNotification);
-    };
-  }, [queryClient]);
+  const invalidateFeed = () =>
+    queryClient.invalidateQueries({ queryKey: notificationFeedQueryKey });
 
   const markRead = useMutation({
-    mutationFn: (id: string) => api.patch(`/api/notifications/${id}/read`, {}),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    mutationFn: (item: NotificationFeedItem) => {
+      if (item.kind === 'status_group' && item.reportId) {
+        return api.patch(`/api/notifications/reports/${item.reportId}/status-updates/read`, {});
+      }
+      return api.patch(`/api/notifications/${item.latestEventId}/read`, {});
+    },
+    onSuccess: invalidateFeed,
     onError: (error: Error) => message.error(error.message),
   });
 
-  const unreadCount = notifications.filter((notification) => !notification.read).length;
+  const markAllRead = useMutation({
+    mutationFn: () => api.patch('/api/notifications/read-all', {}),
+    onSuccess: invalidateFeed,
+    onError: (error: Error) => message.error(error.message),
+  });
+
+  const getReportPath = (reportId: string) => {
+    const basePath =
+      role === 'resident'
+        ? '/resident/reports'
+        : ['tanod', 'responder'].includes(role || '')
+          ? '/responder/incidents'
+          : '/admin/incidents';
+    return `${basePath}/${encodeURIComponent(reportId)}`;
+  };
+
+  const filterOptions = [
+    { label: `All ${counts.all}`, value: 'all' },
+    { label: `Unread ${counts.unread}`, value: 'unread' },
+    { label: `Alerts ${counts.alerts}`, value: 'alerts' },
+    { label: `Updates ${counts.updates}`, value: 'updates' },
+  ];
+
+  const dayGroups = ['Today', 'Yesterday', 'Earlier'].map((day) => ({
+    day,
+    items: filteredItems.filter((item) => getDayGroup(item.createdAt) === day),
+  }));
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <PageHero
         title={title}
         description="Incident updates, urgent alerts, and system messages appear here."
-        // icon={<BellOutlined style={{ fontSize: 32 }} />}
-        badgeCount={unreadCount}
       />
 
-      <Card className="soft-card">
-        {notifications.length === 0 ? (
-          <Empty description="No notifications yet" />
-        ) : (
-          <List
-            loading={isLoading}
-            dataSource={notifications}
-            renderItem={(notification) => (
-              <List.Item
-                onClick={() => {
-                  if (!notification.reportId) return;
-                  if (!notification.read) markRead.mutate(notification._id);
-                  const basePath =
-                    role === 'resident'
-                      ? '/resident/reports'
-                      : ['tanod', 'responder'].includes(role || '')
-                        ? '/responder/incidents'
-                        : '/admin/incidents';
-                  navigate(`${basePath}/${notification.reportId}`);
-                }}
-                style={{
-                  ...(notification.reportId ? { cursor: 'pointer' } : {}),
-                  flexDirection: isMobile ? 'column' : 'row',
-                  alignItems: isMobile ? 'stretch' : 'center',
-                  gap: 12,
-                  width: '100%',
-                  overflow: 'hidden',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 12,
-                    width: '100%',
-                    minWidth: 0,
-                  }}
-                >
-                  <List.Item.Meta
-                    style={{ width: '100%', minWidth: 0 }}
-                    title={
-                      <Space wrap size={[8, 4]} style={{ width: '100%', minWidth: 0 }}>
-                        <Text
-                          strong
-                          style={{
-                            minWidth: 0,
-                            maxWidth: '100%',
-                            flex: '1 1 auto',
-                            whiteSpace: 'normal',
-                            overflowWrap: 'anywhere',
-                            textTransform: 'capitalize',
-                          }}
-                        >
-                          {notification.message}
-                        </Text>
-                        {notification.urgent && <Badge status="error" text="Urgent" />}
-                      </Space>
-                    }
-                    description={
-                      <Space direction="vertical" size={2} style={{ width: '100%' }}>
-                        <Text type="secondary">{notification.type.replace(/_/g, ' ')}</Text>
-                        <Text type="secondary">
-                          {new Date(notification.createdAt).toLocaleString()}
-                        </Text>
-                      </Space>
-                    }
-                  />
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'flex-start',
-                      width: '100%',
-                      marginTop: 0,
-                    }}
-                  >
-                    <Button
-                      type={notification.read ? 'default' : 'primary'}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        markRead.mutate(notification._id);
-                      }}
-                      disabled={notification.read}
-                      style={{
-                        minHeight: 44,
-                        padding: '0 16px',
-                        borderRadius: 8,
-                        width: isMobile ? '100%' : undefined,
-                        opacity: notification.read ? 0.6 : 1,
-                        cursor: notification.read ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      {notification.read ? 'Read ' : 'Mark read'}
-                    </Button>
-                  </div>
-                </div>
-              </List.Item>
-            )}
-          />
-        )}
-      </Card>
+      <div className="toolbar-row">
+        <FilterControl
+          value={filter}
+          onChange={(value) => setFilter(value as NotificationFilter)}
+          options={filterOptions}
+          ariaLabel="Filter notifications"
+        />
+        <Button
+          type="default"
+          icon={<CheckOutlined />}
+          loading={markAllRead.isPending}
+          disabled={unreadCount === 0}
+          onClick={() => markAllRead.mutate()}
+        >
+          Mark all as read
+        </Button>
+      </div>
+
+      {feed.isPending ? (
+        <div className="notifications-page__empty">
+          <Spin />
+        </div>
+      ) : feed.isError && loadedItems.length === 0 ? (
+        <Alert
+          type="error"
+          showIcon
+          title="Notifications could not be loaded"
+          description={feed.error.message}
+          action={<Button onClick={() => feed.refetch()}>Retry</Button>}
+        />
+      ) : filteredItems.length === 0 ? (
+        <div className="notifications-page__empty">
+          {feed.hasNextPage && filter !== 'all' ? (
+            <Text type="secondary">
+              No matching notifications on this page. Load older items to continue.
+            </Text>
+          ) : (
+            <Empty
+              description={filter === 'unread' ? 'You are all caught up' : 'No notifications yet'}
+            />
+          )}
+        </div>
+      ) : (
+        <div>
+          {dayGroups.map(
+            ({ day, items }) =>
+              items.length > 0 && (
+                <section key={day} aria-label={day}>
+                  <Title level={5} className="notification-day__heading">
+                    {day}
+                  </Title>
+                  <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                    {items.map((item) => (
+                      <NotificationCard
+                        key={item.id}
+                        item={item}
+                        role={role}
+                        to={item.reportId ? getReportPath(item.reportId) : null}
+                        onOpen={() => {
+                          if (!item.read) markRead.mutate(item);
+                        }}
+                      />
+                    ))}
+                  </Space>
+                </section>
+              )
+          )}
+        </div>
+      )}
+
+      {feed.hasNextPage && (
+        <Button
+          className="notifications-page__load-more"
+          type="text"
+          loading={feed.isFetchingNextPage}
+          onClick={() => feed.fetchNextPage()}
+        >
+          Load older notifications
+        </Button>
+      )}
     </Space>
   );
 }

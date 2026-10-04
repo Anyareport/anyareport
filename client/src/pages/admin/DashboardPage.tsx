@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { Card, Col, Row, Statistic, Space, Typography, List, Button } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { api, type Analytics, type Notification, type Report } from '../../lib/api';
+import { api, type Analytics, type Report } from '../../lib/api';
 import { adminDashboardRoles } from '../../lib/roles';
 import IncidentCard from '../../components/IncidentCard';
 import PageHero from '../../components/PageHero';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotificationFeed } from '../../lib/notificationFeed';
 
 const { Text } = Typography;
 
@@ -24,11 +25,7 @@ export default function AdminDashboardPage() {
     refetchInterval: 30000,
   });
 
-  const { data: notifications = [] } = useQuery({
-    queryKey: ['admin-dashboard-notifications'],
-    queryFn: () => api.get<Notification[]>('/api/notifications'),
-    refetchInterval: 30000,
-  });
+  const { data: notificationFeed } = useNotificationFeed();
 
   const { data: inactivityMonitor } = useQuery({
     queryKey: ['captain-inactive-reports'],
@@ -64,7 +61,7 @@ export default function AdminDashboardPage() {
           <Card className="soft-card">
             <Statistic
               title="Unread notifications"
-              value={notifications.filter((n) => !n.read).length}
+              value={notificationFeed?.pages[0]?.unreadCount ?? 0}
             />
           </Card>
         </Col>

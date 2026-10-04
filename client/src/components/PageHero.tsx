@@ -11,6 +11,8 @@ export interface PageHeroProps {
     type?: ButtonType;
     icon?: ReactNode;
     label: string;
+    disabled?: boolean;
+    loading?: boolean;
     onClick?: () => void;
     href?: string;
   }>;
@@ -52,6 +54,8 @@ export default function PageHero({
                 key={index}
                 type={action.type || 'primary'}
                 icon={action.icon}
+                disabled={action.disabled}
+                loading={action.loading}
                 onClick={action.onClick}
                 href={action.href}
                 target={action.href ? '_self' : undefined}

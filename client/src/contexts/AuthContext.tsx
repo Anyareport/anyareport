@@ -2,8 +2,9 @@ import { createContext, useContext, useEffect, useState, useCallback, type React
 import { useQueryClient } from '@tanstack/react-query';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { auth } from '../lib/firebase';
-import { api, type Notification, type UserProfile } from '../lib/api';
+import { api, type UserProfile } from '../lib/api';
 import { getSocket, disconnectSocket } from '../lib/socket';
+import { notificationFeedQueryKey } from '../lib/notificationFeed';
 
 interface AuthContextType {
   firebaseUser: FirebaseUser | null;
@@ -62,11 +63,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!role) return;
 
     const socket = getSocket(role);
-    const handleNotification = (notification: Notification) => {
-      queryClient.setQueryData<Notification[]>(['notifications'], (current = []) => {
-        if (current.some((item) => item._id === notification._id)) return current;
-        return [notification, ...current];
-      });
+    const handleNotification = () => {
+      void queryClient.invalidateQueries({ queryKey: notificationFeedQueryKey });
     };
 
     socket.on('notification', handleNotification);

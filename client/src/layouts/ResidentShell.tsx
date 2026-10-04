@@ -7,19 +7,12 @@ import {
 } from '@ant-design/icons';
 import { useLocation } from 'react-router-dom';
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import AppShell from './AppShell';
-import { api, type Notification } from '../lib/api';
+import { useNotificationFeed } from '../lib/notificationFeed';
 
 export default function ResidentShell() {
-  const { data: notifications = [] } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: () => api.get<Notification[]>('/api/notifications'),
-    staleTime: 30_000,
-    refetchInterval: 30000,
-  });
-
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const { data: notificationFeed } = useNotificationFeed();
+  const unreadCount = notificationFeed?.pages[0]?.unreadCount ?? 0;
 
   const location = useLocation();
 

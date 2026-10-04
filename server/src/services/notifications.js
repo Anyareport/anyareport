@@ -1,7 +1,66 @@
 import Notification from '../models/Notification.js';
+import Report from '../models/Report.js';
 import User from '../models/User.js';
+import {
+  buildNotificationFeedPipeline,
+  decodeNotificationCursor,
+  encodeNotificationCursor,
+  parseLegacyStatusNotification,
+} from './notificationFeed.js';
+import { normalizeReportStatus } from './reportWorkflow.js';
 
 let ioInstance = null;
+const NOTIFICATION_ROLES_BY_CATEGORY = {
+  'Blotter Cases': ['captain', 'secretary'],
+  'Public Concerns': ['tanod'],
+  'Emergency Situations': ['captain', 'responder'],
+};
+
+export function getNotificationRecipientRoles(category) {
+  return [...(NOTIFICATION_ROLES_BY_CATEGORY[category] || [])];
+}
+
+function getReportSnapshot(report) {
+  return {
+    referenceNumber: report.referenceNumber || null,
+    category: report.category || null,
+    subcategory: report.subcategory || null,
+    title: report.aiTitle?.trim() || report.subcategory || report.category || null,
+    severity: report.severity || null,
+    location: report.location?.address || null,
+  };
+}
+
+function serializeEvent(event) {
+  const legacy = parseLegacyStatusNotification(event.message || '');
+  const status = event.statusSnapshot || legacy.statusSnapshot;
+
+  return {
+    id: String(event._id),
+    type: event.type,
+    message: event.message,
+    read: Boolean(event.read),
+    urgent: Boolean(event.urgent),
+    createdAt: new Date(event.createdAt).toISOString(),
+    status: status ? normalizeReportStatus(status) : null,
+    actorRole: event.actorRole || null,
+    actorName: event.actorName || legacy.actorName || null,
+  };
+}
+
+function mergeReportSnapshot(snapshot, report) {
+  const fallback = report ? getReportSnapshot(report) : {};
+  const source = snapshot || {};
+
+  return {
+    referenceNumber: source.referenceNumber || fallback.referenceNumber || null,
+    category: source.category || fallback.category || null,
+    subcategory: source.subcategory || fallback.subcategory || null,
+    title: source.title || fallback.title || null,
+    severity: source.severity || fallback.severity || null,
+    location: source.location || fallback.location || null,
+  };
+}
 
 export function setSocketIO(io) {
   ioInstance = io;
@@ -11,11 +70,9 @@ export async function notifyOnNewReport(report) {
   const isEmergency = report.category === 'Emergency Situations';
   const reportTitle = report.aiTitle?.trim() || report.subcategory || report.category;
   const reference = report.referenceNumber ? ` (${report.referenceNumber})` : '';
-  const rolesToNotify =
-    report.category === 'Blotter Cases'
-      ? ['captain', 'secretary']
-      : ['tanod', 'responder', 'captain'];
+  const rolesToNotify = getNotificationRecipientRoles(report.category);
   const users = await User.find({ role: { $in: rolesToNotify }, status: 'active' });
+  const reportSnapshot = getReportSnapshot(report);
 
   const notifications = [];
   for (const user of users) {
@@ -25,7 +82,9 @@ export async function notifyOnNewReport(report) {
       reportId: report._id,
       type: 'incident_received',
       message: `New report${reference}: ${reportTitle}`,
-      urgent: user.role === 'captain' && isEmergency,
+      urgent: isEmergency,
+      reportSnapshot,
+      actorRole: 'resident',
     });
     notifications.push(notif);
 
@@ -41,7 +100,7 @@ export async function notifyOnNewReport(report) {
   return notifications;
 }
 
-export async function notifyOnStatusUpdate(report, status, updatedBy) {
+export async function notifyOnStatusUpdate(report, status, updatedBy, updatedByRole) {
   const user = await User.findOne({ firebaseUid: report.submittedBy });
   if (!user) return null;
   const reference = report.referenceNumber ? ` (${report.referenceNumber})` : '';
@@ -52,6 +111,10 @@ export async function notifyOnStatusUpdate(report, status, updatedBy) {
     reportId: report._id,
     type: 'report_status_updated',
     message: `Your report${reference} status was updated to ${status.replace(/_/g, ' ')} by ${updatedBy}.`,
+    reportSnapshot: getReportSnapshot(report),
+    statusSnapshot: normalizeReportStatus(status),
+    actorRole: updatedByRole || null,
+    actorName: updatedBy,
   });
 
   if (ioInstance) {
@@ -61,8 +124,9 @@ export async function notifyOnStatusUpdate(report, status, updatedBy) {
   return notification;
 }
 
-export async function notifyBackupRequest(report, requesterName) {
+export async function notifyBackupRequest(report, requesterName, requesterRole) {
   const reference = report.referenceNumber ? ` (${report.referenceNumber})` : '';
+  const reportSnapshot = getReportSnapshot(report);
   const users = await User.find({
     role: { $in: ['tanod', 'responder'] },
     status: 'active',
@@ -78,6 +142,9 @@ export async function notifyBackupRequest(report, requesterName) {
         type: 'backup_requested',
         message: `${requesterName} requested backup for ${report.category}${reference}.`,
         urgent: true,
+        reportSnapshot,
+        actorRole: requesterRole || null,
+        actorName: requesterName,
       })
     )
   );
@@ -91,7 +158,7 @@ export async function notifyBackupRequest(report, requesterName) {
   return notifications;
 }
 
-export async function notifyBackupJoined(report, helperName) {
+export async function notifyBackupJoined(report, helperName, helperRole) {
   const owner = await User.findOne({ firebaseUid: report.acknowledgedBy })
     .select('firebaseUid role')
     .lean();
@@ -104,6 +171,9 @@ export async function notifyBackupJoined(report, helperName) {
     reportId: report._id,
     type: 'backup_joined',
     message: `${helperName} joined your incident${reference} as backup.`,
+    reportSnapshot: getReportSnapshot(report),
+    actorRole: helperRole || null,
+    actorName: helperName,
   });
 
   if (ioInstance) {
@@ -113,8 +183,68 @@ export async function notifyBackupJoined(report, helperName) {
   return notification;
 }
 
-export async function getNotificationsForUser(firebaseUid) {
-  return Notification.find({ recipientUid: firebaseUid }).sort({ createdAt: -1 }).limit(50);
+export async function getNotificationsForUser(
+  firebaseUid,
+  { cursor: cursorValue, limit = 20 } = {}
+) {
+  const cursor = decodeNotificationCursor(cursorValue);
+  const [result] = await Notification.aggregate(
+    buildNotificationFeedPipeline(firebaseUid, limit, cursor)
+  ).allowDiskUse(true);
+  const groupedItems = result?.items || [];
+  const hasMore = groupedItems.length > limit;
+  const pageItems = hasMore ? groupedItems.slice(0, limit) : groupedItems;
+  const reportIds = [
+    ...new Set(pageItems.map((item) => item.latest.reportId?.toString()).filter(Boolean)),
+  ];
+  const reports = reportIds.length
+    ? await Report.find({ _id: { $in: reportIds } })
+        .select('referenceNumber category subcategory aiTitle severity location')
+        .lean()
+    : [];
+  const reportById = new Map(reports.map((report) => [String(report._id), report]));
+  const items = pageItems.map((item) => {
+    const latest = serializeEvent(item.latest);
+    const reportId = item.latest.reportId?.toString() || null;
+    const report = reportId ? reportById.get(reportId) : null;
+    const eventDetails = item.kind === 'status_group' ? item.events.map(serializeEvent) : [latest];
+
+    return {
+      id: item._id,
+      kind: item.kind,
+      bucket: item.bucket,
+      type: latest.type,
+      latestEventId: latest.id,
+      message: latest.message,
+      reportId,
+      report: mergeReportSnapshot(item.latest.reportSnapshot, report),
+      status: latest.status,
+      actorRole: latest.actorRole,
+      actorName: latest.actorName,
+      read: Boolean(item.read),
+      unreadEventCount: item.unreadEventCount,
+      eventCount: item.eventCount,
+      urgent: Boolean(item.urgent),
+      createdAt: latest.createdAt,
+      earlierUpdates: item.kind === 'status_group' ? eventDetails.slice(1) : [],
+    };
+  });
+  const countData = result?.counts?.[0] || {};
+  const lastItem = pageItems[pageItems.length - 1];
+
+  return {
+    items,
+    unreadCount: countData.unread || 0,
+    unreadEventCount: countData.unreadEvents || 0,
+    counts: {
+      all: countData.all || 0,
+      unread: countData.unread || 0,
+      alerts: countData.alerts || 0,
+      updates: countData.updates || 0,
+    },
+    nextCursor:
+      hasMore && lastItem ? encodeNotificationCursor(lastItem.createdAt, lastItem._id) : null,
+  };
 }
 
 export async function markNotificationRead(id, firebaseUid) {
@@ -122,5 +252,19 @@ export async function markNotificationRead(id, firebaseUid) {
     { _id: id, recipientUid: firebaseUid },
     { read: true },
     { new: true }
+  );
+}
+
+export async function markNotificationGroupRead(reportId, firebaseUid) {
+  return Notification.updateMany(
+    { recipientUid: firebaseUid, reportId, type: 'report_status_updated', read: false },
+    { $set: { read: true } }
+  );
+}
+
+export async function markAllNotificationsRead(firebaseUid) {
+  return Notification.updateMany(
+    { recipientUid: firebaseUid, read: false },
+    { $set: { read: true } }
   );
 }

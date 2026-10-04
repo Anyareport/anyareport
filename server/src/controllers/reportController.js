@@ -388,7 +388,7 @@ export async function flagReport(req, res) {
       await submitter.save();
     }
 
-    await notifyOnStatusUpdate(report, 'flagged', updatedBy);
+    await notifyOnStatusUpdate(report, 'flagged', updatedBy, req.userRole);
 
     await logAudit('report_flagged', req, report._id, {
       submitterUid: report.submittedBy,
@@ -451,7 +451,7 @@ async function applyReportTransition(req, report, toStatus) {
   }
 
   await notifyBestEffort(
-    notifyOnStatusUpdate(updatedReport, decision.update.status, updatedBy),
+    notifyOnStatusUpdate(updatedReport, decision.update.status, updatedBy, req.userRole),
     'Report status update'
   );
   return { report: updatedReport };
@@ -554,7 +554,10 @@ export async function requestBackup(req, res) {
     }
 
     const requesterName = await resolveActorName(req.firebaseUser.uid);
-    await notifyBestEffort(notifyBackupRequest(updatedReport, requesterName), 'Backup request');
+    await notifyBestEffort(
+      notifyBackupRequest(updatedReport, requesterName, req.userRole),
+      'Backup request'
+    );
     res.json({ report: serializeReport(updatedReport), alreadyRequested: false });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -620,7 +623,10 @@ export async function joinBackupRequest(req, res) {
     }
 
     const helperName = await resolveActorName(req.firebaseUser.uid);
-    await notifyBestEffort(notifyBackupJoined(updatedReport, helperName), 'Backup join');
+    await notifyBestEffort(
+      notifyBackupJoined(updatedReport, helperName, req.userRole),
+      'Backup join'
+    );
     res.json({ report: serializeReport(updatedReport), alreadyJoined: false });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -720,7 +726,9 @@ export async function getCategories(req, res) {
 export async function getAnalytics(req, res) {
   try {
     const match = {};
-    const period = ['all', 'week', 'month', 'year'].includes(req.query.period) ? req.query.period : 'month';
+    const period = ['all', 'week', 'month', 'year'].includes(req.query.period)
+      ? req.query.period
+      : 'month';
     if (period !== 'all') {
       const periodDays = { week: 7, month: 30, year: 365 }[period];
       match.createdAt = { $gte: new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000) };

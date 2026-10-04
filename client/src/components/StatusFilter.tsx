@@ -1,7 +1,10 @@
+import type { ReactNode } from 'react';
 import { Grid, Segmented, Select } from 'antd';
 import { formatStatus } from './StatusTag';
 
-const options = [
+type FilterOption = { value: string; label: ReactNode };
+
+const statusOptions: FilterOption[] = [
   { value: 'all', label: 'All' },
   { value: 'pending', label: formatStatus('pending') },
   { value: 'coordinating', label: formatStatus('coordinating') },
@@ -15,13 +18,23 @@ interface StatusFilterProps {
   onChange: (value: string) => void;
 }
 
-export default function StatusFilter({ value, onChange }: StatusFilterProps) {
+interface FilterControlProps extends StatusFilterProps {
+  options: FilterOption[];
+  ariaLabel?: string;
+}
+
+export function FilterControl({
+  value,
+  onChange,
+  options,
+  ariaLabel = 'Filter options',
+}: FilterControlProps) {
   const screens = Grid.useBreakpoint();
 
   if (!screens.md) {
     return (
       <Select
-        aria-label="Filter incidents by status"
+        aria-label={ariaLabel}
         value={value}
         options={options}
         onChange={onChange}
@@ -30,5 +43,22 @@ export default function StatusFilter({ value, onChange }: StatusFilterProps) {
     );
   }
 
-  return <Segmented value={value} options={options} onChange={onChange} />;
+  return (
+    <Segmented
+      value={value}
+      options={options}
+      onChange={(nextValue) => onChange(String(nextValue))}
+    />
+  );
+}
+
+export default function StatusFilter({ value, onChange }: StatusFilterProps) {
+  return (
+    <FilterControl
+      value={value}
+      onChange={onChange}
+      options={statusOptions}
+      ariaLabel="Filter incidents by status"
+    />
+  );
 }
