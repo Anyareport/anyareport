@@ -1,16 +1,19 @@
 import {
   AlertOutlined,
+  BellOutlined,
   CheckCircleOutlined,
+  ClockCircleOutlined,
   DownOutlined,
   TeamOutlined,
   SyncOutlined,
+  UserAddOutlined,
 } from '@ant-design/icons';
-import { Button, Card, Typography } from 'antd';
-import { Link } from 'react-router-dom';
+import { Button, Typography } from 'antd';
 import { useState } from 'react';
 import type { NotificationFeedItem } from '../lib/api';
 import { getStatusLabel } from '../lib/reportWorkflow';
 import SeverityTag from './SeverityTag';
+import FeedCard from './FeedCard';
 
 const { Text } = Typography;
 
@@ -86,12 +89,37 @@ function getHeadline(item: NotificationFeedItem, role: string | null) {
   return item.message;
 }
 
-function getIcon(item: NotificationFeedItem) {
-  if (item.type === 'backup_requested') return <TeamOutlined />;
-  if (item.type === 'backup_joined') return <CheckCircleOutlined />;
-  if (item.kind === 'status_group') return <SyncOutlined />;
-  if (item.report.category === 'Emergency Situations') return <AlertOutlined />;
-  return <CheckCircleOutlined />;
+function getIconKind(item: NotificationFeedItem) {
+  if (item.type === 'backup_requested') return 'backup-requested';
+  if (item.type === 'backup_joined') return 'backup-joined';
+  if (item.kind === 'status_group') {
+    if (item.status === 'resolved') return 'resolved';
+    if (item.status === 'flagged') return 'flagged';
+    if (item.status === 'coordinating' || item.status === 'in_progress') return 'in-progress';
+    return 'pending';
+  }
+  if (item.report.category === 'Emergency Situations') return 'emergency';
+  return 'new-report';
+}
+
+function getIcon(kind: string) {
+  switch (kind) {
+    case 'backup-requested':
+      return <TeamOutlined />;
+    case 'backup-joined':
+      return <UserAddOutlined />;
+    case 'resolved':
+      return <CheckCircleOutlined />;
+    case 'flagged':
+    case 'emergency':
+      return <AlertOutlined />;
+    case 'in-progress':
+      return <SyncOutlined />;
+    case 'pending':
+      return <ClockCircleOutlined />;
+    default:
+      return <BellOutlined />;
+  }
 }
 
 function getContext(item: NotificationFeedItem, role: string | null) {
@@ -106,16 +134,21 @@ function getContext(item: NotificationFeedItem, role: string | null) {
 export default function NotificationCard({ item, role, to, onOpen }: NotificationCardProps) {
   const [expanded, setExpanded] = useState(false);
   const context = getContext(item, role);
+  const iconKind = getIconKind(item);
+  const severityClass = item.report.severity
+    ? ` notification-card--severity-${item.report.severity.toLowerCase()}`
+    : '';
   const content = (
     <div className="notification-card__row">
-      <div
-        className={`notification-card__icon${item.type === 'incident_received' && item.report.category === 'Emergency Situations' ? ' notification-card__icon--emergency' : ''}`}
-      >
-        {getIcon(item)}
+      <div className={`notification-card__icon notification-card__icon--${iconKind}`}>
+        {getIcon(iconKind)}
       </div>
       <div className="notification-card__body">
         <div className="notification-card__topline">
-          <Text className="notification-card__headline">{getHeadline(item, role)}</Text>
+          <div className="notification-card__headline-row">
+            <Text className="notification-card__headline">{getHeadline(item, role)}</Text>
+            <SeverityTag severity={item.report.severity} />
+          </div>
           <Text
             type="secondary"
             className="notification-card__time"
@@ -130,59 +163,52 @@ export default function NotificationCard({ item, role, to, onOpen }: Notificatio
           {item.report.category && <span>{item.report.category}</span>}
           {item.report.location && <span>{item.report.location}</span>}
           {context && <span>{context}</span>}
-          <SeverityTag severity={item.report.severity} />
         </div>
       </div>
       {!item.read && <span className="notification-card__unread-dot" aria-label="Unread" />}
     </div>
   );
+  const earlierUpdates = item.kind === 'status_group' && item.earlierUpdates.length > 0 && (
+    <>
+      <Button
+        type="link"
+        size="small"
+        className="notification-card__expand"
+        onClick={() => setExpanded((value) => !value)}
+        aria-expanded={expanded}
+      >
+        <DownOutlined className={expanded ? 'notification-card__chevron--open' : ''} />
+        {expanded
+          ? 'Hide earlier updates'
+          : `Show ${item.earlierUpdates.length} earlier ${item.earlierUpdates.length === 1 ? 'update' : 'updates'}`}
+      </Button>
+      {expanded && (
+        <ol className="notification-card__history">
+          {item.earlierUpdates.map((update) => {
+            const actor = getActorLabel(update.actorRole, update.actorName, role);
+            return (
+              <li key={update.id}>
+                <span>{getStatusLabel(update.status || 'pending')}</span>
+                {actor && <span> by {actor}</span>}
+                <Text type="secondary" title={new Date(update.createdAt).toLocaleString()}>
+                  {formatRelativeTime(update.createdAt)}
+                </Text>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </>
+  );
 
   return (
-    <Card
-      size="small"
-      hoverable={Boolean(to)}
-      className={`notification-card${item.read ? '' : ' notification-card--unread'}`}
+    <FeedCard
+      to={to}
+      onClick={onOpen}
+      afterLink={earlierUpdates}
+      className={`notification-card${item.read ? '' : ' notification-card--unread'}${severityClass}`}
     >
-      {to ? (
-        <Link to={to} className="notification-card__link" onClick={onOpen}>
-          {content}
-        </Link>
-      ) : (
-        content
-      )}
-
-      {item.kind === 'status_group' && item.earlierUpdates.length > 0 && (
-        <>
-          <Button
-            type="link"
-            size="small"
-            className="notification-card__expand"
-            onClick={() => setExpanded((value) => !value)}
-            aria-expanded={expanded}
-          >
-            <DownOutlined className={expanded ? 'notification-card__chevron--open' : ''} />
-            {expanded
-              ? 'Hide earlier updates'
-              : `Show ${item.earlierUpdates.length} earlier ${item.earlierUpdates.length === 1 ? 'update' : 'updates'}`}
-          </Button>
-          {expanded && (
-            <ol className="notification-card__history">
-              {item.earlierUpdates.map((update) => {
-                const actor = getActorLabel(update.actorRole, update.actorName, role);
-                return (
-                  <li key={update.id}>
-                    <span>{getStatusLabel(update.status || 'pending')}</span>
-                    {actor && <span> by {actor}</span>}
-                    <Text type="secondary" title={new Date(update.createdAt).toLocaleString()}>
-                      {formatRelativeTime(update.createdAt)}
-                    </Text>
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-        </>
-      )}
-    </Card>
+      {content}
+    </FeedCard>
   );
 }

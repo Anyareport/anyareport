@@ -147,6 +147,18 @@ a {
   width: 100%;
 }
 
+.feed-card__link {
+  display: block;
+  border-radius: 4px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.feed-card__link:focus-visible {
+  outline: 2px solid var(--brand-color-info);
+  outline-offset: 3px;
+}
+
 .notification-day__heading.ant-typography {
   margin: 12px 0 8px;
   color: var(--text-secondary);
@@ -156,30 +168,14 @@ a {
 }
 
 .notification-card.ant-card {
-  border: 1px solid var(--border-light);
-  border-inline-start: 3px solid var(--border-light);
+  border: 1px solid var(--border-default);
+  border-inline-start: 3px solid var(--border-default);
   border-radius: 8px;
   box-shadow: none;
 }
 
-.notification-card--unread.ant-card {
-  border-inline-start-color: var(--brand-color-info);
-}
-
 .notification-card .ant-card-body {
   padding: 12px 14px;
-}
-
-.notification-card__link {
-  display: block;
-  border-radius: 4px;
-  color: inherit;
-  text-decoration: none;
-}
-
-.notification-card__link:focus-visible {
-  outline: 2px solid var(--brand-color-info);
-  outline-offset: 3px;
 }
 
 .notification-card__row {
@@ -199,7 +195,26 @@ a {
   color: var(--text-secondary);
 }
 
-.notification-card__icon--emergency {
+.notification-card__icon--new-report,
+.notification-card__icon--pending {
+  background: var(--status-pending-bg);
+  color: var(--status-pending-text);
+}
+
+.notification-card__icon--backup-requested,
+.notification-card__icon--in-progress {
+  background: var(--status-coordinating-bg);
+  color: var(--status-coordinating-text);
+}
+
+.notification-card__icon--backup-joined,
+.notification-card__icon--resolved {
+  background: var(--severity-low-bg);
+  color: var(--severity-low-text);
+}
+
+.notification-card__icon--emergency,
+.notification-card__icon--flagged {
   background: var(--severity-critical-bg);
   color: var(--severity-critical-text);
 }
@@ -217,6 +232,15 @@ a {
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
+}
+
+.notification-card__headline-row {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
 }
 
 .notification-card__headline.ant-typography {
