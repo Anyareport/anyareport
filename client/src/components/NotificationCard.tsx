@@ -158,12 +158,12 @@ export default function NotificationCard({ item, role, to, onOpen }: Notificatio
           </Text>
         </div>
 
-        <div className="notification-card__details">
+        <Text type="secondary" className="notification-card__details">
           {item.report.referenceNumber && <span>{item.report.referenceNumber}</span>}
           {item.report.category && <span>{item.report.category}</span>}
           {item.report.location && <span>{item.report.location}</span>}
           {context && <span>{context}</span>}
-        </div>
+        </Text>
       </div>
       {!item.read && <span className="notification-card__unread-dot" aria-label="Unread" />}
     </div>
