@@ -6,7 +6,7 @@ import {
   encodeNotificationCursor,
   parseLegacyStatusNotification,
 } from './notificationFeed.js';
-import { getNotificationRecipientRoles } from './notifications.js';
+import { getNotificationRecipientRoles, getReportChangeRooms } from './notifications.js';
 
 test('notification cursor round-trips its timestamp and stable feed id', () => {
   const createdAt = new Date('2026-10-04T10:15:00.000Z');
@@ -77,4 +77,29 @@ test('new-report notification recipients follow the three report categories', ()
   assert.deepEqual(getNotificationRecipientRoles('Blotter Cases'), ['captain', 'secretary']);
   assert.deepEqual(getNotificationRecipientRoles('Emergency Situations'), ['captain', 'responder']);
   assert.deepEqual(getNotificationRecipientRoles('Unknown'), []);
+});
+
+test('report change rooms follow report visibility and include the submitter only', () => {
+  assert.deepEqual(
+    getReportChangeRooms({
+      _id: 'report-1',
+      category: 'Blotter Cases',
+      submittedBy: 'resident-1',
+    }),
+    ['role:admin', 'role:captain', 'role:secretary', 'user:resident-1']
+  );
+  assert.deepEqual(
+    getReportChangeRooms({
+      _id: 'report-2',
+      category: 'Emergency Situations',
+      submittedBy: 'resident-2',
+    }),
+    [
+      'role:admin',
+      'role:captain',
+      'role:tanod',
+      'role:responder',
+      'user:resident-2',
+    ]
+  );
 });

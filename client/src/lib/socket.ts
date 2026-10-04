@@ -1,20 +1,28 @@
 import { io, Socket } from 'socket.io-client';
+import { auth as firebaseAuth } from './firebase';
 
 let socket: Socket | null = null;
-let joinedRole: string | undefined;
 
-export function getSocket(role?: string): Socket {
+export function getSocket(): Socket {
   if (!socket) {
     socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000', {
       autoConnect: true,
+      auth: (callback) => {
+        const user = firebaseAuth.currentUser;
+        if (!user) {
+          callback({ token: '' });
+          return;
+        }
+
+        void user
+          .getIdToken()
+          .then((token) => callback({ token }))
+          .catch((error: unknown) => {
+            console.error('[Socket] Failed to obtain Firebase ID token:', error);
+            callback({ token: '' });
+          });
+      },
     });
-    socket.on('connect', () => {
-      if (joinedRole) socket?.emit('join_role', joinedRole);
-    });
-  }
-  if (role) {
-    joinedRole = role;
-    if (socket.connected) socket.emit('join_role', role);
   }
   return socket;
 }
@@ -24,5 +32,4 @@ export function disconnectSocket() {
     socket.disconnect();
     socket = null;
   }
-  joinedRole = undefined;
 }

@@ -6,6 +6,8 @@ import AuditLog from '../models/AuditLog.js';
 import Category from '../models/Category.js';
 import { classifyReport } from '../services/gemini.js';
 import {
+  disconnectUserSockets,
+  emitReportChanged,
   notifyBackupJoined,
   notifyBackupRequest,
   notifyOnNewReport,
@@ -154,7 +156,7 @@ export async function createReport(req, res) {
         { status: 'pending', updatedBy: await resolveActorName(req.firebaseUser.uid) },
       ],
     });
-
+    await logAudit('report_submitted', req, report._id, { category });
     await logAudit('report_submitted', req, report._id, { category });
     if (aiSuggestedCategory) {
       await logSystemAudit('report_classified', report._id, {
@@ -170,6 +172,7 @@ export async function createReport(req, res) {
         ],
       });
     }
+    emitReportChanged(report, 'created');
     res.status(201).json(serializeReport(report));
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -393,6 +396,10 @@ export async function flagReport(req, res) {
     await logAudit('report_flagged', req, report._id, {
       submitterUid: report.submittedBy,
     });
+    emitReportChanged(report, 'updated');
+    if (submitter?.status === 'suspended') {
+      disconnectUserSockets(submitter.firebaseUid);
+    }
 
     res.json(report);
   } catch (err) {
@@ -450,6 +457,7 @@ async function applyReportTransition(req, report, toStatus) {
     return { statusCode: 409, error: 'The report changed before your action completed' };
   }
 
+  emitReportChanged(updatedReport, 'updated');
   await notifyBestEffort(
     notifyOnStatusUpdate(updatedReport, decision.update.status, updatedBy, req.userRole),
     'Report status update'
@@ -553,6 +561,7 @@ export async function requestBackup(req, res) {
         .json({ error: 'The incident changed before backup could be requested' });
     }
 
+    emitReportChanged(updatedReport, 'updated');
     const requesterName = await resolveActorName(req.firebaseUser.uid);
     await notifyBestEffort(
       notifyBackupRequest(updatedReport, requesterName, req.userRole),
@@ -622,6 +631,7 @@ export async function joinBackupRequest(req, res) {
       return res.status(409).json({ error: 'The backup request was closed or has changed' });
     }
 
+    emitReportChanged(updatedReport, 'updated');
     const helperName = await resolveActorName(req.firebaseUser.uid);
     await notifyBestEffort(
       notifyBackupJoined(updatedReport, helperName, req.userRole),
@@ -708,6 +718,7 @@ export async function closeBackupRequest(req, res) {
         .json({ error: 'The incident changed before the backup request closed' });
     }
 
+    emitReportChanged(closedReport, 'updated');
     res.json({ report: closedReport, alreadyClosed: false });
   } catch (err) {
     res.status(500).json({ error: err.message });

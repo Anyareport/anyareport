@@ -7,7 +7,11 @@ import {
   encodeNotificationCursor,
   parseLegacyStatusNotification,
 } from './notificationFeed.js';
-import { normalizeReportStatus } from './reportWorkflow.js';
+import {
+  BLOTTER_REPORT_CATEGORY,
+  FIELD_REPORT_CATEGORIES,
+  normalizeReportStatus,
+} from './reportWorkflow.js';
 
 let ioInstance = null;
 const NOTIFICATION_ROLES_BY_CATEGORY = {
@@ -64,6 +68,34 @@ function mergeReportSnapshot(snapshot, report) {
 
 export function setSocketIO(io) {
   ioInstance = io;
+}
+
+export function getReportChangeRooms(report) {
+  const rooms = ['role:admin', 'role:captain'];
+  if (report.category === BLOTTER_REPORT_CATEGORY) {
+    rooms.push('role:secretary');
+  }
+  if (FIELD_REPORT_CATEGORIES.includes(report.category)) {
+    rooms.push('role:tanod', 'role:responder');
+  }
+  if (report.submittedBy) rooms.push(`user:${report.submittedBy}`);
+  return rooms;
+}
+
+export function emitReportChanged(report, changeType) {
+  if (!ioInstance) return;
+  const event = {
+    reportId: String(report._id),
+    category: report.category,
+    changeType,
+  };
+  getReportChangeRooms(report).forEach((room) => {
+    ioInstance.to(room).emit('report:changed', event);
+  });
+}
+
+export function disconnectUserSockets(firebaseUid) {
+  ioInstance?.in(`user:${firebaseUid}`).disconnectSockets(true);
 }
 
 export async function notifyOnNewReport(report) {

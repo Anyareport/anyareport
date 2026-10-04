@@ -5,6 +5,7 @@ import { auth } from '../lib/firebase';
 import { api, type UserProfile } from '../lib/api';
 import { getSocket, disconnectSocket } from '../lib/socket';
 import { notificationFeedQueryKey } from '../lib/notificationFeed';
+import { invalidateReportQueries, type ReportChangeEvent } from '../lib/reportUpdates';
 
 interface AuthContextType {
   firebaseUser: FirebaseUser | null;
@@ -32,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const p = await api.get<UserProfile>('/api/auth/profile');
       setProfile(p);
-      if (p.role) getSocket(p.role);
+      if (p.role) getSocket();
     } catch {
       setProfile(null);
     }
@@ -40,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
+      disconnectSocket();
       setFirebaseUser(user);
       if (user) {
         try {
@@ -50,7 +52,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } else {
         setProfile(null);
-        disconnectSocket();
       }
       setLoading(false);
     });
@@ -62,14 +63,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!role) return;
 
-    const socket = getSocket(role);
+    const socket = getSocket();
     const handleNotification = () => {
       void queryClient.invalidateQueries({ queryKey: notificationFeedQueryKey });
     };
+    const handleReportChange = (event: ReportChangeEvent) => {
+      void invalidateReportQueries(queryClient, event.reportId);
+    };
+    const handleReconnect = () => {
+      void invalidateReportQueries(queryClient);
+    };
 
     socket.on('notification', handleNotification);
+    socket.on('report:changed', handleReportChange);
+    socket.on('connect', handleReconnect);
+    if (socket.connected) handleReconnect();
     return () => {
       socket.off('notification', handleNotification);
+      socket.off('report:changed', handleReportChange);
+      socket.off('connect', handleReconnect);
     };
   }, [queryClient, role]);
 

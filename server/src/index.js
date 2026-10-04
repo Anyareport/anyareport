@@ -7,8 +7,9 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 
 import { connectDB } from "./config/db.js";
-import { initFirebase } from "./config/firebase.js";
+import { getFirebaseAdmin, initFirebase } from "./config/firebase.js";
 import { setSocketIO } from "./services/notifications.js";
+import User from "./models/User.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
@@ -54,10 +55,41 @@ const io = new Server(httpServer, {
 
 setSocketIO(io);
 
+io.use(async (socket, next) => {
+  const token = socket.handshake.auth?.token;
+  const admin = getFirebaseAdmin();
+  if (!admin) return next(new Error("Socket authentication unavailable"));
+  if (typeof token !== "string" || !token) {
+    return next(new Error("Socket authentication required"));
+  }
+
+  let decoded;
+  try {
+    decoded = await admin.auth().verifyIdToken(token);
+  } catch {
+    return next(new Error("Invalid socket token"));
+  }
+
+  try {
+    const user = await User.findOne({ firebaseUid: decoded.uid })
+      .select("firebaseUid role status")
+      .lean();
+    if (!user || user.status !== "active") {
+      return next(new Error("Socket access denied"));
+    }
+
+    socket.data.firebaseUid = user.firebaseUid;
+    socket.data.role = user.role;
+    next();
+  } catch (error) {
+    console.error("[Socket] Authentication lookup failed:", error);
+    next(new Error("Socket authentication failed"));
+  }
+});
+
 io.on("connection", (socket) => {
-  socket.on("join_role", (role) => {
-    socket.join(`role:${role}`);
-  });
+  socket.join(`role:${socket.data.role}`);
+  socket.join(`user:${socket.data.firebaseUid}`);
 });
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));

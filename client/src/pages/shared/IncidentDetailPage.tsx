@@ -33,6 +33,7 @@ import SeverityTag from '../../components/SeverityTag';
 import { StaticMap, RouteMap } from '../../components/map/MapPicker';
 import { useAuth } from '../../contexts/AuthContext';
 import { notificationFeedQueryKey } from '../../lib/notificationFeed';
+import { invalidateReportQueries } from '../../lib/reportUpdates';
 import {
   BLOTTER_REPORT_CATEGORY,
   getStatusLabel,
@@ -144,23 +145,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     refetchInterval: 30000,
   });
 
-  const invalidateReportViews = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['report', id] }),
-      queryClient.invalidateQueries({ queryKey: ['admin-reports'] }),
-      queryClient.invalidateQueries({ queryKey: ['responder-reports'] }),
-      queryClient.invalidateQueries({ queryKey: ['responder-alerts'] }),
-      queryClient.invalidateQueries({ queryKey: ['responder-handled-reports'] }),
-      queryClient.invalidateQueries({ queryKey: ['responder-history'] }),
-      queryClient.invalidateQueries({ queryKey: ['my-reports'] }),
-      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-reports'] }),
-      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-analytics'] }),
-      queryClient.invalidateQueries({ queryKey: ['admin-analytics'] }),
-      queryClient.invalidateQueries({ queryKey: ['secretary-intake'] }),
-      queryClient.invalidateQueries({ queryKey: ['captain-inactive-reports'] }),
-      queryClient.invalidateQueries({ queryKey: ['report-audit', id] }),
-    ]);
-  };
+  const invalidateReportViews = () => invalidateReportQueries(queryClient, id);
 
   const updateStatus = useMutation({
     mutationFn: (status: 'in_progress' | 'resolved') =>

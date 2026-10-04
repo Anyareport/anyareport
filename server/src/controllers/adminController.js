@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import { getFirebaseAdmin } from '../config/firebase.js';
+import { disconnectUserSockets } from '../services/notifications.js';
 
 export async function listUsers(req, res) {
   try {
@@ -58,6 +59,7 @@ export async function updateUserStatus(req, res) {
     const { status } = req.body;
     const user = await User.findByIdAndUpdate(req.params.id, { status }, { new: true });
     if (!user) return res.status(404).json({ error: 'User not found' });
+    disconnectUserSockets(user.firebaseUid);
     res.json(user);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -72,6 +74,7 @@ export async function updateUserRole(req, res) {
 
     user.role = role || user.role;
     await user.save();
+    disconnectUserSockets(user.firebaseUid);
 
     const admin = getFirebaseAdmin();
     if (admin) {
