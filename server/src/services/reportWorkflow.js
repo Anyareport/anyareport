@@ -1,5 +1,6 @@
 export const FIELD_REPORT_CATEGORIES = ['Public Concerns', 'Emergency Situations'];
 export const BLOTTER_REPORT_CATEGORY = 'Blotter Cases';
+export const CRIMINAL_BLOTTER_SUBCATEGORY = 'Criminal';
 
 const RESPONDER_ROLES = ['tanod', 'responder'];
 
@@ -53,6 +54,14 @@ function isResponderParticipant(report, uid) {
   return (
     report.acknowledgedBy === uid ||
     (report.backupRequests || []).some((request) => (request.joinedBy || []).includes(uid))
+  );
+}
+
+export function canResponderViewReport(report) {
+  return (
+    FIELD_REPORT_CATEGORIES.includes(report.category) ||
+    (report.category === BLOTTER_REPORT_CATEGORY &&
+      report.subcategory === CRIMINAL_BLOTTER_SUBCATEGORY)
   );
 }
 

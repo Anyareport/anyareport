@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   canViewReporter,
   canViewReporterContact,
+  canResponderViewReport,
   getJoinDecision,
   getTransitionDecision,
   normalizeReportStatus,
@@ -95,6 +96,15 @@ test('field workflow requires coordinating before in-progress and resolution', (
     ownerUid: 'lead',
   });
   assert.equal(pendingResolve.allowed, false);
+});
+
+test('responders can view criminal blotter reports but not civil blotter reports', () => {
+  assert.equal(
+    canResponderViewReport({ category: 'Blotter Cases', subcategory: 'Criminal' }),
+    true
+  );
+  assert.equal(canResponderViewReport({ category: 'Blotter Cases', subcategory: 'Civil' }), false);
+  assert.equal(canResponderViewReport({ category: 'Public Concerns' }), true);
 });
 
 test('blotter processing and resolution are role-specific', () => {

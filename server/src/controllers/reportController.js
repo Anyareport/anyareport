@@ -20,6 +20,8 @@ import { getNextReportReference } from '../services/reportReference.js';
 import { canVerifyReports } from '../middleware/rbac.js';
 import {
   BLOTTER_REPORT_CATEGORY,
+  CRIMINAL_BLOTTER_SUBCATEGORY,
+  canResponderViewReport,
   FIELD_REPORT_CATEGORIES,
   canViewReporter,
   canViewReporterContact,
@@ -194,7 +196,10 @@ export async function getReports(req, res) {
   try {
     const query = {};
     if (['tanod', 'responder'].includes(req.userRole)) {
-      query.category = { $in: RESPONDER_CATEGORIES };
+      query.$or = [
+        { category: { $in: RESPONDER_CATEGORIES } },
+        { category: BLOTTER_CATEGORY, subcategory: CRIMINAL_BLOTTER_SUBCATEGORY },
+      ];
     }
     if (req.userRole === 'secretary') query.category = BLOTTER_CATEGORY;
     if (req.query.status) query.status = { $in: statusFilterValues(req.query.status) };
@@ -234,7 +239,7 @@ export async function getReportById(req, res) {
 
     if (
       ['tanod', 'responder'].includes(req.userRole) &&
-      !RESPONDER_CATEGORIES.includes(report.category)
+      !canResponderViewReport(report)
     ) {
       return res.status(404).json({ error: 'Report not found' });
     }

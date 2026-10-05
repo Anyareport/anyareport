@@ -9,7 +9,7 @@ import PageHero from '../../components/PageHero';
 import { FilterControl } from '../../components/StatusFilter';
 
 const { Text } = Typography;
-type AlertCategoryFilter = 'all' | 'emergency' | 'public-concern';
+type AlertCategoryFilter = 'all' | 'emergency' | 'public-concern' | 'criminal';
 
 function formatWaitingTime(createdAt: string) {
   const elapsed = Math.max(0, Date.now() - new Date(createdAt).getTime());
@@ -38,7 +38,8 @@ export default function ResponderAlertsPage() {
       (report) =>
         report.status === 'pending' &&
         !report.acknowledgedBy &&
-        ['Emergency Situations', 'Public Concerns'].includes(report.category)
+        (['Emergency Situations', 'Public Concerns'].includes(report.category) ||
+          (report.category === 'Blotter Cases' && report.subcategory === 'Criminal'))
     )
     .sort((left, right) => compareSeverity(left, right) || compareDateAsc(left, right));
 
@@ -48,9 +49,15 @@ export default function ResponderAlertsPage() {
   const publicConcernCount = alerts.filter(
     (report) => report.category === 'Public Concerns'
   ).length;
+  const criminalCount = alerts.filter(
+    (report) => report.category === 'Blotter Cases' && report.subcategory === 'Criminal'
+  ).length;
   const visibleAlerts = alerts.filter((report) => {
     if (categoryFilter === 'emergency') return report.category === 'Emergency Situations';
     if (categoryFilter === 'public-concern') return report.category === 'Public Concerns';
+    if (categoryFilter === 'criminal') {
+      return report.category === 'Blotter Cases' && report.subcategory === 'Criminal';
+    }
     return true;
   });
 
@@ -58,6 +65,7 @@ export default function ResponderAlertsPage() {
     { label: `All ${alerts.length}`, value: 'all' },
     { label: `Emergency ${emergencyCount}`, value: 'emergency' },
     { label: `Public concern ${publicConcernCount}`, value: 'public-concern' },
+    { label: `Criminal ${criminalCount}`, value: 'criminal' },
   ];
 
   return (
