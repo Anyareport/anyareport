@@ -37,6 +37,23 @@ const AuthContext = createContext<AuthContextType>({
   refreshProfile: async () => {},
 });
 
+const pwaInstalledStorageKey = 'anyareport:pwa-installed';
+
+function isStandaloneApp() {
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true
+  );
+}
+
+function hasInstalledPwa() {
+  try {
+    return localStorage.getItem(pwaInstalledStorageKey) === 'true';
+  } catch {
+    return false;
+  }
+}
+
 function getReportBasePath(role: string) {
   if (role === 'resident') return '/resident/reports';
   if (role === 'tanod' || role === 'responder') return '/responder/incidents';
@@ -49,6 +66,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const displayedNotificationIds = useRef(new Set<string>());
+  const [installedPwa, setInstalledPwa] = useState(() => isStandaloneApp() || hasInstalledPwa());
+
+  useEffect(() => {
+    const markPwaInstalled = () => {
+      try {
+        localStorage.setItem(pwaInstalledStorageKey, 'true');
+      } catch {
+        // Notification routing still works for the standalone window.
+      }
+      setInstalledPwa(true);
+    };
+
+    if (isStandaloneApp()) {
+      markPwaInstalled();
+    }
+
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === pwaInstalledStorageKey) {
+        setInstalledPwa(event.newValue === 'true');
+      }
+    };
+    window.addEventListener('appinstalled', markPwaInstalled);
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('appinstalled', markPwaInstalled);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   const refreshProfile = useCallback(async () => {
     try {
@@ -102,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const body = payload.notification?.body;
       if (!body) return;
       if (notificationId) displayedNotificationIds.current.add(notificationId);
+      if (installedPwa && !isStandaloneApp()) return;
 
       showBrowserNotification({
         title,
@@ -138,6 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       void queryClient.invalidateQueries({ queryKey: notificationFeedQueryKey });
       if (!notification?.message) return;
       if (notification._id) displayedNotificationIds.current.add(notification._id);
+      if (installedPwa && !isStandaloneApp()) return;
 
       showBrowserNotification({
         title: notification.urgent ? 'Urgent Anyareport alert' : 'New Anyareport notification',
@@ -166,7 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       socket.off('report:changed', handleReportChange);
       socket.off('connect', handleReconnect);
     };
-  }, [queryClient, role]);
+  }, [installedPwa, queryClient, role]);
 
   return (
     <AuthContext.Provider value={{ firebaseUser, profile, loading, role, refreshProfile }}>
