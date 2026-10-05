@@ -1,13 +1,18 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Empty, Space, Spin, Typography, message } from 'antd';
-import { CheckOutlined } from '@ant-design/icons';
+import { BellOutlined, CheckOutlined } from '@ant-design/icons';
 import { api, type NotificationFeedItem } from '../../lib/api';
 import { notificationFeedQueryKey, useNotificationFeed } from '../../lib/notificationFeed';
 import NotificationCard from '../../components/NotificationCard';
 import { useAuth } from '../../contexts/AuthContext';
 import PageHero from '../../components/PageHero';
 import { FilterControl } from '../../components/StatusFilter';
+import {
+  getBrowserNotificationPermission,
+  requestBrowserNotificationPermission,
+  type BrowserNotificationPermission,
+} from '../../lib/browserNotifications';
 
 const { Title, Text } = Typography;
 type NotificationFilter = 'all' | 'unread' | 'alerts' | 'updates';
@@ -34,6 +39,8 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
   const { role } = useAuth();
   const feed = useNotificationFeed();
   const [filter, setFilter] = useState<NotificationFilter>('all');
+  const [notificationPermission, setNotificationPermission] =
+    useState<BrowserNotificationPermission>(getBrowserNotificationPermission);
   const pages = feed.data?.pages || [];
   const firstPage = pages[0];
   const counts = firstPage?.counts || { all: 0, unread: 0, alerts: 0, updates: 0 };
@@ -64,6 +71,14 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
     onSuccess: invalidateFeed,
     onError: (error: Error) => message.error(error.message),
   });
+
+  const enablePushNotifications = async () => {
+    try {
+      setNotificationPermission(await requestBrowserNotificationPermission());
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : 'Could not enable notifications.');
+    }
+  };
 
   const getReportPath = (reportId: string) => {
     const basePath =
@@ -111,6 +126,42 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
           Mark all as read
         </Button>
       </div>
+
+      {notificationPermission === 'granted' ? (
+        <Alert
+          type="success"
+          showIcon
+          message="Push notifications are enabled for new incident updates."
+        />
+      ) : notificationPermission === 'denied' ? (
+        <Alert
+          type="warning"
+          showIcon
+          message="Push notifications are blocked. Allow notifications in your browser settings to enable them."
+        />
+      ) : notificationPermission === 'unsupported' ? (
+        <Alert
+          type="info"
+          showIcon
+          message="This browser does not support push notifications."
+        />
+      ) : (
+        <Alert
+          type="info"
+          showIcon
+          message="Get notified about new incident updates"
+          description="Enable browser notifications to receive alerts while using Anyareport."
+          action={
+            <Button
+              size="small"
+              icon={<BellOutlined />}
+              onClick={enablePushNotifications}
+            >
+              Enable
+            </Button>
+          }
+        />
+      )}
 
       {feed.isPending ? (
         <div className="notifications-page__empty">

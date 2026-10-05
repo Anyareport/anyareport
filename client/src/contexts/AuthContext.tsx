@@ -6,6 +6,7 @@ import { api, type UserProfile } from '../lib/api';
 import { getSocket, disconnectSocket } from '../lib/socket';
 import { notificationFeedQueryKey } from '../lib/notificationFeed';
 import { invalidateReportQueries, type ReportChangeEvent } from '../lib/reportUpdates';
+import { showBrowserNotification } from '../lib/browserNotifications';
 
 interface AuthContextType {
   firebaseUser: FirebaseUser | null;
@@ -64,8 +65,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!role) return;
 
     const socket = getSocket();
-    const handleNotification = () => {
+    const handleNotification = (notification?: {
+      _id?: string;
+      message?: string;
+      reportId?: string;
+      urgent?: boolean;
+    }) => {
       void queryClient.invalidateQueries({ queryKey: notificationFeedQueryKey });
+      if (!notification?.message) return;
+
+      const incidentPath = notification.reportId
+        ? `/${['tanod', 'responder'].includes(role) ? 'responder/incidents' : role === 'resident' ? 'resident/reports' : 'admin/incidents'}/${encodeURIComponent(notification.reportId)}`
+        : undefined;
+      showBrowserNotification({
+        title: notification.urgent ? 'Urgent Anyareport alert' : 'New Anyareport notification',
+        body: notification.message,
+        tag: notification._id ? `anyareport-notification-${notification._id}` : undefined,
+        url: incidentPath,
+      });
     };
     const handleReportChange = (event: ReportChangeEvent) => {
       void invalidateReportQueries(queryClient, event.reportId);
