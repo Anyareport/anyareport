@@ -24,7 +24,7 @@ export async function registerPushToken() {
 
   const registration = await navigator.serviceWorker.register(
     `/firebase-messaging-sw.js?apiKey=${encodeURIComponent(import.meta.env.VITE_FIREBASE_API_KEY)}&authDomain=${encodeURIComponent(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN)}&projectId=${encodeURIComponent(import.meta.env.VITE_FIREBASE_PROJECT_ID)}&storageBucket=${encodeURIComponent(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET)}&messagingSenderId=${encodeURIComponent(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID)}&appId=${encodeURIComponent(import.meta.env.VITE_FIREBASE_APP_ID)}`,
-    { scope: '/' }
+    { scope: '/firebase-cloud-messaging-push-scope' }
   );
   await registration.update();
   const activeRegistration = await navigator.serviceWorker.ready;
