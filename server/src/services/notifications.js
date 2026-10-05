@@ -11,18 +11,23 @@ import {
 } from './notificationFeed.js';
 import {
   BLOTTER_REPORT_CATEGORY,
+  CRIMINAL_BLOTTER_SUBCATEGORY,
   FIELD_REPORT_CATEGORIES,
   normalizeReportStatus,
 } from './reportWorkflow.js';
 
 let ioInstance = null;
 const NOTIFICATION_ROLES_BY_CATEGORY = {
-  'Blotter Cases': ['captain', 'secretary'],
-  'Public Concerns': ['tanod'],
-  'Emergency Situations': ['captain', 'responder'],
+  'Public Concerns': ['tanod', 'responder'],
+  'Emergency Situations': ['captain', 'tanod', 'responder'],
 };
 
-export function getNotificationRecipientRoles(category) {
+export function getNotificationRecipientRoles(category, subcategory) {
+  if (category === BLOTTER_REPORT_CATEGORY) {
+    return subcategory === CRIMINAL_BLOTTER_SUBCATEGORY
+      ? ['captain', 'secretary', 'tanod', 'responder']
+      : ['captain', 'secretary'];
+  }
   return [...(NOTIFICATION_ROLES_BY_CATEGORY[category] || [])];
 }
 
@@ -76,6 +81,9 @@ export function getReportChangeRooms(report) {
   const rooms = ['role:admin', 'role:captain'];
   if (report.category === BLOTTER_REPORT_CATEGORY) {
     rooms.push('role:secretary');
+    if (report.subcategory === CRIMINAL_BLOTTER_SUBCATEGORY) {
+      rooms.push('role:tanod', 'role:responder');
+    }
   }
   if (FIELD_REPORT_CATEGORIES.includes(report.category)) {
     rooms.push('role:tanod', 'role:responder');
@@ -147,9 +155,12 @@ async function deliverPushNotifications(notifications) {
 
 export async function notifyOnNewReport(report) {
   const isEmergency = report.category === 'Emergency Situations';
+  const isCriminalBlotter =
+    report.category === BLOTTER_REPORT_CATEGORY &&
+    report.subcategory === CRIMINAL_BLOTTER_SUBCATEGORY;
   const reportTitle = report.aiTitle?.trim() || report.subcategory || report.category;
   const reference = report.referenceNumber ? ` (${report.referenceNumber})` : '';
-  const rolesToNotify = getNotificationRecipientRoles(report.category);
+  const rolesToNotify = getNotificationRecipientRoles(report.category, report.subcategory);
   const users = await User.find({ role: { $in: rolesToNotify }, status: 'active' });
   const reportSnapshot = getReportSnapshot(report);
 
@@ -161,7 +172,7 @@ export async function notifyOnNewReport(report) {
       reportId: report._id,
       type: 'incident_received',
       message: `New report${reference}: ${reportTitle}`,
-      urgent: isEmergency,
+      urgent: isEmergency || isCriminalBlotter,
       reportSnapshot,
       actorRole: 'resident',
     });

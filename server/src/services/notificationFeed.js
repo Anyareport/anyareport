@@ -1,4 +1,8 @@
-import { normalizeReportStatus } from './reportWorkflow.js';
+import {
+  BLOTTER_REPORT_CATEGORY,
+  CRIMINAL_BLOTTER_SUBCATEGORY,
+  normalizeReportStatus,
+} from './reportWorkflow.js';
 
 const FEED_ID_PATTERN = /^(?:status|notification):[a-f\d]{24}$/i;
 
@@ -31,6 +35,12 @@ export function buildNotificationFeedPipeline(recipientUid, limit, cursor) {
       { $gt: ['$urgentCount', 0] },
       { $eq: ['$latest.type', 'backup_requested'] },
       { $eq: ['$reportCategory', 'Emergency Situations'] },
+      {
+        $and: [
+          { $eq: ['$reportCategory', BLOTTER_REPORT_CATEGORY] },
+          { $eq: ['$reportSubcategory', CRIMINAL_BLOTTER_SUBCATEGORY] },
+        ],
+      },
       {
         $in: [{ $toLower: { $ifNull: ['$reportSeverity', ''] } }, ['high', 'critical']],
       },
@@ -122,6 +132,9 @@ export function buildNotificationFeedPipeline(recipientUid, limit, cursor) {
         reportCategory: {
           $ifNull: ['$latest.reportSnapshot.category', '$joinedReport.category'],
         },
+        reportSubcategory: {
+          $ifNull: ['$latest.reportSnapshot.subcategory', '$joinedReport.subcategory'],
+        },
         reportSeverity: {
           $ifNull: ['$latest.reportSnapshot.severity', '$joinedReport.severity'],
         },
@@ -140,7 +153,15 @@ export function buildNotificationFeedPipeline(recipientUid, limit, cursor) {
         },
       },
     },
-    { $unset: ['reportMatches', 'joinedReport', 'reportCategory', 'reportSeverity'] },
+    {
+      $unset: [
+        'reportMatches',
+        'joinedReport',
+        'reportCategory',
+        'reportSubcategory',
+        'reportSeverity',
+      ],
+    },
     {
       $facet: {
         items: pageStages,

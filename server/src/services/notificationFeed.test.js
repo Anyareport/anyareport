@@ -55,6 +55,7 @@ test('alerts use urgency, emergency category, backup requests, and high severity
   assert.match(serializedAlertExpression, /urgentCount/);
   assert.match(serializedAlertExpression, /backup_requested/);
   assert.match(serializedAlertExpression, /Emergency Situations/);
+  assert.match(serializedAlertExpression, /Criminal/);
   assert.match(serializedAlertExpression, /critical/);
   assert.doesNotMatch(serializedAlertExpression, /incident_received/);
 });
@@ -73,9 +74,19 @@ test('feed cursor constrains later pages after grouping', () => {
 });
 
 test('new-report notification recipients follow the three report categories', () => {
-  assert.deepEqual(getNotificationRecipientRoles('Public Concerns'), ['tanod']);
+  assert.deepEqual(getNotificationRecipientRoles('Public Concerns'), ['tanod', 'responder']);
   assert.deepEqual(getNotificationRecipientRoles('Blotter Cases'), ['captain', 'secretary']);
-  assert.deepEqual(getNotificationRecipientRoles('Emergency Situations'), ['captain', 'responder']);
+  assert.deepEqual(getNotificationRecipientRoles('Blotter Cases', 'Criminal'), [
+    'captain',
+    'secretary',
+    'tanod',
+    'responder',
+  ]);
+  assert.deepEqual(getNotificationRecipientRoles('Emergency Situations'), [
+    'captain',
+    'tanod',
+    'responder',
+  ]);
   assert.deepEqual(getNotificationRecipientRoles('Unknown'), []);
 });
 
@@ -100,6 +111,22 @@ test('report change rooms follow report visibility and include the submitter onl
       'role:tanod',
       'role:responder',
       'user:resident-2',
+    ]
+  );
+  assert.deepEqual(
+    getReportChangeRooms({
+      _id: 'report-3',
+      category: 'Blotter Cases',
+      subcategory: 'Criminal',
+      submittedBy: 'resident-3',
+    }),
+    [
+      'role:admin',
+      'role:captain',
+      'role:secretary',
+      'role:tanod',
+      'role:responder',
+      'user:resident-3',
     ]
   );
 });
