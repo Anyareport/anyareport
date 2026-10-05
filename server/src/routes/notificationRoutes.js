@@ -8,11 +8,14 @@ import {
   markGroupRead,
   markRead,
 } from '../controllers/notificationController.js';
+import { registerPushToken, removePushToken } from '../controllers/pushController.js';
 
 const router = Router();
 
 router.use(verifyToken);
 
+router.post('/push-tokens', registerPushToken);
+router.delete('/push-tokens', removePushToken);
 router.get('/', getNotifications);
 router.patch('/read-all', markAllRead);
 router.patch('/reports/:reportId/status-updates/read', markGroupRead);

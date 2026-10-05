@@ -1,6 +1,8 @@
 import Notification from '../models/Notification.js';
+import PushToken from '../models/PushToken.js';
 import Report from '../models/Report.js';
 import User from '../models/User.js';
+import { getFirebaseAdmin } from '../config/firebase.js';
 import {
   buildNotificationFeedPipeline,
   decodeNotificationCursor,
@@ -98,6 +100,51 @@ export function disconnectUserSockets(firebaseUid) {
   ioInstance?.in(`user:${firebaseUid}`).disconnectSockets(true);
 }
 
+async function sendPushNotifications(notifications) {
+  const admin = getFirebaseAdmin();
+  if (!admin) return;
+  const items = Array.isArray(notifications) ? notifications : [notifications];
+  const recipientUids = [...new Set(items.map((item) => item.recipientUid).filter(Boolean))];
+  const tokens = await PushToken.find({ firebaseUid: { $in: recipientUids } }).lean();
+  if (!tokens.length) return;
+
+  const itemByUid = new Map(items.map((item) => [item.recipientUid, item]));
+  const response = await admin.messaging().sendEach(
+    tokens.map((token) => {
+      const item = itemByUid.get(token.firebaseUid);
+      return {
+        token: token.token,
+        notification: {
+          title: item.urgent ? 'Urgent Anyareport alert' : 'New Anyareport notification',
+          body: item.message,
+        },
+        data: {
+          notificationId: String(item._id),
+          reportId: item.reportId ? String(item.reportId) : '',
+          recipientRole: item.recipientRole || '',
+        },
+      };
+    })
+  );
+
+  const invalidTokens = response.responses
+    .map((result, index) =>
+      result.success || !['messaging/registration-token-not-registered', 'messaging/invalid-registration-token'].includes(result.error?.code)
+        ? null
+        : tokens[index].token
+    )
+    .filter(Boolean);
+  if (invalidTokens.length) await PushToken.deleteMany({ token: { $in: invalidTokens } });
+}
+
+async function deliverPushNotifications(notifications) {
+  try {
+    await sendPushNotifications(notifications);
+  } catch (error) {
+    console.error('[Push] Delivery failed:', error);
+  }
+}
+
 export async function notifyOnNewReport(report) {
   const isEmergency = report.category === 'Emergency Situations';
   const reportTitle = report.aiTitle?.trim() || report.subcategory || report.category;
@@ -126,9 +173,9 @@ export async function notifyOnNewReport(report) {
         ioInstance.to('role:captain').emit('urgent_alert', notif);
       }
     }
+    await deliverPushNotifications(notif);
   }
 
-  // TODO: FCM web push for offline users
   return notifications;
 }
 
@@ -152,6 +199,7 @@ export async function notifyOnStatusUpdate(report, status, updatedBy, updatedByR
   if (ioInstance) {
     ioInstance.to(`role:${user.role}`).emit('notification', notification);
   }
+  await deliverPushNotifications(notification);
 
   return notification;
 }
@@ -186,6 +234,7 @@ export async function notifyBackupRequest(report, requesterName, requesterRole) 
       ioInstance.to(`role:${notification.recipientRole}`).emit('notification', notification);
     });
   }
+  await deliverPushNotifications(notifications);
 
   return notifications;
 }
@@ -211,6 +260,7 @@ export async function notifyBackupJoined(report, helperName, helperRole) {
   if (ioInstance) {
     ioInstance.to(`role:${owner.role}`).emit('notification', notification);
   }
+  await deliverPushNotifications(notification);
 
   return notification;
 }

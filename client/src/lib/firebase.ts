@@ -1,4 +1,5 @@
 import { initializeApp } from 'firebase/app';
+import { getMessaging, isSupported, type Messaging } from 'firebase/messaging';
 import {
   getAuth,
   createUserWithEmailAndPassword,
@@ -27,6 +28,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+
+export async function getFirebaseMessaging(): Promise<Messaging | null> {
+  return (await isSupported()) ? getMessaging(app) : null;
+}
 
 export async function registerWithEmail(email: string, password: string) {
   const cred = await createUserWithEmailAndPassword(auth, email, password);

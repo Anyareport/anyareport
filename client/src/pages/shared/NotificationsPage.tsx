@@ -8,6 +8,7 @@ import NotificationCard from '../../components/NotificationCard';
 import { useAuth } from '../../contexts/AuthContext';
 import PageHero from '../../components/PageHero';
 import { FilterControl } from '../../components/StatusFilter';
+import { registerPushToken } from '../../lib/pushNotifications';
 import {
   getBrowserNotificationPermission,
   requestBrowserNotificationPermission,
@@ -74,7 +75,11 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
 
   const enablePushNotifications = async () => {
     try {
-      setNotificationPermission(await requestBrowserNotificationPermission());
+      const permission = await requestBrowserNotificationPermission();
+      setNotificationPermission(permission);
+      if (permission === 'granted' && !(await registerPushToken())) {
+        message.error('Push notifications are not configured for this app.');
+      }
     } catch (error) {
       message.error(error instanceof Error ? error.message : 'Could not enable notifications.');
     }
