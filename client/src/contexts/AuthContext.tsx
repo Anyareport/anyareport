@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { auth } from '../lib/firebase';
@@ -7,7 +15,11 @@ import { getSocket, disconnectSocket } from '../lib/socket';
 import { notificationFeedQueryKey } from '../lib/notificationFeed';
 import { invalidateReportQueries, type ReportChangeEvent } from '../lib/reportUpdates';
 import { showBrowserNotification } from '../lib/browserNotifications';
-import { startForegroundPushNotifications } from '../lib/pushNotifications';
+import {
+  registerPushToken,
+  startForegroundPushNotifications,
+  type PushMessagePayload,
+} from '../lib/pushNotifications';
 
 interface AuthContextType {
   firebaseUser: FirebaseUser | null;
@@ -25,11 +37,18 @@ const AuthContext = createContext<AuthContextType>({
   refreshProfile: async () => {},
 });
 
+function getReportBasePath(role: string) {
+  if (role === 'resident') return '/resident/reports';
+  if (role === 'tanod' || role === 'responder') return '/responder/incidents';
+  return '/admin/incidents';
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const displayedNotificationIds = useRef(new Set<string>());
 
   const refreshProfile = useCallback(async () => {
     try {
@@ -65,50 +84,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!role) return;
 
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      void registerPushToken().catch((error) => {
+        console.error('[Push] Automatic registration failed:', error);
+      });
+    }
+
     const socket = getSocket();
     let stopForegroundPush = () => {};
-    void startForegroundPushNotifications((payload) => {
+    let disposed = false;
+    const handleForegroundPush = (payload: PushMessagePayload) => {
+      const notificationId = payload.data?.notificationId;
+      if (notificationId && displayedNotificationIds.current.has(notificationId)) return;
+
       void queryClient.invalidateQueries({ queryKey: notificationFeedQueryKey });
       const title = payload.notification?.title || 'New Anyareport notification';
       const body = payload.notification?.body;
       if (!body) return;
+      if (notificationId) displayedNotificationIds.current.add(notificationId);
 
-      const basePath =
-        role === 'resident'
-          ? '/resident/reports'
-          : ['tanod', 'responder'].includes(role)
-            ? '/responder/incidents'
-            : '/admin/incidents';
       showBrowserNotification({
         title,
         body,
-        tag: payload.data?.notificationId
-          ? `anyareport-notification-${payload.data.notificationId}`
-          : undefined,
+        tag: notificationId ? `anyareport-notification-${notificationId}` : undefined,
         url: payload.data?.reportId
-          ? `${basePath}/${encodeURIComponent(payload.data.reportId)}`
+          ? `${getReportBasePath(role)}/${encodeURIComponent(payload.data.reportId)}`
           : undefined,
       });
-    }).then((cleanup) => {
-      stopForegroundPush = cleanup;
-    });
+    };
+    void startForegroundPushNotifications(handleForegroundPush)
+      .then((cleanup) => {
+        if (disposed) {
+          cleanup();
+        } else {
+          stopForegroundPush = cleanup;
+        }
+      })
+      .catch((error) => {
+        if (!disposed) {
+          console.error('[Push] Foreground listener failed to start:', error);
+        }
+      });
     const handleNotification = (notification?: {
       _id?: string;
       message?: string;
       reportId?: string;
       urgent?: boolean;
     }) => {
+      if (notification?._id && displayedNotificationIds.current.has(notification._id)) {
+        return;
+      }
+
       void queryClient.invalidateQueries({ queryKey: notificationFeedQueryKey });
       if (!notification?.message) return;
+      if (notification._id) displayedNotificationIds.current.add(notification._id);
 
-      const incidentPath = notification.reportId
-        ? `/${['tanod', 'responder'].includes(role) ? 'responder/incidents' : role === 'resident' ? 'resident/reports' : 'admin/incidents'}/${encodeURIComponent(notification.reportId)}`
-        : undefined;
       showBrowserNotification({
         title: notification.urgent ? 'Urgent Anyareport alert' : 'New Anyareport notification',
         body: notification.message,
         tag: notification._id ? `anyareport-notification-${notification._id}` : undefined,
-        url: incidentPath,
+        url: notification.reportId
+          ? `${getReportBasePath(role)}/${encodeURIComponent(notification.reportId)}`
+          : undefined,
       });
     };
     const handleReportChange = (event: ReportChangeEvent) => {
@@ -123,6 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     socket.on('connect', handleReconnect);
     if (socket.connected) handleReconnect();
     return () => {
+      disposed = true;
       stopForegroundPush();
       socket.off('notification', handleNotification);
       socket.off('report:changed', handleReportChange);
