@@ -7,6 +7,7 @@ import { getSocket, disconnectSocket } from '../lib/socket';
 import { notificationFeedQueryKey } from '../lib/notificationFeed';
 import { invalidateReportQueries, type ReportChangeEvent } from '../lib/reportUpdates';
 import { showBrowserNotification } from '../lib/browserNotifications';
+import { startForegroundPushNotifications } from '../lib/pushNotifications';
 
 interface AuthContextType {
   firebaseUser: FirebaseUser | null;
@@ -65,6 +66,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!role) return;
 
     const socket = getSocket();
+    let stopForegroundPush = () => {};
+    void startForegroundPushNotifications((payload) => {
+      void queryClient.invalidateQueries({ queryKey: notificationFeedQueryKey });
+      const title = payload.notification?.title || 'New Anyareport notification';
+      const body = payload.notification?.body;
+      if (!body) return;
+
+      const basePath =
+        role === 'resident'
+          ? '/resident/reports'
+          : ['tanod', 'responder'].includes(role)
+            ? '/responder/incidents'
+            : '/admin/incidents';
+      showBrowserNotification({
+        title,
+        body,
+        tag: payload.data?.notificationId
+          ? `anyareport-notification-${payload.data.notificationId}`
+          : undefined,
+        url: payload.data?.reportId
+          ? `${basePath}/${encodeURIComponent(payload.data.reportId)}`
+          : undefined,
+      });
+    }).then((cleanup) => {
+      stopForegroundPush = cleanup;
+    });
     const handleNotification = (notification?: {
       _id?: string;
       message?: string;
@@ -96,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     socket.on('connect', handleReconnect);
     if (socket.connected) handleReconnect();
     return () => {
+      stopForegroundPush();
       socket.off('notification', handleNotification);
       socket.off('report:changed', handleReportChange);
       socket.off('connect', handleReconnect);

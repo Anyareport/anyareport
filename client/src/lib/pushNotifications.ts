@@ -23,7 +23,21 @@ export async function registerPushToken() {
   return true;
 }
 
-export async function startForegroundPushNotifications(onMessageReceived: () => void) {
+export interface PushMessagePayload {
+  notification?: {
+    title?: string;
+    body?: string;
+  };
+  data?: {
+    notificationId?: string;
+    reportId?: string;
+    recipientRole?: string;
+  };
+}
+
+export async function startForegroundPushNotifications(
+  onMessageReceived: (payload: PushMessagePayload) => void
+) {
   if (!(await isSupported())) return () => {};
   const messaging = await getFirebaseMessaging();
   return messaging ? onMessage(messaging, onMessageReceived) : () => {};
