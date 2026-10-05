@@ -27,12 +27,31 @@ export async function registerPushToken() {
     { scope: '/firebase-cloud-messaging-push-scope' }
   );
   await registration.update();
-  const activeRegistration = await navigator.serviceWorker.ready;
+  if (registration.installing) {
+    await new Promise<void>((resolve, reject) => {
+      const worker = registration.installing;
+      if (!worker) {
+        resolve();
+        return;
+      }
+      const handleStateChange = () => {
+        if (worker.state === 'activated') {
+          worker.removeEventListener('statechange', handleStateChange);
+          resolve();
+        } else if (worker.state === 'redundant') {
+          worker.removeEventListener('statechange', handleStateChange);
+          reject(new Error('Firebase messaging service worker failed to activate.'));
+        }
+      };
+      worker.addEventListener('statechange', handleStateChange);
+    });
+  }
+
   let token: string;
   try {
     token = await getToken(messaging, {
       vapidKey,
-      serviceWorkerRegistration: activeRegistration,
+      serviceWorkerRegistration: registration,
     });
   } catch (error) {
     const code = (error as { code?: string }).code;
