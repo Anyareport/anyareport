@@ -201,7 +201,6 @@ export async function getReports(req, res) {
         { category: BLOTTER_CATEGORY, subcategory: CRIMINAL_BLOTTER_SUBCATEGORY },
       ];
     }
-    if (req.userRole === 'secretary') query.category = BLOTTER_CATEGORY;
     if (req.query.status) query.status = { $in: statusFilterValues(req.query.status) };
     if (req.query.handledByMe === 'true' && ['tanod', 'responder'].includes(req.userRole)) {
       query.$or = [
@@ -241,10 +240,6 @@ export async function getReportById(req, res) {
       ['tanod', 'responder'].includes(req.userRole) &&
       !canResponderViewReport(report)
     ) {
-      return res.status(404).json({ error: 'Report not found' });
-    }
-
-    if (req.userRole === 'secretary' && report.category !== BLOTTER_CATEGORY) {
       return res.status(404).json({ error: 'Report not found' });
     }
 
@@ -292,11 +287,6 @@ export async function getReportAudit(req, res) {
   try {
     const report = await Report.findById(req.params.id).select('_id category referenceNumber');
     if (!report) return res.status(404).json({ error: 'Report not found' });
-    if (req.userRole === 'secretary' && report.category !== BLOTTER_CATEGORY) {
-      return res
-        .status(403)
-        .json({ error: 'Secretaries can view audit history for blotter cases only' });
-    }
     if (!['admin', 'secretary'].includes(req.userRole)) {
       return res.status(403).json({ error: 'Insufficient permissions to view this report audit' });
     }
