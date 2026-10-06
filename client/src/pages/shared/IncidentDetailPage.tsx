@@ -12,6 +12,7 @@ import {
   Spin,
   Timeline,
   Typography,
+  Select,
   message,
 } from 'antd';
 import {
@@ -27,7 +28,7 @@ import {
   UserAddOutlined,
   UserOutlined,
 } from '@ant-design/icons';
-import { api, type AuditLog, type Report } from '../../lib/api';
+import { api, type AuditLog, type DispatchResponder, type Report } from '../../lib/api';
 import StatusTag from '../../components/StatusTag';
 import SeverityTag from '../../components/SeverityTag';
 import { StaticMap, RouteMap } from '../../components/map/MapPicker';
@@ -51,6 +52,10 @@ interface IncidentDetailPageProps {
 interface BackupRequestResponse {
   report: Report;
   alreadyRequested: boolean;
+}
+
+interface DispatchOptionsResponse {
+  responders: DispatchResponder[];
 }
 
 function getPhotoUrl(photo: string) {
@@ -126,6 +131,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { profile, role } = useAuth();
+  const [selectedResponderUids, setSelectedResponderUids] = useState<string[]>([]);
 
   const { data: report, isLoading } = useQuery({
     queryKey: ['report', id],
@@ -133,10 +139,26 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     enabled: !!id,
     refetchInterval: 15000,
   });
+  const canDispatch =
+    role === 'secretary' &&
+    (report?.workflowStatus || report?.status) === 'pending' &&
+    (report?.category === 'Public Concerns' ||
+      report?.category === 'Emergency Situations' ||
+      (report?.category === BLOTTER_REPORT_CATEGORY && report?.subcategory === 'Criminal'));
+  const {
+    data: dispatchOptions,
+    isLoading: dispatchOptionsLoading,
+    isError: dispatchOptionsError,
+  } = useQuery({
+    queryKey: ['report-dispatch-options', id],
+    queryFn: () => api.get<DispatchOptionsResponse>(`/api/reports/${id}/dispatch-options`),
+    enabled: !!id && canDispatch,
+    refetchInterval: 15000,
+  });
 
   const canViewReportAudit =
     variant === 'admin' &&
-    (role === 'admin' || (role === 'secretary' && report?.category === BLOTTER_REPORT_CATEGORY));
+    (role === 'admin' || role === 'secretary');
   const showStatusTimeline = variant !== 'admin' || role !== 'admin';
   const { data: auditEntries = [] } = useQuery({
     queryKey: ['report-audit', id],
@@ -189,6 +211,20 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     onSuccess: async ({ alreadyClosed }) => {
       await invalidateReportViews();
       message.success(alreadyClosed ? 'Backup request is already closed' : 'No more backup needed');
+    },
+    onError: (error: Error) => message.error(error.message),
+  });
+
+  const dispatchMutation = useMutation({
+    mutationFn: () =>
+      api.post<{ report: Report }>(`/api/reports/${id}/dispatch`, {
+        responderUids: selectedResponderUids,
+      }),
+    onSuccess: async () => {
+      setSelectedResponderUids([]);
+      await invalidateReportViews();
+      await queryClient.invalidateQueries({ queryKey: ['report-dispatch-options', id] });
+      message.success('Incident dispatched');
     },
     onError: (error: Error) => message.error(error.message),
   });
@@ -251,7 +287,8 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     acknowledgeMutation.isPending ||
     backupMutation.isPending ||
     joinBackupMutation.isPending ||
-    closeBackupMutation.isPending;
+    closeBackupMutation.isPending ||
+    dispatchMutation.isPending;
 
   const showPreviousPhoto = () => {
     setActivePhotoIndex((currentIndex) => (currentIndex - 1 + photos.length) % photos.length);
@@ -360,6 +397,85 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     </Button>
   ) : null;
 
+  const dispatchAction = canDispatch ? (
+    <Card
+      className="soft-card incident-side-section incident-mobile-hide-panel"
+      role="region"
+      aria-labelledby="incident-dispatch-heading"
+    >
+      <h2 id="incident-dispatch-heading">Dispatch response team</h2>
+      <Text type="secondary">
+        Select one or more available tanods or responders. The first selected person will lead.
+      </Text>
+      {dispatchOptionsError && (
+        <Alert
+          type="error"
+          showIcon
+          message="Unable to load available responders"
+          style={{ marginTop: 12 }}
+        />
+      )}
+      <Select
+        mode="multiple"
+        allowClear
+        showSearch
+        optionFilterProp="label"
+        placeholder="Select available tanods or responders"
+        value={selectedResponderUids}
+        onChange={setSelectedResponderUids}
+        options={(dispatchOptions?.responders || []).map((responder) => ({
+          label: `${responder.name} (${responder.role})`,
+          value: responder.firebaseUid,
+        }))}
+        loading={dispatchOptionsLoading}
+        disabled={actionBusy}
+        style={{ width: '100%', marginTop: 12 }}
+        notFoundContent={
+          dispatchOptionsLoading
+            ? 'Loading available tanods and responders...'
+            : 'No available tanods or responders'
+        }
+      />
+      <Button
+        block
+        type="primary"
+        disabled={!selectedResponderUids.length || actionBusy}
+        loading={dispatchMutation.isPending}
+        onClick={() => dispatchMutation.mutate()}
+        style={{ marginTop: 12 }}
+      >
+        Dispatch selected tanods/responders
+      </Button>
+    </Card>
+  ) : null;
+
+  const secretaryAction = isBlotter ? (
+    <Card
+      className="soft-card incident-side-section incident-mobile-hide-panel"
+      role="region"
+      aria-labelledby="incident-actions-heading"
+    >
+      <h2 id="incident-actions-heading">Actions</h2>
+      {oversightAction || (
+        <Text type="secondary">
+          {status === 'resolved'
+            ? 'This blotter case is resolved.'
+            : 'Blotter processing is managed by the Captain and Secretary.'}
+        </Text>
+      )}
+      <Button
+        block
+        icon={<DownloadOutlined />}
+        disabled={!auditEntries.length}
+        onClick={() =>
+          downloadFile(`/api/reports/${id}/audit?format=csv`, `report-${id}-audit.csv`)
+        }
+      >
+        Export case audit
+      </Button>
+    </Card>
+  ) : null;
+
   const actionPanel = isResident ? null : isResponder ? (
     <Card
       className="soft-card incident-side-section incident-mobile-hide-panel"
@@ -428,6 +544,11 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         Export system log
       </Button>
     </Card>
+  ) : role === 'secretary' ? (
+    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      {dispatchAction}
+      {secretaryAction}
+    </Space>
   ) : isBlotter ? (
     <Card
       className="soft-card incident-side-section incident-mobile-hide-panel"

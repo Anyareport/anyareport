@@ -19,10 +19,11 @@ export async function verifyToken(req, res, next) {
   try {
     const decoded = await admin.auth().verifyIdToken(token);
     req.firebaseUser = decoded;
-    req.userRole = decoded.role || 'resident';
-
     const profile = await User.findOne({ firebaseUid: decoded.uid });
     req.userProfile = profile;
+    const profileRole = typeof profile?.role === 'string' ? profile.role.trim().toLowerCase() : '';
+    const tokenRole = typeof decoded.role === 'string' ? decoded.role.trim().toLowerCase() : '';
+    req.userRole = profileRole || tokenRole || 'resident';
     next();
   } catch (err) {
     return res.status(401).json({ error: 'Invalid or expired token' });

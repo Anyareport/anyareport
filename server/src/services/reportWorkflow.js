@@ -29,6 +29,7 @@ export function serializeReport(report) {
   const data = typeof report.toObject === 'function' ? report.toObject() : { ...report };
   return {
     ...data,
+    workflowStatus: data.status,
     status: normalizeReportStatus(data.status),
     statusHistory: (data.statusHistory || []).map((entry) => ({
       ...entry,

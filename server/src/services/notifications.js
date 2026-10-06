@@ -215,6 +215,46 @@ export async function notifyOnStatusUpdate(report, status, updatedBy, updatedByR
   return notification;
 }
 
+export async function notifyRespondersDispatched(report, responderUids, dispatcherName) {
+  const uids = [...new Set(Array.isArray(responderUids) ? responderUids : [])].filter(Boolean);
+  if (!uids.length) return [];
+
+  const users = await User.find({
+    firebaseUid: { $in: uids },
+    role: /^\s*(tanod|responder)\s*$/i,
+    status: 'active',
+  })
+    .select('firebaseUid role')
+    .lean();
+  const reference = report.referenceNumber ? ` (${report.referenceNumber})` : '';
+  const reportTitle = report.aiTitle?.trim() || report.subcategory || report.category;
+  const reportSnapshot = getReportSnapshot(report);
+  const notifications = await Promise.all(
+    users.map((user) =>
+      Notification.create({
+        recipientUid: user.firebaseUid,
+        recipientRole: user.role,
+        reportId: report._id,
+        type: 'incident_dispatched',
+        message: `${dispatcherName || 'The Secretary'} dispatched you to ${reportTitle}${reference}.`,
+        urgent: true,
+        reportSnapshot,
+        actorRole: 'secretary',
+        actorName: dispatcherName || null,
+      })
+    )
+  );
+
+  if (ioInstance) {
+    notifications.forEach((notification) => {
+      ioInstance.to(`user:${notification.recipientUid}`).emit('notification', notification);
+    });
+  }
+  await deliverPushNotifications(notifications);
+
+  return notifications;
+}
+
 export async function notifyBackupRequest(report, requesterName, requesterRole) {
   const reference = report.referenceNumber ? ` (${report.referenceNumber})` : '';
   const reportSnapshot = getReportSnapshot(report);

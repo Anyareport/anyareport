@@ -12,6 +12,7 @@ import {
   notifyBackupRequest,
   notifyOnNewReport,
   notifyOnStatusUpdate,
+  notifyRespondersDispatched,
 } from '../services/notifications.js';
 import { antiAbuseConfig } from '../config/antiAbuse.js';
 import { workflowConfig } from '../config/workflow.js';
@@ -35,6 +36,14 @@ import {
 
 const RESPONDER_CATEGORIES = FIELD_REPORT_CATEGORIES;
 const BLOTTER_CATEGORY = BLOTTER_REPORT_CATEGORY;
+
+function canDispatchReport(report) {
+  return (
+    FIELD_REPORT_CATEGORIES.includes(report.category) ||
+    (report.category === BLOTTER_REPORT_CATEGORY &&
+      report.subcategory === CRIMINAL_BLOTTER_SUBCATEGORY)
+  );
+}
 
 async function resolveActorName(uid) {
   const user = await User.findOne({ firebaseUid: uid }).select('name').lean();
@@ -159,7 +168,6 @@ export async function createReport(req, res) {
       ],
     });
     await logAudit('report_submitted', req, report._id, { category });
-    await logAudit('report_submitted', req, report._id, { category });
     if (aiSuggestedCategory) {
       await logSystemAudit('report_classified', report._id, {
         suggestedCategory: aiSuggestedCategory,
@@ -187,6 +195,116 @@ export async function getMyReports(req, res) {
       createdAt: -1,
     });
     res.json(reports.map(serializeReport));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+async function getAvailableResponders(reportId) {
+  const responders = await User.find({
+    role: /^\s*(tanod|responder)\s*$/i,
+    status: { $ne: 'suspended' },
+  })
+    .select('firebaseUid name role')
+    .sort({ name: 1 })
+    .lean();
+  if (!responders.length) return [];
+
+  const activeReports = await Report.find({
+    _id: { $ne: reportId },
+    status: { $nin: ['resolved', 'flagged'] },
+    $or: [
+      { acknowledgedBy: { $in: responders.map((responder) => responder.firebaseUid) } },
+      { 'backupRequests.joinedBy': { $in: responders.map((responder) => responder.firebaseUid) } },
+    ],
+  })
+    .select('acknowledgedBy backupRequests.joinedBy')
+    .lean();
+  const assigned = new Set();
+  activeReports.forEach((activeReport) => {
+    if (activeReport.acknowledgedBy) assigned.add(activeReport.acknowledgedBy);
+    (activeReport.backupRequests || []).forEach((request) =>
+      (request.joinedBy || []).forEach((uid) => assigned.add(uid))
+    );
+  });
+  return responders.filter((responder) => !assigned.has(responder.firebaseUid));
+}
+
+export async function getDispatchOptions(req, res) {
+  try {
+    const report = await Report.findById(req.params.id).select(
+      '_id category subcategory status acknowledgedBy'
+    );
+    if (!report) return res.status(404).json({ error: 'Report not found' });
+    if (!canDispatchReport(report)) {
+      return res.status(400).json({ error: 'This incident type cannot be dispatched' });
+    }
+    if (report.status !== 'pending' || report.acknowledgedBy) {
+      return res.status(409).json({ error: 'Only unassigned pending incidents can be dispatched' });
+    }
+    res.json({ responders: await getAvailableResponders(report._id) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export async function dispatchReport(req, res) {
+  try {
+    const responderUids = [...new Set(Array.isArray(req.body.responderUids) ? req.body.responderUids : [])]
+      .filter((uid) => typeof uid === 'string' && uid.trim())
+      .map((uid) => uid.trim());
+    if (!responderUids.length) return res.status(400).json({ error: 'Select at least one responder' });
+
+    const report = await Report.findById(req.params.id);
+    if (!report) return res.status(404).json({ error: 'Report not found' });
+    if (!canDispatchReport(report)) {
+      return res.status(400).json({ error: 'This incident type cannot be dispatched' });
+    }
+    if (report.status !== 'pending' || report.acknowledgedBy) {
+      return res.status(409).json({ error: 'Only unassigned pending incidents can be dispatched' });
+    }
+
+    const available = await getAvailableResponders(report._id);
+    const availableUids = new Set(available.map((tanod) => tanod.firebaseUid));
+    if (responderUids.some((uid) => !availableUids.has(uid))) {
+      return res.status(409).json({ error: 'One or more selected responders are no longer available' });
+    }
+
+    const updatedReport = await updateWithAudit(
+      'incident_dispatched',
+      req,
+      report._id,
+      { responderUids },
+      (session) =>
+        Report.findOneAndUpdate(
+          { _id: report._id, status: 'pending', acknowledgedBy: null },
+          {
+            $set: { status: 'coordinating', acknowledgedBy: responderUids[0] },
+            $push: {
+              statusHistory: { status: 'coordinating', updatedBy: req.firebaseUser.uid },
+              ...(responderUids.length > 1
+                ? {
+                    backupRequests: {
+                      requestedBy: responderUids[0],
+                      joinedBy: responderUids.slice(1),
+                    },
+                  }
+                : {}),
+            },
+          },
+          { new: true, session }
+        )
+    );
+    if (!updatedReport) {
+      return res.status(409).json({ error: 'The incident changed before dispatch completed' });
+    }
+    emitReportChanged(updatedReport, 'updated');
+    const dispatcherName = await resolveActorName(req.firebaseUser.uid);
+    await notifyBestEffort(
+      notifyRespondersDispatched(updatedReport, responderUids, dispatcherName),
+      'Responder dispatch'
+    );
+    res.json({ report: serializeReport(updatedReport) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

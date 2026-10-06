@@ -72,6 +72,12 @@ export interface UserProfile {
   flaggedReportCount: number;
 }
 
+export interface DispatchResponder {
+  firebaseUid: string;
+  name: string;
+  role: 'tanod' | 'responder';
+}
+
 export interface Report {
   _id: string;
   referenceNumber?: string | null;
@@ -86,6 +92,7 @@ export interface Report {
     coordinates: [number, number];
     address: string;
   };
+  workflowStatus?: string;
   status: string;
   subcategory: string | null;
   severity: 'Low' | 'Medium' | 'High' | 'Critical' | null;
