@@ -4,6 +4,12 @@ export const CRIMINAL_BLOTTER_SUBCATEGORY = 'Criminal';
 
 const RESPONDER_ROLES = ['tanod', 'responder'];
 
+function responderCategoryFilter(category) {
+  return category === BLOTTER_REPORT_CATEGORY
+    ? { category: BLOTTER_REPORT_CATEGORY, subcategory: CRIMINAL_BLOTTER_SUBCATEGORY }
+    : { category: { $in: FIELD_REPORT_CATEGORIES } };
+}
+
 export function normalizeReportStatus(status) {
   switch (status) {
     case 'acknowledged':
@@ -83,6 +89,7 @@ function reject(statusCode, error) {
 
 export function getTransitionDecision({
   category,
+  subcategory,
   role,
   fromStatus,
   toStatus,
@@ -93,7 +100,12 @@ export function getTransitionDecision({
   const currentStatus = normalizeReportStatus(fromStatus);
   const isResponder = RESPONDER_ROLES.includes(role);
 
-  if (FIELD_REPORT_CATEGORIES.includes(category)) {
+  if (
+    FIELD_REPORT_CATEGORIES.includes(category) ||
+    (category === BLOTTER_REPORT_CATEGORY &&
+      subcategory === CRIMINAL_BLOTTER_SUBCATEGORY &&
+      isResponder)
+  ) {
     if (toStatus === 'coordinating') {
       if (!isResponder)
         return reject(403, 'Only tanods or responders can coordinate field reports');
@@ -103,7 +115,7 @@ export function getTransitionDecision({
       return {
         allowed: true,
         filter: {
-          category: { $in: FIELD_REPORT_CATEGORIES },
+          ...responderCategoryFilter(category),
           status: { $in: ['pending', 'verified'] },
           acknowledgedBy: null,
         },
@@ -125,7 +137,7 @@ export function getTransitionDecision({
       return {
         allowed: true,
         filter: {
-          category: { $in: FIELD_REPORT_CATEGORIES },
+          ...responderCategoryFilter(category),
           status: { $in: ['coordinating', 'acknowledged'] },
           acknowledgedBy: actorUid,
         },
@@ -144,7 +156,7 @@ export function getTransitionDecision({
       return {
         allowed: true,
         filter: {
-          category: { $in: FIELD_REPORT_CATEGORIES },
+          ...responderCategoryFilter(category),
           status: { $in: ['in_progress', 'en_route', 'on_scene'] },
           $or: [{ acknowledgedBy: actorUid }, { 'backupRequests.joinedBy': actorUid }],
         },
@@ -199,8 +211,19 @@ export function getTransitionDecision({
   return reject(404, 'Unknown report category');
 }
 
-export function getJoinDecision({ category, status, ownerUid, actorUid, backupRequests = [] }) {
-  if (!FIELD_REPORT_CATEGORIES.includes(category)) {
+export function getJoinDecision({
+  category,
+  subcategory,
+  status,
+  ownerUid,
+  actorUid,
+  backupRequests = [],
+}) {
+  if (
+    !FIELD_REPORT_CATEGORIES.includes(category) &&
+    !(category === BLOTTER_REPORT_CATEGORY &&
+      subcategory === CRIMINAL_BLOTTER_SUBCATEGORY)
+  ) {
     return reject(404, 'Report not found');
   }
   if (!ownerUid || ownerUid === actorUid) {
@@ -224,7 +247,7 @@ export function getJoinDecision({ category, status, ownerUid, actorUid, backupRe
     allowed: true,
     alreadyJoined: false,
     filter: {
-      category: { $in: FIELD_REPORT_CATEGORIES },
+      ...responderCategoryFilter(category),
       status: { $ne: 'resolved' },
       acknowledgedBy: ownerUid,
       backupRequests: {

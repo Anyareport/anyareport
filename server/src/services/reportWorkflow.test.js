@@ -173,6 +173,64 @@ test('Captain, Secretary, and Admin cannot change field incident status', () => 
   assert.equal(adminStartsBlotter.allowed, false);
 });
 
+test('responders can work criminal blotter cases through the field workflow', () => {
+  const acknowledge = getTransitionDecision({
+    category: 'Blotter Cases',
+    subcategory: 'Criminal',
+    role: 'tanod',
+    fromStatus: 'pending',
+    toStatus: 'coordinating',
+    actorUid: 'tanod-1',
+  });
+  assert.equal(acknowledge.allowed, true);
+  assert.deepEqual(acknowledge.filter.category, 'Blotter Cases');
+  assert.equal(acknowledge.filter.subcategory, 'Criminal');
+
+  const start = getTransitionDecision({
+    category: 'Blotter Cases',
+    subcategory: 'Criminal',
+    role: 'responder',
+    fromStatus: 'coordinating',
+    toStatus: 'in_progress',
+    actorUid: 'responder-1',
+    ownerUid: 'responder-1',
+  });
+  assert.equal(start.allowed, true);
+
+  const resolve = getTransitionDecision({
+    category: 'Blotter Cases',
+    subcategory: 'Criminal',
+    role: 'responder',
+    fromStatus: 'in_progress',
+    toStatus: 'resolved',
+    actorUid: 'responder-1',
+    ownerUid: 'responder-1',
+  });
+  assert.equal(resolve.allowed, true);
+
+  const secretaryProcess = getTransitionDecision({
+    category: 'Blotter Cases',
+    subcategory: 'Criminal',
+    role: 'secretary',
+    fromStatus: 'pending',
+    toStatus: 'in_progress',
+  });
+  assert.equal(secretaryProcess.allowed, true);
+});
+
+test('civil blotter cases remain outside the responder workflow', () => {
+  const decision = getTransitionDecision({
+    category: 'Blotter Cases',
+    subcategory: 'Civil',
+    role: 'responder',
+    fromStatus: 'pending',
+    toStatus: 'coordinating',
+    actorUid: 'responder-1',
+  });
+  assert.equal(decision.allowed, false);
+  assert.equal(decision.statusCode, 400);
+});
+
 test('first concurrent acknowledger wins the pending compare-and-set', async () => {
   const report = { category: 'Public Concerns', status: 'pending', acknowledgedBy: null };
   const attempt = async (actorUid) => {

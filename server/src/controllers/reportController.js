@@ -45,6 +45,12 @@ function canDispatchReport(report) {
   );
 }
 
+function responderReportFilter(report) {
+  return report.category === BLOTTER_CATEGORY
+    ? { category: BLOTTER_CATEGORY, subcategory: CRIMINAL_BLOTTER_SUBCATEGORY }
+    : { category: { $in: RESPONDER_CATEGORIES } };
+}
+
 async function resolveActorName(uid) {
   const user = await User.findOne({ firebaseUid: uid }).select('name').lean();
   return user?.name || uid;
@@ -314,17 +320,23 @@ export async function getReports(req, res) {
   try {
     const query = {};
     if (['tanod', 'responder'].includes(req.userRole)) {
-      query.$or = [
-        { category: { $in: RESPONDER_CATEGORIES } },
-        { category: BLOTTER_CATEGORY, subcategory: CRIMINAL_BLOTTER_SUBCATEGORY },
+      query.$and = [
+        {
+          $or: [
+            { category: { $in: RESPONDER_CATEGORIES } },
+            { category: BLOTTER_CATEGORY, subcategory: CRIMINAL_BLOTTER_SUBCATEGORY },
+          ],
+        },
       ];
     }
     if (req.query.status) query.status = { $in: statusFilterValues(req.query.status) };
     if (req.query.handledByMe === 'true' && ['tanod', 'responder'].includes(req.userRole)) {
-      query.$or = [
-        { acknowledgedBy: req.firebaseUser.uid },
-        { 'backupRequests.joinedBy': req.firebaseUser.uid },
-      ];
+      query.$and.push({
+        $or: [
+          { acknowledgedBy: req.firebaseUser.uid },
+          { 'backupRequests.joinedBy': req.firebaseUser.uid },
+        ],
+      });
     }
 
     const reports = await Report.find(query).sort({ createdAt: -1 }).limit(200);
@@ -525,6 +537,7 @@ async function applyReportTransition(req, report, toStatus) {
   const helperUids = (report.backupRequests || []).flatMap((request) => request.joinedBy || []);
   const decision = getTransitionDecision({
     category: report.category,
+    subcategory: report.subcategory,
     role: req.userRole,
     fromStatus: report.status,
     toStatus,
@@ -625,7 +638,7 @@ export async function requestBackup(req, res) {
 
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ error: 'Report not found' });
-    if (!RESPONDER_CATEGORIES.includes(report.category)) {
+    if (!canResponderViewReport(report)) {
       return res.status(404).json({ error: 'Report not found' });
     }
     if (report.acknowledgedBy !== req.firebaseUser.uid) {
@@ -651,7 +664,7 @@ export async function requestBackup(req, res) {
         Report.findOneAndUpdate(
           {
             _id: report._id,
-            category: { $in: RESPONDER_CATEGORIES },
+            ...responderReportFilter(report),
             status: { $ne: 'resolved' },
             acknowledgedBy: req.firebaseUser.uid,
             backupRequests: { $not: { $elemMatch: { status: 'pending' } } },
@@ -693,6 +706,7 @@ export async function joinBackupRequest(req, res) {
     const ownerUid = report.acknowledgedBy;
     const decision = getJoinDecision({
       category: report.category,
+      subcategory: report.subcategory,
       status: report.status,
       ownerUid,
       actorUid: req.firebaseUser.uid,
@@ -764,7 +778,7 @@ export async function closeBackupRequest(req, res) {
 
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ error: 'Report not found' });
-    if (!RESPONDER_CATEGORIES.includes(report.category)) {
+    if (!canResponderViewReport(report)) {
       return res.status(404).json({ error: 'Report not found' });
     }
     if (report.acknowledgedBy !== req.firebaseUser.uid) {
@@ -790,7 +804,7 @@ export async function closeBackupRequest(req, res) {
         Report.findOneAndUpdate(
           {
             _id: report._id,
-            category: { $in: RESPONDER_CATEGORIES },
+            ...responderReportFilter(report),
             status: { $ne: 'resolved' },
             acknowledgedBy: req.firebaseUser.uid,
             backupRequests: {
