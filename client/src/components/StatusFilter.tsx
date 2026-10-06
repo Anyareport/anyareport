@@ -16,6 +16,7 @@ const statusOptions: FilterOption[] = [
 interface StatusFilterProps {
   value: string;
   onChange: (value: string) => void;
+  layout?: 'responsive' | 'select';
 }
 
 interface FilterControlProps extends StatusFilterProps {
@@ -28,10 +29,11 @@ export function FilterControl({
   onChange,
   options,
   ariaLabel = 'Filter options',
+  layout = 'responsive',
 }: FilterControlProps) {
   const screens = Grid.useBreakpoint();
 
-  if (!screens.md) {
+  if (layout === 'select' || !screens.md) {
     return (
       <Select
         aria-label={ariaLabel}
@@ -52,11 +54,16 @@ export function FilterControl({
   );
 }
 
-export default function StatusFilter({ value, onChange }: StatusFilterProps) {
+export default function StatusFilter({
+  value,
+  onChange,
+  layout = 'responsive',
+}: StatusFilterProps) {
   return (
     <FilterControl
       value={value}
       onChange={onChange}
+      layout={layout}
       options={statusOptions}
       ariaLabel="Filter incidents by status"
     />

@@ -75,11 +75,11 @@ export function canResponderViewReport(report) {
 export function canViewReporter(role, report, uid) {
   if (role === 'resident') return report.submittedBy === uid;
   if (RESPONDER_ROLES.includes(role)) return isResponderParticipant(report, uid);
-  return ['captain', 'secretary'].includes(role) && report.category === BLOTTER_REPORT_CATEGORY;
+  return ['admin', 'captain', 'secretary'].includes(role);
 }
 
 export function canViewReporterContact(role, report, uid) {
-  if (role === 'captain') return false;
+  if (['admin', 'captain'].includes(role)) return false;
   return canViewReporter(role, report, uid);
 }
 

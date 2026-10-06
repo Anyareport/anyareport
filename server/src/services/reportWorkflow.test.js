@@ -383,9 +383,9 @@ test('reporter visibility follows role and incident participation', () => {
   assert.equal(canViewReporter('tanod', fieldReport, 'helper-1'), true);
   assert.equal(canViewReporterContact('responder', fieldReport, 'lead-1'), true);
   assert.equal(canViewReporter('responder', fieldReport, 'other-1'), false);
-  assert.equal(canViewReporter('captain', fieldReport, 'captain-1'), false);
+  assert.equal(canViewReporter('captain', fieldReport, 'captain-1'), true);
   assert.equal(canViewReporterContact('captain', fieldReport, 'captain-1'), false);
-  assert.equal(canViewReporter('admin', fieldReport, 'admin-1'), false);
+  assert.equal(canViewReporter('admin', fieldReport, 'admin-1'), true);
   assert.equal(canViewReporterContact('admin', fieldReport, 'admin-1'), false);
 
   const blotterReport = { ...fieldReport, category: 'Blotter Cases' };
@@ -393,7 +393,7 @@ test('reporter visibility follows role and incident participation', () => {
   assert.equal(canViewReporterContact('secretary', blotterReport, 'secretary-1'), true);
   assert.equal(canViewReporter('captain', blotterReport, 'captain-1'), true);
   assert.equal(canViewReporterContact('captain', blotterReport, 'captain-1'), false);
-  assert.equal(canViewReporter('secretary', fieldReport, 'secretary-1'), false);
-  assert.equal(canViewReporter('admin', blotterReport, 'admin-1'), false);
+  assert.equal(canViewReporter('secretary', fieldReport, 'secretary-1'), true);
+  assert.equal(canViewReporter('admin', blotterReport, 'admin-1'), true);
   assert.equal(canViewReporterContact('admin', blotterReport, 'admin-1'), false);
 });
