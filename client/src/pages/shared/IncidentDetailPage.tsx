@@ -256,10 +256,10 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const isParticipant = isOwner || isBackupResponder;
   const canViewReporter =
     (variant === 'responder' && isParticipant) ||
-    (variant === 'admin' && ['captain', 'secretary'].includes(role || '') && isBlotter);
+    (variant === 'admin' && ['admin', 'captain', 'secretary'].includes(role || ''));
   const canViewReporterContact =
     (variant === 'responder' && isParticipant) ||
-    (variant === 'admin' && role === 'secretary' && isBlotter);
+    (variant === 'admin' && role === 'secretary');
   const canJoinBackup =
     isResponder &&
     !!openBackupRequest &&
