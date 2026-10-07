@@ -4,6 +4,31 @@ export const CRIMINAL_BLOTTER_SUBCATEGORY = 'Criminal';
 
 const RESPONDER_ROLES = ['tanod', 'responder'];
 
+export function validateResolutionDetails(details) {
+  const requiredText = ['summary', 'actionsTaken', 'outcome'];
+  if (requiredText.some((field) => typeof details[field] !== 'string' || !details[field].trim())) {
+    return 'Resolution summary, actions taken, and outcome are required';
+  }
+  if (typeof details.furtherActionRequired !== 'boolean') {
+    return 'Further action required must be Yes or No';
+  }
+  if (
+    details.furtherActionRequired &&
+    (typeof details.furtherActionRecommendation !== 'string' ||
+      !details.furtherActionRecommendation.trim())
+  ) {
+    return 'Further action or recommendation is required when Yes is selected';
+  }
+  if (typeof details.assistanceRequested !== 'boolean') {
+    return 'Assistance requested must be specified';
+  }
+  return null;
+}
+
+export function canSubmitResolution(actorUid, assignedResponderUid) {
+  return Boolean(actorUid && assignedResponderUid && actorUid === assignedResponderUid);
+}
+
 function responderCategoryFilter(category) {
   return category === BLOTTER_REPORT_CATEGORY
     ? { category: BLOTTER_REPORT_CATEGORY, subcategory: CRIMINAL_BLOTTER_SUBCATEGORY }
@@ -188,8 +213,8 @@ export function getTransitionDecision({
     }
 
     if (toStatus === 'resolved') {
-      if (role !== 'secretary') {
-        return reject(403, 'Only the Secretary can resolve blotter cases');
+      if (!['captain', 'secretary'].includes(role)) {
+        return reject(403, 'Only the Captain or Secretary can resolve blotter cases');
       }
       if (currentStatus !== 'in_progress') {
         return reject(409, 'A blotter case can only be resolved from In Progress');

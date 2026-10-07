@@ -7,6 +7,8 @@ import {
   getJoinDecision,
   getTransitionDecision,
   normalizeReportStatus,
+  validateResolutionDetails,
+  canSubmitResolution,
 } from './reportWorkflow.js';
 
 function matchesStatus(filterStatus, currentStatus) {
@@ -63,6 +65,36 @@ test('field workflow requires coordinating before in-progress and resolution', (
     fromStatus: 'pending',
     toStatus: 'coordinating',
     actorUid: 'tanod-1',
+  });
+
+  test('resolution details require all mandatory fields and conditional recommendation', () => {
+    const valid = {
+      summary: 'The incident was contained.',
+      actionsTaken: 'The responder secured the area and assisted the resident.',
+      outcome: 'No further danger was observed.',
+      furtherActionRequired: false,
+      assistanceRequested: false,
+    };
+    assert.equal(validateResolutionDetails(valid), null);
+    assert.match(validateResolutionDetails({ ...valid, outcome: ' ' }), /outcome/i);
+    assert.match(
+      validateResolutionDetails({
+        ...valid,
+        furtherActionRequired: true,
+        furtherActionRecommendation: '',
+      }),
+      /recommendation/i
+    );
+    assert.match(
+      validateResolutionDetails({ ...valid, assistanceRequested: undefined }),
+      /assistance/i
+    );
+  });
+
+  test('only the assigned responder can submit resolution details', () => {
+    assert.equal(canSubmitResolution('responder-1', 'responder-1'), true);
+    assert.equal(canSubmitResolution('backup-1', 'responder-1'), false);
+    assert.equal(canSubmitResolution('admin-1', null), false);
   });
   assert.equal(acknowledge.allowed, true);
 
@@ -126,15 +158,25 @@ test('blotter processing and resolution are role-specific', () => {
     }).allowed,
     true
   );
+  assert.equal(
+    getTransitionDecision({
+      category: 'Blotter Cases',
+      subcategory: 'Civil',
+      role: 'captain',
+      fromStatus: 'in_progress',
+      toStatus: 'resolved',
+    }).allowed,
+    true
+  );
 
   const forbidden = getTransitionDecision({
     category: 'Blotter Cases',
-    role: 'captain',
+    role: 'admin',
     fromStatus: 'in_progress',
     toStatus: 'resolved',
   });
   assert.equal(forbidden.allowed, false);
-  assert.match(forbidden.error, /Secretary/);
+  assert.match(forbidden.error, /Captain or Secretary/);
 });
 
 test('Captain, Secretary, and Admin cannot change field incident status', () => {

@@ -102,6 +102,22 @@ export interface Report {
   verifiedBy: string | null;
   acknowledgedBy: string | null;
   acknowledgedByName?: string | null;
+  resolution?: {
+    summary: string;
+    actionsTaken: string;
+    outcome: string;
+    furtherActionRequired: boolean;
+    furtherActionRecommendation: string | null;
+    assistanceRequested: boolean;
+    supportingEvidence: string[];
+    resolvedBy: string;
+    resolvedByName: string;
+    resolvedAt: string;
+    verificationStatus: 'pending' | 'verified' | null;
+    verifiedBy: string | null;
+    verifiedByName: string | null;
+    verifiedAt: string | null;
+  } | null;
   backupRequests?: {
     requestedBy: string;
     requestedAt: string;

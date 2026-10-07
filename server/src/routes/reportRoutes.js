@@ -22,6 +22,8 @@ import {
   classifyReportHandler,
   getDispatchOptions,
   dispatchReport,
+  submitResolution,
+  verifyResolution,
 } from '../controllers/reportController.js';
 
 const router = Router();
@@ -38,7 +40,7 @@ router.get('/heatmap', requireRole('admin', 'captain', 'secretary'), getHeatmapD
 router.get('/captain/inactive', requireRole('captain'), getCaptainInactiveReports);
 router.get('/', requireRole('admin', 'captain', 'secretary', 'tanod', 'responder'), getReports);
 router.get('/:id/dispatch-options', requireRole('secretary'), getDispatchOptions);
-router.get('/:id/audit', requireRole('admin', 'secretary'), getReportAudit);
+router.get('/:id/audit', requireRole('admin', 'captain', 'secretary'), getReportAudit);
 router.get('/:id', getReportById);
 router.post('/:id/dispatch', requireRole('secretary'), dispatchReport);
 router.post('/:id/flag', requireRole('secretary'), flagReport);
@@ -46,6 +48,17 @@ router.patch(
   '/:id/status',
   requireRole('captain', 'secretary', 'tanod', 'responder'),
   updateReportStatus
+);
+router.post(
+  '/:id/resolution',
+  requireRole('captain', 'secretary', 'tanod', 'responder'),
+  upload.array('evidence', 3),
+  submitResolution
+);
+router.patch(
+  '/:id/resolution/verify',
+  requireRole('captain', 'secretary'),
+  verifyResolution
 );
 router.post('/:id/backup', requireRole('tanod', 'responder'), requestBackup);
 router.post('/:id/backup/join', requireRole('tanod', 'responder'), joinBackupRequest);

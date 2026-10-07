@@ -38,6 +38,10 @@ export default function AdminDashboardPage() {
   });
 
   const openReports = reports.filter((report) => report.status !== 'resolved').length;
+  const pendingResolutionReviews = reports.filter(
+    (report) =>
+      report.status === 'resolved' && report.resolution?.verificationStatus === 'pending'
+  );
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
@@ -47,22 +51,27 @@ export default function AdminDashboardPage() {
       />
 
       <Row gutter={[16, 16]}>
-        <Col xs={24} md={8}>
+        <Col xs={24} md={6}>
           <Card className="soft-card">
             <Statistic title="Open incidents" value={openReports} />
           </Card>
         </Col>
-        <Col xs={24} md={8}>
+        <Col xs={24} md={6}>
           <Card className="soft-card">
             <Statistic title="Total reports" value={analytics?.total ?? reports.length} />
           </Card>
         </Col>
-        <Col xs={24} md={8}>
+        <Col xs={24} md={6}>
           <Card className="soft-card">
             <Statistic
               title="Unread notifications"
               value={notificationFeed?.pages[0]?.unreadCount ?? 0}
             />
+          </Card>
+        </Col>
+        <Col xs={24} md={6}>
+          <Card className="soft-card">
+            <Statistic title="Pending resolution review" value={pendingResolutionReviews.length} />
           </Card>
         </Col>
       </Row>
@@ -86,6 +95,33 @@ export default function AdminDashboardPage() {
           />
         </Card>
       )}
+
+      <Card
+        className="soft-card"
+        title="Pending resolution review"
+        extra={
+          <Button
+            style={{ margin: 0, padding: 0 }}
+            type="link"
+            onClick={() => navigate('/admin/incidents?status=resolved')}
+          >
+            View all resolved
+          </Button>
+        }
+      >
+        <List
+          dataSource={pendingResolutionReviews.slice(0, 5)}
+          pagination={{ pageSize: 5, hideOnSinglePage: true }}
+          locale={{ emptyText: 'No resolutions are awaiting review.' }}
+          renderItem={(report) => (
+            <IncidentCard
+              report={report}
+              onClick={() => navigate(`/admin/incidents/${report._id}`)}
+              extra={<Text type="warning">Pending verification</Text>}
+            />
+          )}
+        />
+      </Card>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} xl={16}>

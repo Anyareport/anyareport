@@ -23,6 +23,7 @@ import {
   BLOTTER_REPORT_CATEGORY,
   CRIMINAL_BLOTTER_SUBCATEGORY,
   canResponderViewReport,
+  canSubmitResolution,
   FIELD_REPORT_CATEGORIES,
   canViewReporter,
   canViewReporterContact,
@@ -32,6 +33,7 @@ import {
   normalizeReportStatus,
   serializeReport,
   statusFilterValues,
+  validateResolutionDetails,
 } from '../services/reportWorkflow.js';
 
 const RESPONDER_CATEGORIES = FIELD_REPORT_CATEGORIES;
@@ -532,7 +534,12 @@ export async function flagReport(req, res) {
   }
 }
 
-async function applyReportTransition(req, report, toStatus) {
+async function applyReportTransition(
+  req,
+  report,
+  toStatus,
+  { extraSet = {}, action = null, auditMetadata = {} } = {}
+) {
   const actorUid = req.firebaseUser.uid;
   const helperUids = (report.backupRequests || []).flatMap((request) => request.joinedBy || []);
   const decision = getTransitionDecision({
@@ -550,7 +557,7 @@ async function applyReportTransition(req, report, toStatus) {
 
   const updatedBy = await resolveActorName(actorUid);
   const update = {
-    $set: { ...decision.update },
+    $set: { ...decision.update, ...extraSet },
     $push: { statusHistory: { status: decision.update.status, updatedBy } },
   };
   const options = { new: true };
@@ -568,10 +575,10 @@ async function applyReportTransition(req, report, toStatus) {
   }
 
   const updatedReport = await updateWithAudit(
-    decision.action,
+    action || decision.action,
     req,
     report._id,
-    { status: decision.update.status },
+    { status: decision.update.status, ...auditMetadata },
     (session) =>
       Report.findOneAndUpdate({ _id: report._id, ...decision.filter }, update, {
         ...options,
@@ -600,6 +607,12 @@ export async function updateReportStatus(req, res) {
 
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ error: 'Report not found' });
+    if (
+      status === 'resolved' &&
+      ['captain', 'secretary', 'tanod', 'responder'].includes(req.userRole)
+    ) {
+      return res.status(400).json({ error: 'Submit resolution details before resolving this incident' });
+    }
     const result = await applyReportTransition(req, report, status);
     if (result.error) return res.status(result.statusCode).json({ error: result.error });
     res.json(serializeReport(result.report));
@@ -607,6 +620,121 @@ export async function updateReportStatus(req, res) {
     res.status(500).json({ error: err.message });
   }
 }
+
+function parseBoolean(value) {
+    if (value === true || value === 'true') return true;
+    if (value === false || value === 'false') return false;
+    return undefined;
+}
+
+export async function submitResolution(req, res) {
+    try {
+      const furtherActionRequired = parseBoolean(req.body.furtherActionRequired);
+      const assistanceRequested = parseBoolean(req.body.assistanceRequested);
+      const details = {
+        summary: req.body.summary,
+        actionsTaken: req.body.actionsTaken,
+        outcome: req.body.outcome,
+        furtherActionRequired,
+        furtherActionRecommendation: req.body.furtherActionRecommendation,
+        assistanceRequested,
+      };
+      const validationError = validateResolutionDetails(details);
+      if (validationError) return res.status(400).json({ error: validationError });
+
+      const report = await Report.findById(req.params.id);
+      if (!report) return res.status(404).json({ error: 'Report not found' });
+      const canResolveAsBlotterOfficial =
+        report.category === BLOTTER_REPORT_CATEGORY &&
+        ['captain', 'secretary'].includes(req.userRole);
+      if (
+        !canResolveAsBlotterOfficial &&
+        !canSubmitResolution(req.firebaseUser.uid, report.acknowledgedBy)
+      ) {
+        return res.status(403).json({ error: 'Only the assigned responder can submit the resolution' });
+      }
+      if (report.resolution?.resolvedAt || report.status === 'resolved') {
+        return res.status(409).json({ error: 'Resolution details have already been submitted' });
+      }
+
+      const uploadedEvidence = await Promise.all(
+        (req.files || []).map((file) => uploadImage(file.buffer, file.mimetype))
+      );
+      const resolvedByName = await resolveActorName(req.firebaseUser.uid);
+      const resolution = {
+        summary: details.summary.trim(),
+        actionsTaken: details.actionsTaken.trim(),
+        outcome: details.outcome.trim(),
+        furtherActionRequired,
+        furtherActionRecommendation: furtherActionRequired
+          ? details.furtherActionRecommendation.trim()
+          : null,
+        assistanceRequested,
+        supportingEvidence: uploadedEvidence.map((file) => file.secure_url),
+        resolvedBy: req.firebaseUser.uid,
+        resolvedByName,
+        resolvedAt: new Date(),
+        verificationStatus: 'pending',
+      };
+
+      const result = await applyReportTransition(req, report, 'resolved', {
+        extraSet: { resolution },
+        action: 'resolution_submitted',
+        auditMetadata: { evidenceCount: resolution.supportingEvidence.length },
+      });
+      if (result.error) return res.status(result.statusCode).json({ error: result.error });
+      res.json(serializeReport(result.report));
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+}
+
+export async function verifyResolution(req, res) {
+    try {
+      if (!['captain', 'secretary'].includes(req.userRole)) {
+        return res.status(403).json({ error: 'Only the Captain or Secretary can verify resolutions' });
+      }
+      const report = await Report.findById(req.params.id);
+      if (!report) return res.status(404).json({ error: 'Report not found' });
+      if (!report.resolution?.resolvedAt) {
+        return res.status(409).json({ error: 'Resolution details must be submitted before verification' });
+      }
+      if (report.resolution.verificationStatus === 'verified') {
+        return res.json(serializeReport(report));
+      }
+
+      const verifiedByName = await resolveActorName(req.firebaseUser.uid);
+      const verifiedAt = new Date();
+      const updatedReport = await updateWithAudit(
+        'resolution_verified',
+        req,
+        report._id,
+        {},
+        (session) =>
+          Report.findOneAndUpdate(
+            {
+              _id: report._id,
+              'resolution.resolvedAt': { $ne: null },
+              'resolution.verificationStatus': { $ne: 'verified' },
+            },
+            {
+              $set: {
+                'resolution.verificationStatus': 'verified',
+                'resolution.verifiedBy': req.firebaseUser.uid,
+                'resolution.verifiedByName': verifiedByName,
+                'resolution.verifiedAt': verifiedAt,
+              },
+            },
+            { new: true, session }
+          )
+      );
+      if (!updatedReport) return res.status(409).json({ error: 'Resolution changed before verification completed' });
+      emitReportChanged(updatedReport, 'updated');
+      res.json(serializeReport(updatedReport));
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
 
 export async function acknowledgeReport(req, res) {
   try {

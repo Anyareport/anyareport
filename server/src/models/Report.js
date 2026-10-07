@@ -34,6 +34,26 @@ const reportSchema = new mongoose.Schema(
     aiSummary: { type: String, default: null },
     verifiedBy: { type: String, default: null },
     acknowledgedBy: { type: String, default: null },
+    resolution: {
+      summary: { type: String, default: null },
+      actionsTaken: { type: String, default: null },
+      outcome: { type: String, default: null },
+      furtherActionRequired: { type: Boolean, default: null },
+      furtherActionRecommendation: { type: String, default: null },
+      assistanceRequested: { type: Boolean, default: null },
+      supportingEvidence: [{ type: String }],
+      resolvedBy: { type: String, default: null },
+      resolvedByName: { type: String, default: null },
+      resolvedAt: { type: Date, default: null },
+      verificationStatus: {
+        type: String,
+        enum: ['pending', 'verified'],
+        default: null,
+      },
+      verifiedBy: { type: String, default: null },
+      verifiedByName: { type: String, default: null },
+      verifiedAt: { type: Date, default: null },
+    },
     backupRequests: [
       {
         requestedBy: { type: String, required: true },

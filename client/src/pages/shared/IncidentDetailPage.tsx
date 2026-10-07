@@ -7,14 +7,20 @@ import {
   Button,
   Card,
   Empty,
+  Form,
   Image,
+  Input,
+  Modal,
+  Radio,
   Space,
   Spin,
   Timeline,
   Typography,
   Select,
+  Upload,
   message,
 } from 'antd';
+import type { UploadFile } from 'antd';
 import {
   ArrowLeftOutlined,
   CheckOutlined,
@@ -42,7 +48,6 @@ import {
 } from '../../lib/reportWorkflow';
 import IncidentStatusSteps from './IncidentStatusSteps';
 import './IncidentDetailPage.css';
-
 const { Paragraph, Text, Title } = Typography;
 
 interface IncidentDetailPageProps {
@@ -56,6 +61,15 @@ interface BackupRequestResponse {
 
 interface DispatchOptionsResponse {
   responders: DispatchResponder[];
+}
+
+interface ResolutionFormValues {
+  summary: string;
+  actionsTaken: string;
+  outcome: string;
+  furtherActionRequired: boolean;
+  furtherActionRecommendation?: string;
+  assistanceRequested: boolean;
 }
 
 function getPhotoUrl(photo: string) {
@@ -87,6 +101,10 @@ function getAuditLabel(entry: AuditLog) {
         : 'Status updated';
     case 'report_flagged':
       return 'Report flagged';
+    case 'resolution_submitted':
+      return `Resolution submitted by ${entry.actorName || 'Responder'}`;
+    case 'resolution_verified':
+      return `Resolution verified by ${entry.actorName || 'Official'}`;
     default:
       return entry.action.replace(/_/g, ' ');
   }
@@ -132,12 +150,49 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const queryClient = useQueryClient();
   const { profile, role } = useAuth();
   const [selectedResponderUids, setSelectedResponderUids] = useState<string[]>([]);
+  const [resolutionOpen, setResolutionOpen] = useState(false);
+  const [resolutionViewOpen, setResolutionViewOpen] = useState(false);
+  const [evidenceFiles, setEvidenceFiles] = useState<UploadFile[]>([]);
 
   const { data: report, isLoading } = useQuery({
     queryKey: ['report', id],
     queryFn: () => api.get<Report>(`/api/reports/${id}`),
     enabled: !!id,
     refetchInterval: 15000,
+  });
+
+  const resolutionMutation = useMutation({
+    mutationFn: (values: ResolutionFormValues) => {
+      const formData = new FormData();
+      formData.append('summary', values.summary);
+      formData.append('actionsTaken', values.actionsTaken);
+      formData.append('outcome', values.outcome);
+      formData.append('furtherActionRequired', String(values.furtherActionRequired));
+      formData.append('furtherActionRecommendation', values.furtherActionRecommendation || '');
+      formData.append('assistanceRequested', String(values.assistanceRequested));
+      evidenceFiles.forEach((file) => {
+        if (file.originFileObj) formData.append('evidence', file.originFileObj);
+      });
+      return api.post<Report>(`/api/reports/${id}/resolution`, formData);
+    },
+    onSuccess: async () => {
+      setResolutionOpen(false);
+      setEvidenceFiles([]);
+      await invalidateReportViews();
+      await queryClient.invalidateQueries({ queryKey: ['report-audit', id] });
+      message.success('Resolution submitted');
+    },
+    onError: (error: Error) => message.error(error.message),
+  });
+
+  const verifyResolutionMutation = useMutation({
+    mutationFn: () => api.patch<Report>(`/api/reports/${id}/resolution/verify`, {}),
+    onSuccess: async () => {
+      await invalidateReportViews();
+      await queryClient.invalidateQueries({ queryKey: ['report-audit', id] });
+      message.success('Resolution verified');
+    },
+    onError: (error: Error) => message.error(error.message),
   });
   const canDispatch =
     role === 'secretary' &&
@@ -158,12 +213,14 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
 
   const canViewReportAudit =
     variant === 'admin' &&
-    (role === 'admin' || role === 'secretary');
+    ['admin', 'captain', 'secretary'].includes(role || '');
+  const canLoadReportAudit =
+    variant === 'admin' && ['admin', 'captain', 'secretary'].includes(role || '');
   const showStatusTimeline = variant !== 'admin' || role !== 'admin';
   const { data: auditEntries = [] } = useQuery({
     queryKey: ['report-audit', id],
     queryFn: () => api.get<AuditLog[]>(`/api/reports/${id}/audit`),
-    enabled: !!id && canViewReportAudit,
+    enabled: !!id && canLoadReportAudit,
     refetchInterval: 30000,
   });
 
@@ -235,6 +292,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         <Spin size="large" />
       </div>
     );
+
   }
 
   if (!report) {
@@ -279,16 +337,22 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const showMobileResponderActions = isResponder;
   const canStartBlotter =
     isBlotter && status === 'pending' && ['captain', 'secretary'].includes(role || '');
-  const canResolveBlotter = isBlotter && status === 'in_progress' && role === 'secretary';
+  const canResolveBlotter =
+    isBlotter && status === 'in_progress' && ['captain', 'secretary'].includes(role || '');
   const canStartFieldWork = isResponder && isOwner && status === 'coordinating';
-  const canResolveFieldWork = isResponder && isParticipant && status === 'in_progress';
+  const canResolveFieldWork = isResponder && isOwner && status === 'in_progress';
+  const canReviewResolution =
+    variant === 'admin' &&
+    ['captain', 'secretary'].includes((role || '').toLowerCase());
   const actionBusy =
     updateStatus.isPending ||
     acknowledgeMutation.isPending ||
     backupMutation.isPending ||
     joinBackupMutation.isPending ||
     closeBackupMutation.isPending ||
-    dispatchMutation.isPending;
+    dispatchMutation.isPending ||
+    resolutionMutation.isPending ||
+    verifyResolutionMutation.isPending;
 
   const showPreviousPhoto = () => {
     setActivePhotoIndex((currentIndex) => (currentIndex - 1 + photos.length) % photos.length);
@@ -367,7 +431,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       type="primary"
       disabled={actionBusy}
       loading={updateStatus.isPending}
-      onClick={() => updateStatus.mutate('resolved')}
+      onClick={() => setResolutionOpen(true)}
     >
       Mark resolved
     </Button>
@@ -391,7 +455,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       type="primary"
       disabled={actionBusy}
       loading={updateStatus.isPending}
-      onClick={() => updateStatus.mutate('resolved')}
+      onClick={() => setResolutionOpen(true)}
     >
       Mark resolved
     </Button>
@@ -483,6 +547,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       aria-labelledby="incident-actions-heading"
     >
       <h2 id="incident-actions-heading">Response</h2>
+      
       {responderAction || (
         <Text type="secondary">
           {status === 'resolved'
@@ -559,13 +624,15 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       {oversightAction || (
         <Text type="secondary">
           {role === 'captain'
-            ? 'Only the Secretary can mark a blotter case as resolved.'
+            ? status === 'resolved'
+              ? 'This blotter case is resolved.'
+              : 'Blotter cases can be resolved by the Captain or Secretary.'
             : status === 'resolved'
               ? 'This blotter case is resolved.'
               : 'Blotter processing is managed by the Captain and Secretary.'}
         </Text>
       )}
-      {role === 'secretary' && (
+      {['captain', 'secretary'].includes(role || '') && (
         <Button
           block
           icon={<DownloadOutlined />}
@@ -706,6 +773,76 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     </section>
   );
 
+  const resolutionDetails = report.resolution?.resolvedAt ? (
+    <>
+      <section className="incident-description-section" aria-labelledby="resolution-details-heading">
+        <div className="incident-panel-heading">
+          <h2 id="resolution-details-heading">Resolution Details</h2>
+          <Button type="primary" onClick={() => setResolutionViewOpen(true)}>
+            View details
+          </Button>
+        </div>
+        <Text type="secondary">Resolution details are available for review.</Text>
+      </section>
+      <Modal
+        title="Resolution Details"
+        open={resolutionViewOpen}
+        footer={null}
+        onCancel={() => setResolutionViewOpen(false)}
+      >
+        <Space direction="vertical" size={8} style={{ width: '100%' }}>
+          <Text strong>Resolution Summary</Text>
+          <Paragraph>{report.resolution.summary}</Paragraph>
+          <Text strong>Actions Taken</Text>
+          <Paragraph>{report.resolution.actionsTaken}</Paragraph>
+          <Text strong>Outcome</Text>
+          <Paragraph>{report.resolution.outcome}</Paragraph>
+          <Text strong>Further Action Required</Text>
+          <Text>{report.resolution.furtherActionRequired ? 'Yes' : 'No'}</Text>
+          {report.resolution.furtherActionRequired && (
+            <>
+              <Text strong>Further Action / Recommendation</Text>
+              <Paragraph>{report.resolution.furtherActionRecommendation}</Paragraph>
+            </>
+          )}
+          <Text strong>Assistance Requested</Text>
+          <Text>{report.resolution.assistanceRequested ? 'Yes' : 'No'}</Text>
+          {!!report.resolution.supportingEvidence.length && (
+            <>
+              <Text strong>Supporting Evidence</Text>
+              <Space wrap>
+                {report.resolution.supportingEvidence.map((evidence) => (
+                  <Image key={evidence} width={96} src={getPhotoUrl(evidence)} alt="Supporting evidence" />
+                ))}
+              </Space>
+            </>
+          )}
+          <Text>
+            Resolved By: {report.resolution.resolvedByName || report.resolution.resolvedBy}
+          </Text>
+          <Text>
+            Resolved Date &amp; Time: {new Date(report.resolution.resolvedAt).toLocaleString()}
+          </Text>
+          <Text>
+            Verification:{' '}
+            {report.resolution.verificationStatus === 'verified'
+              ? `Verified by ${report.resolution.verifiedByName || report.resolution.verifiedBy} on ${new Date(report.resolution.verifiedAt || '').toLocaleString()}`
+              : 'Pending review'}
+          </Text>
+          {canReviewResolution && report.resolution.verificationStatus !== 'verified' && (
+            <Button
+              type="primary"
+              loading={verifyResolutionMutation.isPending}
+              onClick={() => verifyResolutionMutation.mutate()}
+            >
+              Verify resolution
+            </Button>
+          )}
+        </Space>
+      </Modal>
+    </>
+  ) : null;
+
   return (
     <main className={`incident-detail incident-detail--${variant}`}>
       <header className="incident-detail-header">
@@ -825,7 +962,10 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         </Card>
 
         <aside className="incident-aside">
+          {resolutionDetails}
           {!isResident && actionPanel}
+
+          
 
           {showStatusTimeline && (
             <Card
@@ -873,6 +1013,122 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           )}
         </aside>
       </div>
+
+      <Modal
+        title="Resolution Details"
+        open={resolutionOpen}
+        destroyOnClose
+        footer={null}
+        onCancel={() => {
+          setResolutionOpen(false);
+          setEvidenceFiles([]);
+        }}
+      >
+        <Form
+          layout="vertical"
+          initialValues={{ furtherActionRequired: false, assistanceRequested: false }}
+          onFinish={(values: ResolutionFormValues) => resolutionMutation.mutate(values)}
+        >
+          <Form.Item
+            name="summary"
+            label="Resolution Summary"
+            rules={[
+              {
+                required: true,
+                whitespace: true,
+              },
+            ]}
+          >
+            <Input.TextArea
+              rows={3}
+              placeholder="Briefly describe what happened"
+            />
+          </Form.Item>
+          <Form.Item
+            name="actionsTaken"
+            label="Actions Taken"
+            rules={[
+              {
+                required: true,
+                whitespace: true,
+              },
+            ]}
+          >
+            <Input.TextArea
+              rows={3}
+              placeholder="Describe the actions or interventions performed."
+            />
+          </Form.Item>
+          <Form.Item
+            name="outcome"
+            label="Outcome"
+            rules={[{ required: true, whitespace: true, message: 'Describe the final result.' }]}
+          >
+            <Input.TextArea
+              rows={3}
+            />
+          </Form.Item>
+          <Form.Item
+            name="furtherActionRequired"
+            label="Further Action Required"
+            rules={[{ required: true, message: 'Select Yes or No.' }]}
+          >
+            <Radio.Group options={[{ label: 'Yes', value: true }, { label: 'No', value: false }]} />
+          </Form.Item>
+          <Form.Item
+            noStyle
+            shouldUpdate={(previous, current) =>
+              previous.furtherActionRequired !== current.furtherActionRequired
+            }
+          >
+            {({ getFieldValue }) =>
+              getFieldValue('furtherActionRequired') ? (
+                <Form.Item
+                  name="furtherActionRecommendation"
+                  label="Further Action / Recommendation"
+                  rules={[
+                    {
+                      required: true,
+                      whitespace: true,
+                      message: 'Provide the further action or recommendation.',
+                    },
+                  ]}
+                >
+                  <Input.TextArea
+                    rows={2}
+                    placeholder="Example: Conduct a follow-up visit or refer the matter to the appropriate office."
+                  />
+                </Form.Item>
+              ) : null
+            }
+          </Form.Item>
+          <Form.Item
+            name="assistanceRequested"
+            label="Assistance Requested"
+            rules={[{ required: true, message: 'Select Yes or No.' }]}
+          >
+            <Radio.Group options={[{ label: 'Yes', value: true }, { label: 'No', value: false }]} />
+          </Form.Item>
+          <Form.Item label="Supporting Evidence">
+            <Upload
+              beforeUpload={() => false}
+              accept="image/*"
+              maxCount={3}
+              fileList={evidenceFiles}
+              onChange={({ fileList }) => setEvidenceFiles(fileList)}
+              onRemove={(file) => {
+                setEvidenceFiles((current) => current.filter((entry) => entry.uid !== file.uid));
+              }}
+            >
+              <Button>Upload photos</Button>
+            </Upload>
+            <Text type="secondary">Images only, up to 3 files and 5 MB each.</Text>
+          </Form.Item>
+          <Button type="primary" htmlType="submit" loading={resolutionMutation.isPending} block>
+            Submit Resolution
+          </Button>
+        </Form>
+      </Modal>
 
       {showMobileResponderActions && (
         <details open className="incident-mobile-actions soft-card">
