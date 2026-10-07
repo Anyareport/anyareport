@@ -22,6 +22,7 @@ import {
   classifyReportHandler,
   getDispatchOptions,
   dispatchReport,
+  respondToDispatch,
   submitResolution,
   verifyResolution,
 } from '../controllers/reportController.js';
@@ -39,10 +40,11 @@ router.get('/analytics', requireRole('admin', 'captain', 'secretary'), getAnalyt
 router.get('/heatmap', requireRole('admin', 'captain', 'secretary'), getHeatmapData);
 router.get('/captain/inactive', requireRole('captain'), getCaptainInactiveReports);
 router.get('/', requireRole('admin', 'captain', 'secretary', 'tanod', 'responder'), getReports);
-router.get('/:id/dispatch-options', requireRole('secretary'), getDispatchOptions);
+router.get('/:id/dispatch-options', requireRole('captain', 'secretary'), getDispatchOptions);
 router.get('/:id/audit', requireRole('admin', 'captain', 'secretary'), getReportAudit);
 router.get('/:id', getReportById);
-router.post('/:id/dispatch', requireRole('secretary'), dispatchReport);
+router.post('/:id/dispatch', requireRole('captain', 'secretary'), dispatchReport);
+router.post('/:id/dispatch-response', requireRole('tanod', 'responder'), respondToDispatch);
 router.post('/:id/flag', requireRole('secretary'), flagReport);
 router.patch(
   '/:id/status',

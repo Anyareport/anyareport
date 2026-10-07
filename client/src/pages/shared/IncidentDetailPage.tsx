@@ -194,16 +194,23 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     },
     onError: (error: Error) => message.error(error.message),
   });
+  const dispatchStatus = normalizeReportStatus(report?.status || report?.workflowStatus || '');
+  const isCivilBlotterReport =
+    report?.category === BLOTTER_REPORT_CATEGORY && report.subcategory === 'Civil';
+  const canDispatchCurrentStatus =
+    dispatchStatus === 'in_progress' ||
+    (!isCivilBlotterReport && dispatchStatus === 'pending' && !report?.acknowledgedBy);
   const canDispatch =
-    role === 'secretary' &&
-    (report?.workflowStatus || report?.status) === 'pending' &&
+    ['captain', 'secretary'].includes(role || '') &&
+    canDispatchCurrentStatus &&
     (report?.category === 'Public Concerns' ||
       report?.category === 'Emergency Situations' ||
-      (report?.category === BLOTTER_REPORT_CATEGORY && report?.subcategory === 'Criminal'));
+      (report?.category === BLOTTER_REPORT_CATEGORY &&
+        ['Criminal', 'Civil'].includes(report?.subcategory || '')));
   const {
     data: dispatchOptions,
     isLoading: dispatchOptionsLoading,
-    isError: dispatchOptionsError,
+    error: dispatchOptionsError,
   } = useQuery({
     queryKey: ['report-dispatch-options', id],
     queryFn: () => api.get<DispatchOptionsResponse>(`/api/reports/${id}/dispatch-options`),
@@ -212,15 +219,12 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   });
 
   const canViewReportAudit =
-    variant === 'admin' &&
-    ['admin', 'captain', 'secretary'].includes(role || '');
-  const canLoadReportAudit =
     variant === 'admin' && ['admin', 'captain', 'secretary'].includes(role || '');
   const showStatusTimeline = variant !== 'admin' || role !== 'admin';
   const { data: auditEntries = [] } = useQuery({
     queryKey: ['report-audit', id],
     queryFn: () => api.get<AuditLog[]>(`/api/reports/${id}/audit`),
-    enabled: !!id && canLoadReportAudit,
+    enabled: !!id && canViewReportAudit,
     refetchInterval: 30000,
   });
 
@@ -302,7 +306,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const isResident = variant === 'resident';
   const isResponder = variant === 'responder' && ['tanod', 'responder'].includes(role || '');
   const isBlotter = report.category === BLOTTER_REPORT_CATEGORY;
-  const status = normalizeReportStatus(report.status);
+  const status = dispatchStatus;
   const isOwner = isResponder && report.acknowledgedBy === profile?.firebaseUid;
   const backupRequests = report.backupRequests ?? [];
   const openBackupRequest = backupRequests.find((request) => request.status === 'pending');
@@ -339,8 +343,11 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     isBlotter && status === 'pending' && ['captain', 'secretary'].includes(role || '');
   const canResolveBlotter =
     isBlotter && status === 'in_progress' && ['captain', 'secretary'].includes(role || '');
-  const canStartFieldWork = isResponder && isOwner && status === 'coordinating';
-  const canResolveFieldWork = isResponder && isOwner && status === 'in_progress';
+  const isCriminalBlotter = isBlotter && report.subcategory === 'Criminal';
+  const canStartFieldWork =
+    isResponder && isOwner && status === 'coordinating' && (!isBlotter || isCriminalBlotter);
+  const canResolveFieldWork =
+    isResponder && isOwner && status === 'in_progress' && (!isBlotter || isCriminalBlotter);
   const canReviewResolution =
     variant === 'admin' &&
     ['captain', 'secretary'].includes((role || '').toLowerCase());
@@ -469,13 +476,22 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     >
       <h2 id="incident-dispatch-heading">Dispatch response team</h2>
       <Text type="secondary">
-        Select one or more available tanods or responders. The first selected person will lead.
+        {status === 'in_progress'
+          ? 'Select available tanods or responders to assist'
+          : isBlotter && report.subcategory === 'Civil'
+            ? 'Select one or more tanods or responders to assist with this civil case.'
+            : 'Select one or more available tanods or responders. The first selected person will lead.'}
       </Text>
       {dispatchOptionsError && (
         <Alert
           type="error"
           showIcon
           message="Unable to load available responders"
+          description={
+            dispatchOptionsError instanceof Error
+              ? dispatchOptionsError.message
+              : 'The responder list could not be retrieved.'
+          }
           style={{ marginTop: 12 }}
         />
       )}
@@ -508,7 +524,9 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         onClick={() => dispatchMutation.mutate()}
         style={{ marginTop: 12 }}
       >
-        Dispatch selected tanods/responders
+        {status === 'in_progress'
+          ? 'Dispatch assisting tanods/responders'
+          : 'Dispatch selected tanods/responders'}
       </Button>
     </Card>
   ) : null;
@@ -557,7 +575,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
               : 'No response action is available for this report.'}
         </Text>
       )}
-      {isOwner && status !== 'resolved' && (
+      {isOwner && !isBlotter && status !== 'resolved' && (
         <Button
           block
           disabled={actionBusy || !!openBackupRequest}
@@ -567,7 +585,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           {openBackupRequest ? 'Backup requested' : 'Request backup'}
         </Button>
       )}
-      {isOwner && openBackupRequest && (
+      {isOwner && !isBlotter && openBackupRequest && (
         <Button
           block
           icon={<CheckOutlined />}
@@ -578,7 +596,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           Enough help
         </Button>
       )}
-      {isResponder && status !== 'resolved' && (
+      {isResponder && !isBlotter && status !== 'resolved' && (
         <Space className="incident-quick-actions" wrap>
           <Button
             icon={<CompassOutlined />}
@@ -609,7 +627,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         Export system log
       </Button>
     </Card>
-  ) : role === 'secretary' ? (
+  ) : ['captain', 'secretary'].includes(role || '') ? (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {dispatchAction}
       {secretaryAction}

@@ -130,12 +130,37 @@ test('field workflow requires coordinating before in-progress and resolution', (
   assert.equal(pendingResolve.allowed, false);
 });
 
-test('responders can view criminal blotter reports but not civil blotter reports', () => {
+test('responders can view criminal blotter reports and assigned civil cases', () => {
   assert.equal(
     canResponderViewReport({ category: 'Blotter Cases', subcategory: 'Criminal' }),
     true
   );
-  assert.equal(canResponderViewReport({ category: 'Blotter Cases', subcategory: 'Civil' }), false);
+  assert.equal(
+    canResponderViewReport(
+      { category: 'Blotter Cases', subcategory: 'Civil', acknowledgedBy: 'tanod-1' },
+      'tanod-1'
+    ),
+    true
+  );
+  assert.equal(
+    canResponderViewReport(
+      { category: 'Blotter Cases', subcategory: 'Civil', acknowledgedBy: 'other-tanod' },
+      'tanod-1'
+    ),
+    false
+  );
+  assert.equal(
+    canResponderViewReport(
+      {
+        category: 'Blotter Cases',
+        subcategory: 'Civil',
+        status: 'resolved',
+        acknowledgedBy: 'tanod-1',
+      },
+      'tanod-1'
+    ),
+    false
+  );
   assert.equal(canResponderViewReport({ category: 'Public Concerns' }), true);
 });
 
@@ -260,7 +285,7 @@ test('responders can work criminal blotter cases through the field workflow', ()
   assert.equal(secretaryProcess.allowed, true);
 });
 
-test('civil blotter cases remain outside the responder workflow', () => {
+test('civil blotter cases remain outside the responder status workflow', () => {
   const decision = getTransitionDecision({
     category: 'Blotter Cases',
     subcategory: 'Civil',
@@ -271,6 +296,33 @@ test('civil blotter cases remain outside the responder workflow', () => {
   });
   assert.equal(decision.allowed, false);
   assert.equal(decision.statusCode, 400);
+});
+
+test('captain and secretary can start dispatched civil blotter cases', () => {
+  for (const role of ['captain', 'secretary']) {
+    const decision = getTransitionDecision({
+      category: 'Blotter Cases',
+      subcategory: 'Civil',
+      role,
+      fromStatus: 'coordinating',
+      toStatus: 'in_progress',
+    });
+    assert.equal(decision.allowed, true);
+  }
+});
+
+test('tanods cannot change the status of civil blotter cases', () => {
+  const decision = getTransitionDecision({
+    category: 'Blotter Cases',
+    subcategory: 'Civil',
+    role: 'tanod',
+    fromStatus: 'in_progress',
+    toStatus: 'resolved',
+    actorUid: 'tanod-1',
+    ownerUid: 'tanod-1',
+  });
+  assert.equal(decision.allowed, false);
+  assert.match(decision.error, /Captain or Secretary/);
 });
 
 test('first concurrent acknowledger wins the pending compare-and-set', async () => {

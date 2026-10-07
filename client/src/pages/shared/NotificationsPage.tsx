@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Alert, Button, Empty, Space, Spin, Typography, message } from 'antd';
+import { Alert, Button, Empty, Modal, Space, Spin, Typography, message } from 'antd';
 import { BellOutlined, CheckOutlined } from '@ant-design/icons';
 import { api, type NotificationFeedItem } from '../../lib/api';
 import { notificationFeedQueryKey, useNotificationFeed } from '../../lib/notificationFeed';
@@ -42,6 +42,7 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
   const [filter, setFilter] = useState<NotificationFilter>('all');
   const [notificationPermission, setNotificationPermission] =
     useState<BrowserNotificationPermission>(getBrowserNotificationPermission);
+  const [dispatchInvite, setDispatchInvite] = useState<NotificationFeedItem | null>(null);
   const pages = feed.data?.pages || [];
   const firstPage = pages[0];
   const counts = firstPage?.counts || { all: 0, unread: 0, alerts: 0, updates: 0 };
@@ -70,6 +71,25 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
   const markAllRead = useMutation({
     mutationFn: () => api.patch('/api/notifications/read-all', {}),
     onSuccess: invalidateFeed,
+    onError: (error: Error) => message.error(error.message),
+  });
+
+  const dispatchResponse = useMutation({
+    mutationFn: ({
+      reportId,
+      notificationId,
+      accepted,
+    }: {
+      reportId: string;
+      notificationId: string;
+      accepted: boolean;
+    }) => api.post(`/api/reports/${reportId}/dispatch-response`, { accepted, notificationId }),
+    onSuccess: (_, { accepted }) => {
+      setDispatchInvite(null);
+      invalidateFeed();
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      message.success(accepted ? 'You accepted the assistance request' : 'Assistance request declined');
+    },
     onError: (error: Error) => message.error(error.message),
   });
 
@@ -207,9 +227,24 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
                         key={item.id}
                         item={item}
                         role={role}
-                        to={item.reportId ? getReportPath(item.reportId) : null}
+                        to={
+                          item.reportId &&
+                          !(role && ['tanod', 'responder'].includes(role) &&
+                            item.type === 'incident_dispatched' &&
+                            !item.dispatchResponse)
+                            ? getReportPath(item.reportId)
+                            : null
+                        }
                         onOpen={() => {
                           if (!item.read) markRead.mutate(item);
+                          if (
+                            item.reportId &&
+                            ['tanod', 'responder'].includes(role || '') &&
+                            item.type === 'incident_dispatched' &&
+                            !item.dispatchResponse
+                          ) {
+                            setDispatchInvite(item);
+                          }
                         }}
                       />
                     ))}
@@ -230,6 +265,38 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
           Load older notifications
         </Button>
       )}
+
+      <Modal
+        title="Assistance request"
+        open={!!dispatchInvite}
+        okText="Accept"
+        cancelText="Decline"
+        confirmLoading={dispatchResponse.isPending}
+        onOk={() => {
+          if (dispatchInvite?.reportId) {
+            dispatchResponse.mutate({
+              reportId: dispatchInvite.reportId,
+              notificationId: dispatchInvite.latestEventId,
+              accepted: true,
+            });
+          }
+        }}
+        onCancel={() => {
+          if (dispatchInvite?.reportId) {
+            dispatchResponse.mutate({
+              reportId: dispatchInvite.reportId,
+              notificationId: dispatchInvite.latestEventId,
+              accepted: false,
+            });
+          }
+        }}
+        closable={!dispatchResponse.isPending}
+        maskClosable={!dispatchResponse.isPending}
+      >
+        <Text>
+          {dispatchInvite?.message || 'Would you like to accept this civil blotter assistance request?'}
+        </Text>
+      </Modal>
     </Space>
   );
 }

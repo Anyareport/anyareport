@@ -56,6 +56,7 @@ function serializeEvent(event) {
     status: status ? normalizeReportStatus(status) : null,
     actorRole: event.actorRole || null,
     actorName: event.actorName || legacy.actorName || null,
+    dispatchResponse: event.dispatchResponse || null,
   };
 }
 
@@ -187,6 +188,42 @@ export async function notifyOnNewReport(report) {
     await deliverPushNotifications(notif);
   }
 
+  return notifications;
+}
+
+export async function notifyDispatchResponse(report, responder, accepted) {
+  const officials = await User.find({
+    role: { $in: ['captain', 'secretary'] },
+    status: 'active',
+  })
+    .select('firebaseUid role')
+    .lean();
+  if (!officials.length) return [];
+
+  const reference = report.referenceNumber ? ` (${report.referenceNumber})` : '';
+  const responderName = responder.name || responder.firebaseUid;
+  const responseLabel = accepted ? 'accepted' : 'declined';
+  const notifications = await Promise.all(
+    officials.map((official) =>
+      Notification.create({
+        recipientUid: official.firebaseUid,
+        recipientRole: official.role,
+        reportId: report._id,
+        type: 'dispatch_response',
+        message: `${responderName} ${responseLabel} the assistance request for ${report.category}${reference}.`,
+        reportSnapshot: getReportSnapshot(report),
+        actorRole: responder.role,
+        actorName: responderName,
+      })
+    )
+  );
+
+  if (ioInstance) {
+    notifications.forEach((notification) => {
+      ioInstance.to(`user:${notification.recipientUid}`).emit('notification', notification);
+    });
+  }
+  await deliverPushNotifications(notifications);
   return notifications;
 }
 
@@ -354,6 +391,7 @@ export async function getNotificationsForUser(
       status: latest.status,
       actorRole: latest.actorRole,
       actorName: latest.actorName,
+      dispatchResponse: latest.dispatchResponse,
       read: Boolean(item.read),
       unreadEventCount: item.unreadEventCount,
       eventCount: item.eventCount,

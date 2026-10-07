@@ -89,11 +89,19 @@ function isResponderParticipant(report, uid) {
   );
 }
 
-export function canResponderViewReport(report) {
+export function canResponderViewReport(report, uid = null) {
+  const isResolvedCivilBlotter =
+    report.category === BLOTTER_REPORT_CATEGORY &&
+    report.subcategory === 'Civil' &&
+    normalizeReportStatus(report.status) === 'resolved';
+
+  if (isResolvedCivilBlotter) return false;
+
   return (
     FIELD_REPORT_CATEGORIES.includes(report.category) ||
     (report.category === BLOTTER_REPORT_CATEGORY &&
-      report.subcategory === CRIMINAL_BLOTTER_SUBCATEGORY)
+      (report.subcategory === CRIMINAL_BLOTTER_SUBCATEGORY ||
+        (report.subcategory === 'Civil' && uid && isResponderParticipant(report, uid))))
   );
 }
 
@@ -198,14 +206,14 @@ export function getTransitionDecision({
       if (!['captain', 'secretary'].includes(role)) {
         return reject(403, 'Only the Captain or Secretary can start blotter processing');
       }
-      if (currentStatus !== 'pending') {
-        return reject(409, 'Only pending blotter cases can begin processing');
+      if (!['pending', 'coordinating'].includes(currentStatus)) {
+        return reject(409, 'Only pending or dispatched blotter cases can begin processing');
       }
       return {
         allowed: true,
         filter: {
           category: BLOTTER_REPORT_CATEGORY,
-          status: { $in: ['pending', 'verified'] },
+          status: { $in: ['pending', 'verified', 'coordinating'] },
         },
         update: { status: 'in_progress' },
         action: 'status_updated',

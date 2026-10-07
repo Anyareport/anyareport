@@ -162,6 +162,7 @@ export interface NotificationEvent {
   status: string | null;
   actorRole: string | null;
   actorName: string | null;
+  dispatchResponse: 'accepted' | 'declined' | null;
 }
 
 export interface NotificationFeedItem {
@@ -183,6 +184,7 @@ export interface NotificationFeedItem {
   status: string | null;
   actorRole: string | null;
   actorName: string | null;
+  dispatchResponse: 'accepted' | 'declined' | null;
   read: boolean;
   unreadEventCount: number;
   eventCount: number;

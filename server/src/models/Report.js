@@ -65,6 +65,14 @@ const reportSchema = new mongoose.Schema(
         closeReason: { type: String, enum: ['enough_help', 'resolved'], default: null },
       },
     ],
+    dispatchInvites: [
+      {
+        responderUid: { type: String, required: true },
+        status: { type: String, enum: ['pending', 'accepted', 'declined'], default: 'pending' },
+        invitedAt: { type: Date, default: Date.now },
+        respondedAt: { type: Date, default: null },
+      },
+    ],
     statusHistory: [
       {
         status: String,

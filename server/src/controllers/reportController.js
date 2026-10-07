@@ -3,6 +3,7 @@ import { Parser } from 'json2csv';
 import Report from '../models/Report.js';
 import User from '../models/User.js';
 import AuditLog from '../models/AuditLog.js';
+import Notification from '../models/Notification.js';
 import Category from '../models/Category.js';
 import { classifyReport } from '../services/gemini.js';
 import {
@@ -13,6 +14,7 @@ import {
   notifyOnNewReport,
   notifyOnStatusUpdate,
   notifyRespondersDispatched,
+  notifyDispatchResponse,
 } from '../services/notifications.js';
 import { antiAbuseConfig } from '../config/antiAbuse.js';
 import { workflowConfig } from '../config/workflow.js';
@@ -43,8 +45,38 @@ function canDispatchReport(report) {
   return (
     FIELD_REPORT_CATEGORIES.includes(report.category) ||
     (report.category === BLOTTER_REPORT_CATEGORY &&
-      report.subcategory === CRIMINAL_BLOTTER_SUBCATEGORY)
+      ['Criminal', 'Civil'].includes(report.subcategory))
   );
+}
+
+function getDispatchValidationError(report, { requireLead = true } = {}) {
+  if (!canDispatchReport(report)) {
+    return { statusCode: 400, message: 'This incident type cannot be dispatched' };
+  }
+
+  const currentStatus = normalizeReportStatus(report.status);
+  const isCivilBlotter =
+    report.category === BLOTTER_REPORT_CATEGORY && report.subcategory === 'Civil';
+  if (!['pending', 'in_progress'].includes(currentStatus)) {
+    return {
+      statusCode: 409,
+      message: 'Only pending or in-progress incidents can be dispatched',
+    };
+  }
+  if (isCivilBlotter && currentStatus === 'pending') {
+    return {
+      statusCode: 409,
+      message: 'Civil blotter cases can only be dispatched after processing starts',
+    };
+  }
+  if (currentStatus === 'pending' && report.acknowledgedBy) {
+    return { statusCode: 409, message: 'Only unassigned pending incidents can be dispatched' };
+  }
+  if (requireLead && currentStatus === 'in_progress' && !report.acknowledgedBy) {
+    return { statusCode: 409, message: 'In-progress incidents must have a lead responder' };
+  }
+
+  return null;
 }
 
 function responderReportFilter(report) {
@@ -224,9 +256,17 @@ async function getAvailableResponders(reportId) {
     $or: [
       { acknowledgedBy: { $in: responders.map((responder) => responder.firebaseUid) } },
       { 'backupRequests.joinedBy': { $in: responders.map((responder) => responder.firebaseUid) } },
+      {
+        'dispatchInvites': {
+          $elemMatch: {
+            responderUid: { $in: responders.map((responder) => responder.firebaseUid) },
+            status: 'pending',
+          },
+        },
+      },
     ],
   })
-    .select('acknowledgedBy backupRequests.joinedBy')
+    .select('acknowledgedBy backupRequests dispatchInvites')
     .lean();
   const assigned = new Set();
   activeReports.forEach((activeReport) => {
@@ -234,6 +274,9 @@ async function getAvailableResponders(reportId) {
     (activeReport.backupRequests || []).forEach((request) =>
       (request.joinedBy || []).forEach((uid) => assigned.add(uid))
     );
+    (activeReport.dispatchInvites || [])
+      .filter((invite) => invite.status === 'pending')
+      .forEach((invite) => assigned.add(invite.responderUid));
   });
   return responders.filter((responder) => !assigned.has(responder.firebaseUid));
 }
@@ -241,17 +284,27 @@ async function getAvailableResponders(reportId) {
 export async function getDispatchOptions(req, res) {
   try {
     const report = await Report.findById(req.params.id).select(
-      '_id category subcategory status acknowledgedBy'
+      '_id category subcategory status acknowledgedBy backupRequests dispatchInvites'
     );
     if (!report) return res.status(404).json({ error: 'Report not found' });
-    if (!canDispatchReport(report)) {
-      return res.status(400).json({ error: 'This incident type cannot be dispatched' });
+    const dispatchValidationError = getDispatchValidationError(report, { requireLead: false });
+    if (dispatchValidationError) {
+      return res.status(dispatchValidationError.statusCode).json({ error: dispatchValidationError.message });
     }
-    if (report.status !== 'pending' || report.acknowledgedBy) {
-      return res.status(409).json({ error: 'Only unassigned pending incidents can be dispatched' });
-    }
-    res.json({ responders: await getAvailableResponders(report._id) });
+    const assignedUids = new Set([
+      report.acknowledgedBy,
+      ...(report.backupRequests || []).flatMap((request) => request.joinedBy || []),
+      ...(report.dispatchInvites || [])
+        .filter((invite) => invite.status === 'pending')
+        .map((invite) => invite.responderUid),
+    ].filter(Boolean));
+    res.json({
+      responders: (await getAvailableResponders(report._id)).filter(
+        (responder) => !assignedUids.has(responder.firebaseUid)
+      ),
+    });
   } catch (err) {
+    console.error(`[Dispatch Options] Failed for report ${req.params.id}:`, err.message);
     res.status(500).json({ error: err.message });
   }
 }
@@ -265,41 +318,97 @@ export async function dispatchReport(req, res) {
 
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ error: 'Report not found' });
-    if (!canDispatchReport(report)) {
-      return res.status(400).json({ error: 'This incident type cannot be dispatched' });
+    const dispatchValidationError = getDispatchValidationError(report, { requireLead: false });
+    if (dispatchValidationError) {
+      return res.status(dispatchValidationError.statusCode).json({ error: dispatchValidationError.message });
     }
-    if (report.status !== 'pending' || report.acknowledgedBy) {
-      return res.status(409).json({ error: 'Only unassigned pending incidents can be dispatched' });
-    }
+    const currentStatus = normalizeReportStatus(report.status);
 
+    const isAdditionalDispatch = currentStatus === 'in_progress';
+    const isCivilBlotter =
+      report.category === BLOTTER_REPORT_CATEGORY && report.subcategory === 'Civil';
+    const hasLeadResponder = Boolean(report.acknowledgedBy);
     const available = await getAvailableResponders(report._id);
-    const availableUids = new Set(available.map((tanod) => tanod.firebaseUid));
+    const availableUids = new Set(available.map((responder) => responder.firebaseUid));
     if (responderUids.some((uid) => !availableUids.has(uid))) {
       return res.status(409).json({ error: 'One or more selected responders are no longer available' });
     }
 
+    const openBackupRequest = (report.backupRequests || []).find(
+      (request) =>
+        !isCivilBlotter &&
+        request.status === 'pending' &&
+        request.requestedBy === report.acknowledgedBy
+    );
     const updatedReport = await updateWithAudit(
       'incident_dispatched',
       req,
       report._id,
-      { responderUids },
+      { responderUids, additionalDispatch: isAdditionalDispatch },
       (session) =>
         Report.findOneAndUpdate(
-          { _id: report._id, status: 'pending', acknowledgedBy: null },
-          {
-            $set: { status: 'coordinating', acknowledgedBy: responderUids[0] },
-            $push: {
-              statusHistory: { status: 'coordinating', updatedBy: req.firebaseUser.uid },
-              ...(responderUids.length > 1
-                ? {
-                    backupRequests: {
-                      requestedBy: responderUids[0],
-                      joinedBy: responderUids.slice(1),
+          isAdditionalDispatch
+            ? {
+                _id: report._id,
+                status: { $in: ['in_progress', 'en_route', 'on_scene'] },
+                ...(hasLeadResponder
+                  ? { acknowledgedBy: report.acknowledgedBy }
+                  : { acknowledgedBy: null }),
+                ...(openBackupRequest
+                  ? { 'backupRequests._id': openBackupRequest._id }
+                  : {}),
+              }
+            : { _id: report._id, status: 'pending', acknowledgedBy: null },
+          isAdditionalDispatch
+            ? isCivilBlotter
+              ? {
+                  $addToSet: {
+                    dispatchInvites: {
+                      $each: responderUids.map((responderUid) => ({ responderUid })),
                     },
-                  }
-                : {}),
-            },
-          },
+                  },
+                }
+              : !hasLeadResponder
+              ? {
+                  $set: { acknowledgedBy: responderUids[0] },
+                  ...(responderUids.length > 1
+                    ? {
+                        $push: {
+                          backupRequests: {
+                            requestedBy: responderUids[0],
+                            joinedBy: responderUids.slice(1),
+                          },
+                        },
+                      }
+                    : {}),
+                }
+            : openBackupRequest
+              ? { $addToSet: { 'backupRequests.$.joinedBy': { $each: responderUids } } }
+              : {
+                  $push: {
+                    backupRequests: {
+                      requestedBy: report.acknowledgedBy,
+                      joinedBy: responderUids,
+                    },
+                  },
+                }
+            : {
+                $set: {
+                  status: 'coordinating',
+                  ...(isCivilBlotter ? {} : { acknowledgedBy: responderUids[0] }),
+                },
+                $push: {
+                  statusHistory: { status: 'coordinating', updatedBy: req.firebaseUser.uid },
+                  ...(responderUids.length > 1
+                    ? {
+                        backupRequests: {
+                          requestedBy: req.firebaseUser.uid,
+                          joinedBy: isCivilBlotter ? responderUids : responderUids.slice(1),
+                        },
+                      }
+                    : {}),
+                },
+              },
           { new: true, session }
         )
     );
@@ -318,6 +427,91 @@ export async function dispatchReport(req, res) {
   }
 }
 
+export async function respondToDispatch(req, res) {
+  try {
+    const accepted = req.body?.accepted;
+    const notificationId = req.body?.notificationId;
+    if (typeof accepted !== 'boolean') {
+      return res.status(400).json({ error: 'Dispatch response must be accepted or declined' });
+    }
+
+    const report = await Report.findById(req.params.id);
+    if (!report || report.category !== BLOTTER_REPORT_CATEGORY || report.subcategory !== 'Civil') {
+      return res.status(404).json({ error: 'Dispatch invitation not found' });
+    }
+
+    const invite = (report.dispatchInvites || []).find(
+      (entry) => entry.responderUid === req.firebaseUser.uid
+    );
+    if (!invite) return res.status(404).json({ error: 'Dispatch invitation not found' });
+    if (invite.status !== 'pending') {
+      return res.json({ accepted: invite.status === 'accepted', report: serializeReport(report) });
+    }
+    if (report.status === 'resolved') {
+      return res.status(409).json({ error: 'Resolved incidents cannot accept responders' });
+    }
+
+    const responseStatus = accepted ? 'accepted' : 'declined';
+    const update = {
+      $set: {
+        'dispatchInvites.$[invite].status': responseStatus,
+        'dispatchInvites.$[invite].respondedAt': new Date(),
+      },
+    };
+    if (accepted) {
+      update.$push = {
+        backupRequests: {
+          requestedBy: req.firebaseUser.uid,
+          joinedBy: [req.firebaseUser.uid],
+        },
+      };
+    }
+
+    const updatedReport = await Report.findOneAndUpdate(
+      {
+        _id: report._id,
+        'dispatchInvites': {
+          $elemMatch: { responderUid: req.firebaseUser.uid, status: 'pending' },
+        },
+      },
+      update,
+      {
+        new: true,
+        arrayFilters: [
+          { 'invite.responderUid': req.firebaseUser.uid, 'invite.status': 'pending' },
+        ],
+      }
+    );
+    if (!updatedReport) {
+      return res.status(409).json({ error: 'The dispatch invitation was already answered' });
+    }
+
+    emitReportChanged(updatedReport, 'updated');
+    const responder = await User.findOne({ firebaseUid: req.firebaseUser.uid })
+      .select('firebaseUid name role')
+      .lean();
+    if (responder) {
+      await notifyBestEffort(
+        notifyDispatchResponse(updatedReport, responder, accepted),
+        'Dispatch response'
+      );
+    }
+    if (notificationId) {
+      await Notification.findOneAndUpdate(
+        {
+          _id: notificationId,
+          recipientUid: req.firebaseUser.uid,
+          type: 'incident_dispatched',
+        },
+        { $set: { dispatchResponse: responseStatus, read: true } }
+      );
+    }
+    res.json({ accepted, report: serializeReport(updatedReport) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
 export async function getReports(req, res) {
   try {
     const query = {};
@@ -327,6 +521,15 @@ export async function getReports(req, res) {
           $or: [
             { category: { $in: RESPONDER_CATEGORIES } },
             { category: BLOTTER_CATEGORY, subcategory: CRIMINAL_BLOTTER_SUBCATEGORY },
+            {
+              category: BLOTTER_CATEGORY,
+              subcategory: 'Civil',
+              status: { $ne: 'resolved' },
+              $or: [
+                { acknowledgedBy: req.firebaseUser.uid },
+                { 'backupRequests.joinedBy': req.firebaseUser.uid },
+              ],
+            },
           ],
         },
       ];
@@ -370,7 +573,7 @@ export async function getReportById(req, res) {
 
     if (
       ['tanod', 'responder'].includes(req.userRole) &&
-      !canResponderViewReport(report)
+      !canResponderViewReport(report, req.firebaseUser.uid)
     ) {
       return res.status(404).json({ error: 'Report not found' });
     }
