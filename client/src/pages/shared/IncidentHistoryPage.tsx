@@ -11,7 +11,6 @@ import {
   isIncidentInPeriod,
   matchesIncidentSearch,
 } from '../../lib/incidentUtils';
-import PageHero from '../../components/PageHero';
 import { useAuth } from '../../contexts/AuthContext';
 
 export interface IncidentHistoryPageProps {
@@ -159,7 +158,11 @@ export default function IncidentHistoryPage({ variant = 'admin' }: IncidentHisto
   };
 
   const activeFilterTags = [
-    status !== 'all' && { key: 'status', label: `Status: ${status}`, onClose: () => setStatus('all') },
+    status !== 'all' && {
+      key: 'status',
+      label: `Status: ${status}`,
+      onClose: () => setStatus('all'),
+    },
     date && {
       key: 'date',
       label: `${datePeriod}: ${date}`,
@@ -191,11 +194,6 @@ export default function IncidentHistoryPage({ variant = 'admin' }: IncidentHisto
   if (variant === 'responder') {
     return (
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
-        <PageHero
-          title="Incident History"
-          description="Closed and reviewed incidents remain searchable for follow-up and after-action review."
-        />
-
         <Space.Compact style={{ display: 'flex', width: '100%' }}>
           <Input
             aria-label="Search incident history"
@@ -214,7 +212,12 @@ export default function IncidentHistoryPage({ variant = 'admin' }: IncidentHisto
               <Space direction="vertical" size={16} style={{ width: 320, maxWidth: '100%' }}>
                 {dateFilter}
                 {incidentFilters}
-                <Button type="link" danger onClick={clearFilters} disabled={!activeFilterTags.length}>
+                <Button
+                  type="link"
+                  danger
+                  onClick={clearFilters}
+                  disabled={!activeFilterTags.length}
+                >
                   Clear all filters
                 </Button>
               </Space>
@@ -234,11 +237,6 @@ export default function IncidentHistoryPage({ variant = 'admin' }: IncidentHisto
   // Admin/Secretary settings
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <PageHero
-        title="Incidents"
-        description="Review incidents by urgency, status, and location."
-      />
-
       <Space.Compact style={{ display: 'flex', width: '100%' }}>
         <Input
           aria-label="Search incidents"

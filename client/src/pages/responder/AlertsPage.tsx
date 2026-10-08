@@ -5,7 +5,6 @@ import { ClockCircleOutlined } from '@ant-design/icons';
 import { api, type Report } from '../../lib/api';
 import IncidentCard from '../../components/IncidentCard';
 import { compareDateAsc, compareSeverity } from '../../lib/sortUtils';
-import PageHero from '../../components/PageHero';
 import { FilterControl } from '../../components/StatusFilter';
 
 const { Text } = Typography;
@@ -70,15 +69,6 @@ export default function ResponderAlertsPage() {
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <PageHero
-        title="Alerts"
-        description={
-          isLoading
-            ? 'Loading reports waiting for a response.'
-            : `${alerts.length} ${alerts.length === 1 ? 'report' : 'reports'} waiting for a response · Sorted by severity, then longest waiting.`
-        }
-      />
-
       <FilterControl
         value={categoryFilter}
         onChange={(value) => setCategoryFilter(value as AlertCategoryFilter)}

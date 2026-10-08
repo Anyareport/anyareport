@@ -6,7 +6,6 @@ import { api, type NotificationFeedItem } from '../../lib/api';
 import { notificationFeedQueryKey, useNotificationFeed } from '../../lib/notificationFeed';
 import NotificationCard from '../../components/NotificationCard';
 import { useAuth } from '../../contexts/AuthContext';
-import PageHero from '../../components/PageHero';
 import { FilterControl } from '../../components/StatusFilter';
 import { registerPushToken } from '../../lib/pushNotifications';
 import {
@@ -17,10 +16,6 @@ import {
 
 const { Title, Text } = Typography;
 type NotificationFilter = 'all' | 'unread' | 'alerts' | 'updates';
-
-interface NotificationsPageProps {
-  title: string;
-}
 
 function getDayGroup(value: string) {
   const date = new Date(value);
@@ -35,7 +30,7 @@ function getDayGroup(value: string) {
   return 'Earlier';
 }
 
-export default function NotificationsPage({ title }: NotificationsPageProps) {
+export default function NotificationsPage() {
   const queryClient = useQueryClient();
   const { role } = useAuth();
   const feed = useNotificationFeed();
@@ -88,7 +83,9 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
       setDispatchInvite(null);
       invalidateFeed();
       queryClient.invalidateQueries({ queryKey: ['reports'] });
-      message.success(accepted ? 'You accepted the assistance request' : 'Assistance request declined');
+      message.success(
+        accepted ? 'You accepted the assistance request' : 'Assistance request declined'
+      );
     },
     onError: (error: Error) => message.error(error.message),
   });
@@ -129,11 +126,33 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <PageHero
-        title={title}
-        description="Incident updates, urgent alerts, and system messages appear here."
-      />
-
+      {notificationPermission === 'granted' ? (
+        <Alert
+          type="success"
+          showIcon
+          message="Push notifications are enabled for new incident updates."
+        />
+      ) : notificationPermission === 'denied' ? (
+        <Alert
+          type="warning"
+          showIcon
+          message="Push notifications are blocked. Allow notifications in your browser settings to enable them."
+        />
+      ) : notificationPermission === 'unsupported' ? (
+        <Alert type="info" showIcon message="This browser does not support push notifications." />
+      ) : (
+        <Alert
+          type="info"
+          showIcon
+          message="Get notified about new incident updates"
+          description="Enable browser notifications to receive alerts while using Anyareport."
+          action={
+            <Button size="small" icon={<BellOutlined />} onClick={enablePushNotifications}>
+              Enable
+            </Button>
+          }
+        />
+      )}
       <div className="toolbar-row">
         <FilterControl
           value={filter}
@@ -151,42 +170,6 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
           Mark all as read
         </Button>
       </div>
-
-      {notificationPermission === 'granted' ? (
-        <Alert
-          type="success"
-          showIcon
-          message="Push notifications are enabled for new incident updates."
-        />
-      ) : notificationPermission === 'denied' ? (
-        <Alert
-          type="warning"
-          showIcon
-          message="Push notifications are blocked. Allow notifications in your browser settings to enable them."
-        />
-      ) : notificationPermission === 'unsupported' ? (
-        <Alert
-          type="info"
-          showIcon
-          message="This browser does not support push notifications."
-        />
-      ) : (
-        <Alert
-          type="info"
-          showIcon
-          message="Get notified about new incident updates"
-          description="Enable browser notifications to receive alerts while using Anyareport."
-          action={
-            <Button
-              size="small"
-              icon={<BellOutlined />}
-              onClick={enablePushNotifications}
-            >
-              Enable
-            </Button>
-          }
-        />
-      )}
 
       {feed.isPending ? (
         <div className="notifications-page__empty">
@@ -229,9 +212,12 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
                         role={role}
                         to={
                           item.reportId &&
-                          !(role && ['tanod', 'responder'].includes(role) &&
+                          !(
+                            role &&
+                            ['tanod', 'responder'].includes(role) &&
                             item.type === 'incident_dispatched' &&
-                            !item.dispatchResponse)
+                            !item.dispatchResponse
+                          )
                             ? getReportPath(item.reportId)
                             : null
                         }
@@ -294,7 +280,8 @@ export default function NotificationsPage({ title }: NotificationsPageProps) {
         maskClosable={!dispatchResponse.isPending}
       >
         <Text>
-          {dispatchInvite?.message || 'Would you like to accept this civil blotter assistance request?'}
+          {dispatchInvite?.message ||
+            'Would you like to accept this civil blotter assistance request?'}
         </Text>
       </Modal>
     </Space>

@@ -1,10 +1,8 @@
-import { Typography, Card, Empty, Spin } from 'antd';
+import { Card, Empty, Spin } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api, type Report } from '../../lib/api';
 import IncidentList from '../../components/IncidentList';
-
-const { Title } = Typography;
 
 export default function MyReportsPage() {
   const navigate = useNavigate();
@@ -18,7 +16,6 @@ export default function MyReportsPage() {
 
   return (
     <div>
-      <Title level={3}>MY REPORTS</Title>
       {reports.length === 0 ? (
         <Card>
           <Empty description="No reports yet" />

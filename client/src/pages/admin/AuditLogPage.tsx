@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Card, List, Space, Tag, Typography } from 'antd';
 import { api, type AuditLog } from '../../lib/api';
-import PageHero from '../../components/PageHero';
 
 const { Text } = Typography;
 
@@ -14,11 +13,6 @@ export default function AdminAuditLogPage() {
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <PageHero
-        title="Audit log"
-        description="Read-only access is enforced server-side according to the role matrix."
-      />
-
       <Card className="soft-card">
         <List
           dataSource={logs}

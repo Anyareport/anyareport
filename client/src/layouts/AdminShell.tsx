@@ -1,4 +1,3 @@
-import { Badge } from 'antd';
 import {
   DashboardOutlined,
   UnorderedListOutlined,
@@ -12,6 +11,7 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import { useMemo } from 'react';
+import type { ItemType } from 'antd/es/menu/interface';
 import { useQuery } from '@tanstack/react-query';
 import AppShell from './AppShell';
 import { useAuth } from '../contexts/AuthContext';
@@ -32,53 +32,48 @@ export default function AdminShell() {
 
   const unreadCount = notificationFeed?.pages[0]?.unreadCount ?? 0;
 
-  const menuItems = useMemo(() => {
-    const items = [
+  const menuItems = useMemo<ItemType[]>(() => {
+    const workItems: ItemType[] = [
       { key: '/admin', icon: <DashboardOutlined />, label: 'Dashboard' },
       { key: '/admin/incidents', icon: <UnorderedListOutlined />, label: 'Incidents' },
+    ];
+    const insightItems: ItemType[] = [
       { key: '/admin/heatmap', icon: <HeatMapOutlined />, label: 'Safety Heatmap' },
       { key: '/admin/analytics', icon: <BarChartOutlined />, label: 'Analytics' },
-      {
-        key: '/admin/notifications',
-        icon: <BellOutlined />,
-        label: (
-          <span>
-            Notifications <Badge count={unreadCount} size="small" offset={[8, 0]} />
-          </span>
-        ),
-      },
       { key: '/admin/export', icon: <ExportOutlined />, label: 'Export' },
+    ];
+    const accountItems: ItemType[] = [
+      { key: '/admin/notifications', icon: <BellOutlined />, label: 'Notifications' },
       { key: '/admin/profile', icon: <UserOutlined />, label: 'Profile' },
     ];
 
     if (role === 'secretary') {
-      items.splice(2, 0, {
-        key: '/admin/intake',
-        icon: <InboxOutlined />,
-        label: (
-          <span>
-            Intake Queue <Badge count={pendingReports.length} size="small" offset={[8, 0]} />
-          </span>
-        ),
-      });
+      workItems.push({ key: '/admin/intake', icon: <InboxOutlined />, label: 'Intake Queue' });
     }
 
     if (role === 'admin') {
-      items.push({ key: '/admin/users', icon: <TeamOutlined />, label: 'User Management' });
+      insightItems.push(
+        { key: '/admin/audit', icon: <AuditOutlined />, label: 'Audit Log' },
+        { key: '/admin/users', icon: <TeamOutlined />, label: 'User Management' }
+      );
     }
 
-    if (role === 'admin') {
-      items.splice(items.length - 2, 0, {
-        key: '/admin/audit',
-        icon: <AuditOutlined />,
-        label: 'Audit Log',
-      });
-    }
-
-    return items;
-  }, [role, unreadCount, pendingReports.length]);
+    return [
+      { type: 'group', label: 'Work', children: workItems },
+      { type: 'group', label: 'Insights', children: insightItems },
+      { type: 'group', label: 'Account', children: accountItems },
+    ];
+  }, [role]);
 
   return (
-    <AppShell menuItems={menuItems} siderWidth={240} roleLabel={role?.toUpperCase()} collapsible />
+    <AppShell
+      menuItems={menuItems}
+      menuBadgeCounts={{
+        '/admin/intake': pendingReports.length,
+        '/admin/notifications': unreadCount,
+      }}
+      quietBadgeKeys={['/admin/notifications']}
+      siderWidth={240}
+    />
   );
 }

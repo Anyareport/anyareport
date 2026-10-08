@@ -44,6 +44,7 @@ export default function ResidentShell() {
       menuItems={menuItems}
       mobileMenuItems={mobileMenuItems}
       menuBadgeCounts={{ '/resident/notifications': unreadCount }}
+      quietBadgeKeys={['/resident/notifications']}
       siderWidth={220}
       mobileNavigation
       mobilePrimaryAction="/resident/report"

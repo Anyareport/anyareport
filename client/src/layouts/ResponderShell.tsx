@@ -48,8 +48,8 @@ export default function ResponderShell() {
     <AppShell
       menuItems={menuItems}
       menuBadgeCounts={{ '/responder/alerts': alertCount, '/responder/notifications': unreadCount }}
+      quietBadgeKeys={['/responder/notifications']}
       siderWidth={200}
-      roleLabel="RESPONDER"
       mobileNavigation
     />
   );

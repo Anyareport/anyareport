@@ -11,7 +11,6 @@ import {
   isIncidentInPeriod,
   matchesIncidentSearch,
 } from '../../lib/incidentUtils';
-import PageHero from '../../components/PageHero';
 
 export default function SecretaryIntakePage() {
   const [status, setStatus] = useState<string | 'all'>('pending');
@@ -108,7 +107,11 @@ export default function SecretaryIntakePage() {
   };
 
   const activeFilterTags = [
-    status !== 'pending' && { key: 'status', label: `Status: ${status}`, onClose: () => setStatus('pending') },
+    status !== 'pending' && {
+      key: 'status',
+      label: `Status: ${status}`,
+      onClose: () => setStatus('pending'),
+    },
     date && {
       key: 'date',
       label: `${datePeriod}: ${date}`,
@@ -173,11 +176,6 @@ export default function SecretaryIntakePage() {
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <PageHero
-        title="Intake queue"
-        description="Secretary review queue for new submissions. Resolved cases are pushed to the bottom."
-      />
-
       <Space.Compact style={{ display: 'flex', width: '100%' }}>
         <Input
           aria-label="Search intake incidents"

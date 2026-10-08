@@ -1,0 +1,330 @@
+.app-shell {
+  min-height: 100vh;
+  background: var(--bg-primary);
+}
+
+.app-shell-main {
+  min-width: 0;
+}
+
+.app-shell-main.is-full-width {
+  position: relative;
+}
+
+.app-shell-sider {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  border-right: 1px solid var(--border-default);
+  background: var(--bg-primary) !important;
+}
+
+.app-shell-sider .ant-layout-sider-children {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.app-shell-brand {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.app-shell-sider-nav {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.app-shell-menu.ant-menu {
+  border-inline-end: 0;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.app-shell-sider .app-shell-menu.ant-menu {
+  padding: 0 10px 12px;
+}
+
+.app-shell-menu.ant-menu .ant-menu-item,
+.app-shell-menu.ant-menu .ant-menu-submenu-title {
+  min-height: 40px;
+  margin-block: 3px;
+  line-height: 40px;
+}
+
+.app-shell-menu.ant-menu .ant-menu-item {
+  position: relative;
+  width: 100%;
+  padding-inline: 12px;
+  border-radius: 7px;
+}
+
+.app-shell-menu.ant-menu .ant-menu-item::after {
+  display: none;
+}
+
+.app-shell-menu.ant-menu .ant-menu-item-selected {
+  background: color-mix(in srgb, var(--brand-color-info) 16%, transparent);
+  color: var(--brand-color-info);
+  font-weight: 600;
+}
+
+.app-shell-menu.ant-menu .ant-menu-item-selected::before {
+  position: absolute;
+  inset-block: 5px;
+  left: 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--brand-color-info);
+  content: '';
+}
+
+.app-shell-menu.ant-menu .ant-menu-item:hover {
+  color: var(--brand-color-info);
+}
+
+.app-shell-menu.ant-menu .ant-menu-item-group-title {
+  padding: 16px 12px 5px;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.app-shell-menu-label {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.app-shell-sider .ant-layout-sider-trigger {
+  border-top: 1px solid var(--border-light);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+}
+
+.app-shell-collapse-trigger {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  gap: 10px;
+  padding-inline: 16px;
+  text-align: left;
+}
+
+.app-shell-sider.ant-layout-sider-collapsed .app-shell-brand > div > span:last-child,
+.app-shell-sider.ant-layout-sider-collapsed .app-shell-collapse-trigger > span:not(.anticon) {
+  display: none;
+}
+
+.app-shell-sider.ant-layout-sider-collapsed .app-shell-brand {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.app-shell-sider.ant-layout-sider-collapsed .app-shell-collapse-trigger {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.app-shell-header.ant-layout-header {
+  position: sticky;
+  z-index: 1000;
+  top: 0;
+  display: flex;
+  height: var(--header-height);
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-primary);
+  line-height: normal;
+}
+
+.app-shell-header.ant-layout-header.is-overlay {
+  position: absolute;
+  inset: 0 0 auto;
+  border-bottom: 0;
+  background: transparent;
+}
+
+.app-shell-header__leading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.app-shell-header__title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell-icon-button.ant-btn {
+  color: var(--text-primary);
+}
+
+.app-shell-header__brand {
+  display: none;
+}
+
+.app-shell-user-trigger {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 0 4px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.app-shell-user-trigger.is-map {
+  padding: 5px 9px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.app-shell-user-trigger .ant-avatar,
+.app-shell-drawer__account .ant-avatar {
+  flex: none;
+  background: var(--brand-color-info);
+  color: #fff;
+  font-size: 12px;
+}
+
+.app-shell-user-trigger__identity,
+.app-shell-drawer__identity {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.app-shell-user-trigger__identity strong,
+.app-shell-drawer__identity strong {
+  max-width: 180px;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell-user-trigger__identity small,
+.app-shell-drawer__identity small {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.app-shell-user-trigger__chevron {
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.app-shell-drawer .ant-drawer-body {
+  padding: 0;
+}
+
+.app-shell-drawer__content {
+  display: flex;
+  height: 100dvh;
+  flex-direction: column;
+  background: var(--bg-primary);
+}
+
+.app-shell-drawer__brand {
+  flex: none;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.app-shell-drawer__nav {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-block: 8px;
+}
+
+.app-shell-drawer__nav .app-shell-menu.ant-menu {
+  padding-inline: 10px;
+}
+
+.app-shell-drawer__account {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--border-light);
+}
+
+.app-shell-drawer__identity {
+  flex: 1;
+}
+
+.app-shell-drawer__identity strong {
+  max-width: 150px;
+}
+
+.app-shell-drawer__account .ant-btn {
+  color: var(--text-secondary);
+}
+
+@media (max-width: 767px) {
+  .app-shell-header.ant-layout-header {
+    height: 54px;
+    gap: 10px;
+    padding-inline: 12px;
+  }
+
+  .app-shell-header__leading {
+    flex: none;
+  }
+
+  .app-shell-header__brand {
+    display: block;
+  }
+
+  .app-shell-header__brand > div > span:last-child {
+    display: none;
+  }
+
+  .app-shell-header__title {
+    text-align: center;
+  }
+
+  .app-shell-user-trigger {
+    padding: 0;
+  }
+
+  .app-shell-user-trigger.is-map {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .app-shell-user-trigger__identity,
+  .app-shell-user-trigger__chevron {
+    display: none;
+  }
+}

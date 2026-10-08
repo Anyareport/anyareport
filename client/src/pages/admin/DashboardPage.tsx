@@ -2,9 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, Col, Row, Statistic, Space, Typography, List, Button } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { api, type Analytics, type Report } from '../../lib/api';
-import { adminDashboardRoles } from '../../lib/roles';
 import IncidentCard from '../../components/IncidentCard';
-import PageHero from '../../components/PageHero';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotificationFeed } from '../../lib/notificationFeed';
 
@@ -39,17 +37,11 @@ export default function AdminDashboardPage() {
 
   const openReports = reports.filter((report) => report.status !== 'resolved').length;
   const pendingResolutionReviews = reports.filter(
-    (report) =>
-      report.status === 'resolved' && report.resolution?.verificationStatus === 'pending'
+    (report) => report.status === 'resolved' && report.resolution?.verificationStatus === 'pending'
   );
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <PageHero
-        title="Administrative dashboard"
-        description={`Shared oversight for ${adminDashboardRoles.length} roles, with committee scoping enforced server-side.`}
-      />
-
       <Row gutter={[16, 16]}>
         <Col xs={24} md={6}>
           <Card className="soft-card">

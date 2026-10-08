@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Card, Drawer, Form, Input, Select, Space, Table, Tag, message } from 'antd';
 import { api, type UserProfile } from '../../lib/api';
-import PageHero from '../../components/PageHero';
 
 const roleOptions = [
   { label: 'Resident', value: 'resident' },
@@ -79,27 +78,16 @@ export default function AdminUsersPage() {
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <PageHero
-        title="User management"
-        description="Admin-only role control and official provisioning."
+      <Button type="primary" onClick={() => setDrawerOpen(true)}>
+        Create official
+      </Button>
+      <Table
+        rowKey="_id"
+        dataSource={users}
+        columns={columns}
+        pagination={{ pageSize: 8 }}
+        scroll={{ x: true }}
       />
-
-      <Card
-        className="soft-card"
-        extra={
-          <Button type="primary" onClick={() => setDrawerOpen(true)}>
-            Create official
-          </Button>
-        }
-      >
-        <Table
-          rowKey="_id"
-          dataSource={users}
-          columns={columns}
-          pagination={{ pageSize: 8 }}
-          scroll={{ x: true }}
-        />
-      </Card>
 
       <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Create official">
         <Form layout="vertical" form={form} onFinish={(values) => createUser.mutate(values)}>

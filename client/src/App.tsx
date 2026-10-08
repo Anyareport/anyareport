@@ -69,10 +69,7 @@ function App() {
           <Route path="/resident/submit" element={<Navigate to="/resident/report" replace />} />
           <Route path="/resident/reports" element={<MyReportsPage />} />
           <Route path="/resident/reports/:id" element={<IncidentDetailPage variant="resident" />} />
-          <Route
-            path="/resident/notifications"
-            element={<NotificationsPage title="Resident Notifications" />}
-          />
+          <Route path="/resident/notifications" element={<NotificationsPage />} />
           <Route path="/resident/profile" element={<ProfilePage title="Resident Profile" />} />
         </Route>
       </Route>
@@ -82,10 +79,7 @@ function App() {
           <Route path="/responder" element={<ResponderDashboardPage />} />
           <Route path="/responder/alerts" element={<ResponderAlertsPage />} />
           <Route path="/responder/history" element={<ResponderHistoryPage />} />
-          <Route
-            path="/responder/notifications"
-            element={<NotificationsPage title="Responder Notifications" />}
-          />
+          <Route path="/responder/notifications" element={<NotificationsPage />} />
           <Route path="/responder/profile" element={<ProfilePage title="Responder Profile" />} />
           <Route
             path="/responder/incidents/:id"
@@ -108,10 +102,7 @@ function App() {
           <Route path="/admin/export" element={<AdminExportPage />} />
           <Route path="/admin/intake" element={<SecretaryIntakePage />} />
           <Route path="/admin/users" element={<AdminUsersPage />} />
-          <Route
-            path="/admin/notifications"
-            element={<NotificationsPage title="Official Notifications" />}
-          />
+          <Route path="/admin/notifications" element={<NotificationsPage />} />
           <Route path="/admin/profile" element={<ProfilePage title="Official Profile" />} />
         </Route>
       </Route>

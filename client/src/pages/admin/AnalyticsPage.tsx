@@ -16,7 +16,6 @@ import {
   Line,
 } from 'recharts';
 import { api, type Analytics } from '../../lib/api';
-import PageHero from '../../components/PageHero';
 
 const COLORS = ['#E63333', '#5b6b9a', '#ff9f43', '#2ecc71', '#8e44ad', '#06b6d4'];
 
@@ -35,11 +34,6 @@ export default function AdminAnalyticsPage() {
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <PageHero
-        title="Analytics"
-        description="Operational metrics for barangay-wide or committee-scoped oversight."
-      />
-
       <Row justify="start">
         <Select
           aria-label="Analytics period"
@@ -109,7 +103,18 @@ export default function AdminAnalyticsPage() {
         </Col>
       </Row>
 
-      <Card className="soft-card" title={period === 'all' ? 'All time' : period === 'week' ? 'Last 7 days' : period === 'year' ? 'Last 365 days' : 'Last 30 days'}>
+      <Card
+        className="soft-card"
+        title={
+          period === 'all'
+            ? 'All time'
+            : period === 'week'
+              ? 'Last 7 days'
+              : period === 'year'
+                ? 'Last 365 days'
+                : 'Last 30 days'
+        }
+      >
         <ResponsiveContainer width="100%" height={280}>
           <LineChart data={analytics?.last30Days || []}>
             <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
