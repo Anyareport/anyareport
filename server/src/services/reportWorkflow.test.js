@@ -7,6 +7,7 @@ import {
   getJoinDecision,
   getTransitionDecision,
   normalizeReportStatus,
+  supportsBackupRequests,
   validateResolutionDetails,
   canSubmitResolution,
 } from './reportWorkflow.js';
@@ -45,6 +46,13 @@ function tryAtomicStatusChange(report, decision, actorUid) {
   if (decision.update.acknowledgedBy) report.acknowledgedBy = decision.update.acknowledgedBy;
   return true;
 }
+
+test('backup requests support field reports and criminal blotter cases only', () => {
+  assert.equal(supportsBackupRequests('Emergency Situations'), true);
+  assert.equal(supportsBackupRequests('Public Concerns'), true);
+  assert.equal(supportsBackupRequests('Blotter Cases', 'Criminal'), true);
+  assert.equal(supportsBackupRequests('Blotter Cases', 'Civil'), false);
+});
 
 function tryAtomicJoin(report, decision, actorUid, ownerUid) {
   if (!decision.allowed || decision.alreadyJoined) return false;

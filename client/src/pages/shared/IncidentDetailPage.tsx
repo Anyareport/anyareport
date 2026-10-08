@@ -346,6 +346,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     isResponder && isOwner && status === 'coordinating' && (!isBlotter || isCriminalBlotter);
   const canResolveFieldWork =
     isResponder && isOwner && status === 'in_progress' && (!isBlotter || isCriminalBlotter);
+  const canUseResponderBackup = !isBlotter || isCriminalBlotter;
   const canReviewResolution =
     variant === 'admin' && ['captain', 'secretary'].includes((role || '').toLowerCase());
   const actionBusy =
@@ -572,7 +573,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
               : 'No response action is available for this report.'}
         </Text>
       )}
-      {isOwner && !isBlotter && status !== 'resolved' && (
+      {isOwner && canUseResponderBackup && status !== 'resolved' && (
         <Button
           block
           disabled={actionBusy || !!openBackupRequest}
@@ -582,7 +583,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           {openBackupRequest ? 'Backup requested' : 'Request backup'}
         </Button>
       )}
-      {isOwner && !isBlotter && openBackupRequest && (
+      {isOwner && canUseResponderBackup && openBackupRequest && (
         <Button
           block
           icon={<CheckOutlined />}
@@ -593,7 +594,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           Enough help
         </Button>
       )}
-      {isResponder && !isBlotter && status !== 'resolved' && (
+      {isResponder && canUseResponderBackup && status !== 'resolved' && (
         <Space className="incident-quick-actions" wrap>
           <Button
             icon={<CompassOutlined />}

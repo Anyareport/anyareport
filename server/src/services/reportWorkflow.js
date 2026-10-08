@@ -29,6 +29,13 @@ export function canSubmitResolution(actorUid, assignedResponderUid) {
   return Boolean(actorUid && assignedResponderUid && actorUid === assignedResponderUid);
 }
 
+export function supportsBackupRequests(category, subcategory) {
+  return (
+    FIELD_REPORT_CATEGORIES.includes(category) ||
+    (category === BLOTTER_REPORT_CATEGORY && subcategory === CRIMINAL_BLOTTER_SUBCATEGORY)
+  );
+}
+
 function responderCategoryFilter(category) {
   return category === BLOTTER_REPORT_CATEGORY
     ? { category: BLOTTER_REPORT_CATEGORY, subcategory: CRIMINAL_BLOTTER_SUBCATEGORY }
@@ -252,11 +259,7 @@ export function getJoinDecision({
   actorUid,
   backupRequests = [],
 }) {
-  if (
-    !FIELD_REPORT_CATEGORIES.includes(category) &&
-    !(category === BLOTTER_REPORT_CATEGORY &&
-      subcategory === CRIMINAL_BLOTTER_SUBCATEGORY)
-  ) {
+  if (!supportsBackupRequests(category, subcategory)) {
     return reject(404, 'Report not found');
   }
   if (!ownerUid || ownerUid === actorUid) {

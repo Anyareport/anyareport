@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Card, Drawer, Form, Input, Select, Space, Table, Tag, message } from 'antd';
+import { Button, Drawer, Form, Input, Select, Space, Table, Tag, message } from 'antd';
 import { api, type UserProfile } from '../../lib/api';
 
 const roleOptions = [
