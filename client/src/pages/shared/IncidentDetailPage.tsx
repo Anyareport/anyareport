@@ -797,14 +797,14 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       >
         <div className="incident-panel-heading">
           <h2 id="resolution-details-heading">Resolution Details</h2>
-          <Button
-            type="primary"
-            onClick={() => setResolutionViewOpen(true)}
-            style={{ width: '100%' }}
-          >
-            View details
-          </Button>
         </div>
+        <Button
+          type="primary"
+          onClick={() => setResolutionViewOpen(true)}
+          style={{ width: '100%' }}
+        >
+          View details
+        </Button>
         <Text type="secondary">Resolution details are available for review.</Text>
       </Card>
       <Modal
