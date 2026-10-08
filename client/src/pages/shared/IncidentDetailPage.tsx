@@ -296,7 +296,6 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         <Spin size="large" />
       </div>
     );
-
   }
 
   if (!report) {
@@ -320,8 +319,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     (variant === 'responder' && isParticipant) ||
     (variant === 'admin' && ['admin', 'captain', 'secretary'].includes(role || ''));
   const canViewReporterContact =
-    (variant === 'responder' && isParticipant) ||
-    (variant === 'admin' && role === 'secretary');
+    (variant === 'responder' && isParticipant) || (variant === 'admin' && role === 'secretary');
   const canJoinBackup =
     isResponder &&
     !!openBackupRequest &&
@@ -349,8 +347,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const canResolveFieldWork =
     isResponder && isOwner && status === 'in_progress' && (!isBlotter || isCriminalBlotter);
   const canReviewResolution =
-    variant === 'admin' &&
-    ['captain', 'secretary'].includes((role || '').toLowerCase());
+    variant === 'admin' && ['captain', 'secretary'].includes((role || '').toLowerCase());
   const actionBusy =
     updateStatus.isPending ||
     acknowledgeMutation.isPending ||
@@ -565,7 +562,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       aria-labelledby="incident-actions-heading"
     >
       <h2 id="incident-actions-heading">Response</h2>
-      
+
       {responderAction || (
         <Text type="secondary">
           {status === 'resolved'
@@ -793,7 +790,10 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
 
   const resolutionDetails = report.resolution?.resolvedAt ? (
     <>
-      <section className="incident-description-section" aria-labelledby="resolution-details-heading">
+      <section
+        className="incident-description-section"
+        aria-labelledby="resolution-details-heading"
+      >
         <div className="incident-panel-heading">
           <h2 id="resolution-details-heading">Resolution Details</h2>
           <Button type="primary" onClick={() => setResolutionViewOpen(true)}>
@@ -830,7 +830,12 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
               <Text strong>Supporting Evidence</Text>
               <Space wrap>
                 {report.resolution.supportingEvidence.map((evidence) => (
-                  <Image key={evidence} width={96} src={getPhotoUrl(evidence)} alt="Supporting evidence" />
+                  <Image
+                    key={evidence}
+                    width={96}
+                    src={getPhotoUrl(evidence)}
+                    alt="Supporting evidence"
+                  />
                 ))}
               </Space>
             </>
@@ -867,7 +872,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
           Back
         </Button>
-        {variant === 'admin' && <Text className="incident-role-label">{role?.toUpperCase()}</Text>}
+        {/* {variant === 'admin' && <Text className="incident-role-label">{role?.toUpperCase()}</Text>} */}
       </header>
 
       <div className="incident-detail-grid">
@@ -983,8 +988,6 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           {resolutionDetails}
           {!isResident && actionPanel}
 
-          
-
           {showStatusTimeline && (
             <Card
               className="soft-card incident-side-section"
@@ -1057,10 +1060,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
               },
             ]}
           >
-            <Input.TextArea
-              rows={3}
-              placeholder="Briefly describe what happened"
-            />
+            <Input.TextArea rows={3} placeholder="Briefly describe what happened" />
           </Form.Item>
           <Form.Item
             name="actionsTaken"
@@ -1082,16 +1082,19 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
             label="Outcome"
             rules={[{ required: true, whitespace: true, message: 'Describe the final result.' }]}
           >
-            <Input.TextArea
-              rows={3}
-            />
+            <Input.TextArea rows={3} />
           </Form.Item>
           <Form.Item
             name="furtherActionRequired"
             label="Further Action Required"
             rules={[{ required: true, message: 'Select Yes or No.' }]}
           >
-            <Radio.Group options={[{ label: 'Yes', value: true }, { label: 'No', value: false }]} />
+            <Radio.Group
+              options={[
+                { label: 'Yes', value: true },
+                { label: 'No', value: false },
+              ]}
+            />
           </Form.Item>
           <Form.Item
             noStyle
@@ -1125,7 +1128,12 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
             label="Assistance Requested"
             rules={[{ required: true, message: 'Select Yes or No.' }]}
           >
-            <Radio.Group options={[{ label: 'Yes', value: true }, { label: 'No', value: false }]} />
+            <Radio.Group
+              options={[
+                { label: 'Yes', value: true },
+                { label: 'No', value: false },
+              ]}
+            />
           </Form.Item>
           <Form.Item label="Supporting Evidence">
             <Upload
