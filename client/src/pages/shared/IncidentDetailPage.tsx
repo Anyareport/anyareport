@@ -790,21 +790,27 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
 
   const resolutionDetails = report.resolution?.resolvedAt ? (
     <>
-      <section
-        className="incident-description-section"
+      <Card
+        className="soft-card incident-side-section"
+        role="region"
         aria-labelledby="resolution-details-heading"
       >
         <div className="incident-panel-heading">
           <h2 id="resolution-details-heading">Resolution Details</h2>
-          <Button type="primary" onClick={() => setResolutionViewOpen(true)}>
+          <Button
+            type="primary"
+            onClick={() => setResolutionViewOpen(true)}
+            style={{ width: '100%' }}
+          >
             View details
           </Button>
         </div>
         <Text type="secondary">Resolution details are available for review.</Text>
-      </section>
+      </Card>
       <Modal
         title="Resolution Details"
         open={resolutionViewOpen}
+        zIndex={1200}
         footer={null}
         onCancel={() => setResolutionViewOpen(false)}
       >
@@ -1038,6 +1044,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       <Modal
         title="Resolution Details"
         open={resolutionOpen}
+        zIndex={1200}
         destroyOnClose
         footer={null}
         onCancel={() => {
