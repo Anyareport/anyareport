@@ -6,6 +6,7 @@ import {
   canResponderViewReport,
   getJoinDecision,
   getTransitionDecision,
+  isTerminalReportStatus,
   normalizeReportStatus,
   supportsBackupRequests,
   validateResolutionDetails,
@@ -18,6 +19,9 @@ function matchesStatus(filterStatus, currentStatus) {
   }
   if (filterStatus && typeof filterStatus === 'object' && '$ne' in filterStatus) {
     return currentStatus !== filterStatus.$ne;
+  }
+  if (filterStatus && typeof filterStatus === 'object' && '$nin' in filterStatus) {
+    return !filterStatus.$nin.includes(currentStatus);
   }
   return filterStatus === undefined || filterStatus === currentStatus;
 }
@@ -52,6 +56,23 @@ test('backup requests support field reports and criminal blotter cases only', ()
   assert.equal(supportsBackupRequests('Public Concerns'), true);
   assert.equal(supportsBackupRequests('Blotter Cases', 'Criminal'), true);
   assert.equal(supportsBackupRequests('Blotter Cases', 'Civil'), false);
+});
+
+test('resolved and flagged reports are terminal for backup actions', () => {
+  assert.equal(isTerminalReportStatus('resolved'), true);
+  assert.equal(isTerminalReportStatus('flagged'), true);
+  assert.equal(isTerminalReportStatus('in_progress'), false);
+
+  for (const status of ['resolved', 'flagged']) {
+    const decision = getJoinDecision({
+      category: 'Emergency Situations',
+      status,
+      ownerUid: 'lead',
+      actorUid: 'helper',
+      backupRequests: [{ requestedBy: 'lead', status: 'pending', joinedBy: ['helper'] }],
+    });
+    assert.equal(decision.allowed, false);
+  }
 });
 
 function tryAtomicJoin(report, decision, actorUid, ownerUid) {

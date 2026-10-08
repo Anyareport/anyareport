@@ -62,7 +62,7 @@ const reportSchema = new mongoose.Schema(
         joinedBy: [{ type: String }],
         closedBy: { type: String, default: null },
         closedAt: { type: Date, default: null },
-        closeReason: { type: String, enum: ['enough_help', 'resolved'], default: null },
+        closeReason: { type: String, enum: ['enough_help', 'resolved', 'flagged'], default: null },
       },
     ],
     dispatchInvites: [

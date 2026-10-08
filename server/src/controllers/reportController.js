@@ -30,6 +30,7 @@ import {
   canViewReporter,
   canViewReporterContact,
   getJoinDecision,
+  isTerminalReportStatus,
   getTransitionDecision,
   normalizeHistoryStatus,
   normalizeReportStatus,
@@ -716,6 +717,14 @@ export async function flagReport(req, res) {
     }
 
     report.status = 'flagged';
+    const flaggedAt = new Date();
+    for (const request of report.backupRequests || []) {
+      if (request.status !== 'pending') continue;
+      request.status = 'closed';
+      request.closedBy = req.firebaseUser.uid;
+      request.closedAt = flaggedAt;
+      request.closeReason = 'flagged';
+    }
     const updatedBy = await resolveActorName(req.firebaseUser.uid);
     report.statusHistory.push({ status: 'flagged', updatedBy });
     await report.save();
@@ -995,8 +1004,8 @@ export async function requestBackup(req, res) {
     if (report.acknowledgedBy !== req.firebaseUser.uid) {
       return res.status(403).json({ error: 'Only the assigned responder can request backup' });
     }
-    if (report.status === 'resolved') {
-      return res.status(409).json({ error: 'Resolved incidents cannot request backup' });
+    if (isTerminalReportStatus(report.status)) {
+      return res.status(409).json({ error: 'Closed incidents cannot request backup' });
     }
 
     const openRequest = (report.backupRequests || []).find(
@@ -1016,7 +1025,7 @@ export async function requestBackup(req, res) {
           {
             _id: report._id,
             ...responderReportFilter(report),
-            status: { $ne: 'resolved' },
+            status: { $nin: ['resolved', 'flagged'] },
             acknowledgedBy: req.firebaseUser.uid,
             backupRequests: { $not: { $elemMatch: { status: 'pending' } } },
           },
@@ -1135,6 +1144,9 @@ export async function closeBackupRequest(req, res) {
     if (!supportsBackupRequests(report.category, report.subcategory)) {
       return res.status(404).json({ error: 'Report not found' });
     }
+    if (isTerminalReportStatus(report.status)) {
+      return res.status(409).json({ error: 'Closed incidents cannot accept backup responders' });
+    }
     if (report.acknowledgedBy !== req.firebaseUser.uid) {
       return res
         .status(403)
@@ -1159,7 +1171,7 @@ export async function closeBackupRequest(req, res) {
           {
             _id: report._id,
             ...responderReportFilter(report),
-            status: { $ne: 'resolved' },
+            status: { $nin: ['resolved', 'flagged'] },
             acknowledgedBy: req.firebaseUser.uid,
             backupRequests: {
               $elemMatch: { requestedBy: req.firebaseUser.uid, status: 'pending' },

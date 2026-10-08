@@ -126,7 +126,7 @@ export interface Report {
     joinedByNames?: string[];
     closedBy?: string | null;
     closedAt?: string | null;
-    closeReason?: 'enough_help' | 'resolved' | null;
+    closeReason?: 'enough_help' | 'resolved' | 'flagged' | null;
   }[];
   statusHistory: { status: string; updatedBy: string; timestamp: string }[];
   createdAt: string;

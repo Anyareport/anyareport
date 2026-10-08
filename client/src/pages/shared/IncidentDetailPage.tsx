@@ -306,6 +306,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const isResponder = variant === 'responder' && ['tanod', 'responder'].includes(role || '');
   const isBlotter = report.category === BLOTTER_REPORT_CATEGORY;
   const status = dispatchStatus;
+  const isTerminalStatus = status === 'resolved' || status === 'flagged';
   const isOwner = isResponder && report.acknowledgedBy === profile?.firebaseUid;
   const backupRequests = report.backupRequests ?? [];
   const openBackupRequest = backupRequests.find((request) => request.status === 'pending');
@@ -325,7 +326,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     !!openBackupRequest &&
     report.acknowledgedBy !== profile?.firebaseUid &&
     !isBackupResponder &&
-    status !== 'resolved';
+    !isTerminalStatus;
   const photos = report.photos || [];
   const activePhoto = photos[activePhotoIndex];
   const activePhotoUrl = activePhoto ? getPhotoUrl(activePhoto) : undefined;
@@ -568,12 +569,14 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         <Text type="secondary">
           {status === 'resolved'
             ? 'This incident is resolved.'
-            : report.acknowledgedBy
-              ? `Being handled by ${report.acknowledgedByName || 'the lead responder'}.`
-              : 'No response action is available for this report.'}
+            : status === 'flagged'
+              ? 'This report is flagged for review.'
+              : report.acknowledgedBy
+                ? `Being handled by ${report.acknowledgedByName || 'the lead responder'}.`
+                : 'No response action is available for this report.'}
         </Text>
       )}
-      {isOwner && canUseResponderBackup && status !== 'resolved' && (
+      {isOwner && canUseResponderBackup && !isTerminalStatus && (
         <Button
           block
           disabled={actionBusy || !!openBackupRequest}
@@ -583,7 +586,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           {openBackupRequest ? 'Backup requested' : 'Request backup'}
         </Button>
       )}
-      {isOwner && canUseResponderBackup && openBackupRequest && (
+      {isOwner && canUseResponderBackup && !isTerminalStatus && openBackupRequest && (
         <Button
           block
           icon={<CheckOutlined />}
@@ -594,7 +597,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           Enough help
         </Button>
       )}
-      {isResponder && canUseResponderBackup && status !== 'resolved' && (
+      {isResponder && canUseResponderBackup && !isTerminalStatus && (
         <Space className="incident-quick-actions" wrap>
           <Button
             icon={<CompassOutlined />}

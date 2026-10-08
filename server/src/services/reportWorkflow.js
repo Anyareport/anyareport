@@ -56,6 +56,11 @@ export function normalizeReportStatus(status) {
   }
 }
 
+export function isTerminalReportStatus(status) {
+  const normalizedStatus = normalizeReportStatus(status);
+  return normalizedStatus === 'resolved' || normalizedStatus === 'flagged';
+}
+
 export function normalizeHistoryStatus(status) {
   if (status === 'acknowledged') return 'coordinating';
   if (status === 'en_route' || status === 'on_scene') return 'in_progress';
@@ -262,6 +267,9 @@ export function getJoinDecision({
   if (!supportsBackupRequests(category, subcategory)) {
     return reject(404, 'Report not found');
   }
+  if (isTerminalReportStatus(status)) {
+    return reject(409, 'Closed incidents cannot accept backup responders');
+  }
   if (!ownerUid || ownerUid === actorUid) {
     return reject(409, 'This incident has no open backup request for you');
   }
@@ -270,9 +278,6 @@ export function getJoinDecision({
     (request.joinedBy || []).includes(actorUid)
   );
   if (alreadyJoined) return { allowed: true, alreadyJoined: true };
-  if (normalizeReportStatus(status) === 'resolved') {
-    return reject(409, 'Resolved incidents cannot accept backup responders');
-  }
 
   const hasOpenRequest = backupRequests.some(
     (request) => request.requestedBy === ownerUid && request.status === 'pending'
@@ -284,7 +289,7 @@ export function getJoinDecision({
     alreadyJoined: false,
     filter: {
       ...responderCategoryFilter(category),
-      status: { $ne: 'resolved' },
+      status: { $nin: ['resolved', 'flagged'] },
       acknowledgedBy: ownerUid,
       backupRequests: {
         $elemMatch: {
