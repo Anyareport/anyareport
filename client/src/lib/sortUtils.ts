@@ -1,5 +1,5 @@
 import type { Report } from './api';
-import { normalizeReportStatus } from './reportWorkflow';
+import { normalizeReportStatus } from './reportWorkflow.ts';
 
 export const EMERGENCY_CATEGORY = 'Emergency Situations';
 
@@ -21,8 +21,10 @@ export const SEVERITY_ORDER: Record<string, number> = {
 export const TERMINAL_STATUSES = new Set(['resolved', 'flagged']);
 
 export function getPriorityTier(r: Report): number {
+  const status = normalizeReportStatus(r.status);
+  if (status === 'flagged') return 3;
+  if (TERMINAL_STATUSES.has(status)) return 2;
   if (r.category === EMERGENCY_CATEGORY || r.severity === 'Critical') return 0;
-  if (TERMINAL_STATUSES.has(r.status)) return 2;
   return 1;
 }
 
@@ -46,29 +48,47 @@ export function compareIncidentPriority(a: Report, b: Report): number {
   const tierDiff = getPriorityTier(a) - getPriorityTier(b);
   if (tierDiff !== 0) return tierDiff;
 
-  const sevDiff = getSeverityOrder(a.severity) - getSeverityOrder(b.severity);
-  if (sevDiff !== 0) return sevDiff;
+  const tier = getPriorityTier(a);
+  let dateDiff = 0;
 
-  const statusDiff = getStatusOrder(a.status) - getStatusOrder(b.status);
-  if (statusDiff !== 0) return statusDiff;
+  if (tier <= 1) {
+    const severityDiff = getSeverityOrder(a.severity) - getSeverityOrder(b.severity);
+    if (severityDiff !== 0) return severityDiff;
 
-  return compareDateDesc(a, b);
+    const emergencyDiff =
+      Number(b.category === EMERGENCY_CATEGORY) - Number(a.category === EMERGENCY_CATEGORY);
+    if (emergencyDiff !== 0) return emergencyDiff;
+
+    const statusDiff = getStatusOrder(a.status) - getStatusOrder(b.status);
+    if (statusDiff !== 0) return statusDiff;
+
+    dateDiff = compareDateAsc(a, b);
+  } else if (tier === 2) {
+    const aResolvedAt = new Date(a.resolution?.resolvedAt || a.createdAt).getTime();
+    const bResolvedAt = new Date(b.resolution?.resolvedAt || b.createdAt).getTime();
+    dateDiff = bResolvedAt - aResolvedAt;
+  } else {
+    dateDiff = compareDateDesc(a, b);
+  }
+
+  if (dateDiff !== 0) return dateDiff;
+  return String(a._id).localeCompare(String(b._id));
 }
 
 export function compareSeverity(a: Report, b: Report): number {
-  const tierDiff = getPriorityTier(a) - getPriorityTier(b);
-  if (tierDiff !== 0) return tierDiff;
-  return getSeverityOrder(a.severity) - getSeverityOrder(b.severity);
+  return (
+    getSeverityOrder(a.severity) - getSeverityOrder(b.severity) ||
+    String(a._id).localeCompare(String(b._id))
+  );
 }
 
 export function compareStatus(a: Report, b: Report): number {
-  const tierDiff = getPriorityTier(a) - getPriorityTier(b);
-  if (tierDiff !== 0) return tierDiff;
-  return getStatusOrder(a.status) - getStatusOrder(b.status);
+  return (
+    getStatusOrder(a.status) - getStatusOrder(b.status) ||
+    String(a._id).localeCompare(String(b._id))
+  );
 }
 
 export function compareCreatedAt(a: Report, b: Report): number {
-  const tierDiff = getPriorityTier(a) - getPriorityTier(b);
-  if (tierDiff !== 0) return tierDiff;
-  return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  return compareDateAsc(a, b) || String(a._id).localeCompare(String(b._id));
 }
