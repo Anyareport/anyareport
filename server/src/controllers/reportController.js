@@ -81,6 +81,10 @@ function getDispatchValidationError(report, { requireLead = true } = {}) {
   return null;
 }
 
+function isActiveDispatchInvite(invite) {
+  return Boolean(invite?.responderUid) && invite.status !== 'declined';
+}
+
 function responderReportFilter(report) {
   return report.category === BLOTTER_CATEGORY
     ? { category: BLOTTER_CATEGORY, subcategory: CRIMINAL_BLOTTER_SUBCATEGORY }
@@ -297,7 +301,7 @@ async function getAvailableResponders(reportId) {
         dispatchInvites: {
           $elemMatch: {
             responderUid: { $in: responders.map((responder) => responder.firebaseUid) },
-            status: 'pending',
+            status: { $ne: 'declined' },
           },
         },
       },
@@ -312,7 +316,7 @@ async function getAvailableResponders(reportId) {
       (request.joinedBy || []).forEach((uid) => assigned.add(uid))
     );
     (activeReport.dispatchInvites || [])
-      .filter((invite) => invite.status === 'pending')
+      .filter(isActiveDispatchInvite)
       .forEach((invite) => assigned.add(invite.responderUid));
   });
   return responders.filter((responder) => !assigned.has(responder.firebaseUid));
@@ -335,7 +339,7 @@ export async function getDispatchOptions(req, res) {
         report.acknowledgedBy,
         ...(report.backupRequests || []).flatMap((request) => request.joinedBy || []),
         ...(report.dispatchInvites || [])
-          .filter((invite) => invite.status === 'pending')
+          .filter(isActiveDispatchInvite)
           .map((invite) => invite.responderUid),
       ].filter(Boolean)
     );
@@ -486,9 +490,14 @@ export async function respondToDispatch(req, res) {
       return res.status(404).json({ error: 'Dispatch invitation not found' });
     }
 
-    const invite = (report.dispatchInvites || []).find(
-      (entry) => entry.responderUid === req.firebaseUser.uid
+    const uid = req.firebaseUser.uid;
+
+    const myInvites = (report.dispatchInvites || []).filter(
+      (entry) => entry.responderUid === uid
     );
+    const invite =
+      myInvites.find((entry) => entry.status === 'pending') ||
+      myInvites[myInvites.length - 1];
     if (!invite) return res.status(404).json({ error: 'Dispatch invitation not found' });
     if (invite.status !== 'pending') {
       return res.json({ accepted: invite.status === 'accepted', report: serializeReport(report) });
@@ -498,17 +507,23 @@ export async function respondToDispatch(req, res) {
     }
 
     const responseStatus = accepted ? 'accepted' : 'declined';
+
     const update = {
       $set: {
         'dispatchInvites.$[invite].status': responseStatus,
         'dispatchInvites.$[invite].respondedAt': new Date(),
       },
     };
-    if (accepted) {
+
+    
+    const alreadyJoined = (report.backupRequests || []).some((request) =>
+      (request.joinedBy || []).includes(uid)
+    );
+    if (accepted && !alreadyJoined) {
       update.$push = {
         backupRequests: {
-          requestedBy: req.firebaseUser.uid,
-          joinedBy: [req.firebaseUser.uid],
+          requestedBy: uid,
+          joinedBy: [uid],
         },
       };
     }
@@ -517,13 +532,13 @@ export async function respondToDispatch(req, res) {
       {
         _id: report._id,
         dispatchInvites: {
-          $elemMatch: { responderUid: req.firebaseUser.uid, status: 'pending' },
+          $elemMatch: { responderUid: uid, status: 'pending' },
         },
       },
       update,
       {
         new: true,
-        arrayFilters: [{ 'invite.responderUid': req.firebaseUser.uid, 'invite.status': 'pending' }],
+        arrayFilters: [{ 'invite.responderUid': uid, 'invite.status': 'pending' }],
       }
     );
     if (!updatedReport) {
@@ -531,7 +546,7 @@ export async function respondToDispatch(req, res) {
     }
 
     emitReportChanged(updatedReport, 'updated');
-    const responder = await User.findOne({ firebaseUid: req.firebaseUser.uid })
+    const responder = await User.findOne({ firebaseUid: uid })
       .select('firebaseUid name role')
       .lean();
     if (responder) {
@@ -544,7 +559,7 @@ export async function respondToDispatch(req, res) {
       await Notification.findOneAndUpdate(
         {
           _id: notificationId,
-          recipientUid: req.firebaseUser.uid,
+          recipientUid: uid,
           type: 'incident_dispatched',
         },
         { $set: { dispatchResponse: responseStatus, read: true } }
