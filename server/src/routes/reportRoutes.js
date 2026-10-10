@@ -7,6 +7,7 @@ import {
   createReport,
   getMyReports,
   getReports,
+  getReportCount,
   getReportById,
   getReportAudit,
   getCaptainInactiveReports,
@@ -39,6 +40,11 @@ router.get('/mine', getMyReports);
 router.get('/analytics', requireRole('admin', 'captain', 'secretary'), getAnalytics);
 router.get('/heatmap', requireRole('admin', 'captain', 'secretary'), getHeatmapData);
 router.get('/captain/inactive', requireRole('captain'), getCaptainInactiveReports);
+router.get(
+  '/count',
+  requireRole('admin', 'captain', 'secretary', 'tanod', 'responder'),
+  getReportCount
+);
 router.get('/', requireRole('admin', 'captain', 'secretary', 'tanod', 'responder'), getReports);
 router.get('/:id/dispatch-options', requireRole('captain', 'secretary'), getDispatchOptions);
 router.get('/:id/audit', requireRole('admin', 'captain', 'secretary'), getReportAudit);
@@ -57,11 +63,7 @@ router.post(
   upload.array('evidence', 3),
   submitResolution
 );
-router.patch(
-  '/:id/resolution/verify',
-  requireRole('captain', 'secretary'),
-  verifyResolution
-);
+router.patch('/:id/resolution/verify', requireRole('captain', 'secretary'), verifyResolution);
 router.post('/:id/backup', requireRole('tanod', 'responder'), requestBackup);
 router.post('/:id/backup/join', requireRole('tanod', 'responder'), joinBackupRequest);
 router.post('/:id/backup/close', requireRole('tanod', 'responder'), closeBackupRequest);

@@ -87,6 +87,41 @@ function responderReportFilter(report) {
     : { category: { $in: RESPONDER_CATEGORIES } };
 }
 
+export function buildReportQuery({ userRole, firebaseUserUid, status, handledByMe }) {
+  const query = {};
+
+  if (['tanod', 'responder'].includes(userRole)) {
+    query.$and = [
+      {
+        $or: [
+          { category: { $in: RESPONDER_CATEGORIES } },
+          { category: BLOTTER_CATEGORY, subcategory: CRIMINAL_BLOTTER_SUBCATEGORY },
+          {
+            category: BLOTTER_CATEGORY,
+            subcategory: 'Civil',
+            status: { $ne: 'resolved' },
+            $or: [
+              { acknowledgedBy: firebaseUserUid },
+              { 'backupRequests.joinedBy': firebaseUserUid },
+            ],
+          },
+        ],
+      },
+    ];
+  }
+
+  if (status) query.status = { $in: statusFilterValues(status) };
+
+  if (handledByMe === 'true' && ['tanod', 'responder'].includes(userRole)) {
+    query.$and = query.$and || [];
+    query.$and.push({
+      $or: [{ acknowledgedBy: firebaseUserUid }, { 'backupRequests.joinedBy': firebaseUserUid }],
+    });
+  }
+
+  return query;
+}
+
 async function resolveActorName(uid) {
   const user = await User.findOne({ firebaseUid: uid }).select('name').lean();
   return user?.name || uid;
@@ -523,35 +558,12 @@ export async function respondToDispatch(req, res) {
 
 export async function getReports(req, res) {
   try {
-    const query = {};
-    if (['tanod', 'responder'].includes(req.userRole)) {
-      query.$and = [
-        {
-          $or: [
-            { category: { $in: RESPONDER_CATEGORIES } },
-            { category: BLOTTER_CATEGORY, subcategory: CRIMINAL_BLOTTER_SUBCATEGORY },
-            {
-              category: BLOTTER_CATEGORY,
-              subcategory: 'Civil',
-              status: { $ne: 'resolved' },
-              $or: [
-                { acknowledgedBy: req.firebaseUser.uid },
-                { 'backupRequests.joinedBy': req.firebaseUser.uid },
-              ],
-            },
-          ],
-        },
-      ];
-    }
-    if (req.query.status) query.status = { $in: statusFilterValues(req.query.status) };
-    if (req.query.handledByMe === 'true' && ['tanod', 'responder'].includes(req.userRole)) {
-      query.$and.push({
-        $or: [
-          { acknowledgedBy: req.firebaseUser.uid },
-          { 'backupRequests.joinedBy': req.firebaseUser.uid },
-        ],
-      });
-    }
+    const query = buildReportQuery({
+      userRole: req.userRole,
+      firebaseUserUid: req.firebaseUser.uid,
+      status: req.query.status,
+      handledByMe: req.query.handledByMe,
+    });
 
     const reports = await Report.find(query).sort({ createdAt: -1 }).limit(200);
     const submitterUids = [...new Set(reports.map((report) => report.submittedBy))];
@@ -570,6 +582,22 @@ export async function getReports(req, res) {
         };
       })
     );
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export async function getReportCount(req, res) {
+  try {
+    const query = buildReportQuery({
+      userRole: req.userRole,
+      firebaseUserUid: req.firebaseUser.uid,
+      status: req.query.status,
+      handledByMe: req.query.handledByMe,
+    });
+
+    const count = await Report.countDocuments(query);
+    res.json({ count });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

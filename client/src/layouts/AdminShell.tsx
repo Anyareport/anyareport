@@ -15,7 +15,7 @@ import type { ItemType } from 'antd/es/menu/interface';
 import { useQuery } from '@tanstack/react-query';
 import AppShell from './AppShell';
 import { useAuth } from '../contexts/AuthContext';
-import { api, type Report } from '../lib/api';
+import { api } from '../lib/api';
 import { useNotificationFeed } from '../lib/notificationFeed';
 
 export default function AdminShell() {
@@ -23,9 +23,9 @@ export default function AdminShell() {
 
   const { data: notificationFeed } = useNotificationFeed();
 
-  const { data: pendingReports = [] } = useQuery({
-    queryKey: ['pending-reports'],
-    queryFn: () => api.get<Report[]>('/api/reports?status=pending'),
+  const { data: pendingReportCount = { count: 0 } } = useQuery({
+    queryKey: ['pending-reports-count'],
+    queryFn: () => api.get<{ count: number }>('/api/reports/count?status=pending'),
     enabled: role === 'secretary',
     refetchInterval: 30000,
   });
@@ -69,7 +69,7 @@ export default function AdminShell() {
     <AppShell
       menuItems={menuItems}
       menuBadgeCounts={{
-        '/admin/intake': pendingReports.length,
+        '/admin/intake': pendingReportCount.count,
         '/admin/notifications': unreadCount,
       }}
       quietBadgeKeys={['/admin/notifications']}

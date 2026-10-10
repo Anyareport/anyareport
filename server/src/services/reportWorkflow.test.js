@@ -12,6 +12,7 @@ import {
   validateResolutionDetails,
   canSubmitResolution,
 } from './reportWorkflow.js';
+import { buildReportQuery } from '../controllers/reportController.js';
 
 function matchesStatus(filterStatus, currentStatus) {
   if (filterStatus && typeof filterStatus === 'object' && '$in' in filterStatus) {
@@ -50,6 +51,18 @@ function tryAtomicStatusChange(report, decision, actorUid) {
   if (decision.update.acknowledgedBy) report.acknowledgedBy = decision.update.acknowledgedBy;
   return true;
 }
+
+test('report queries build a consistent pending-status filter for queue counts', () => {
+  const query = buildReportQuery({
+    userRole: 'secretary',
+    firebaseUserUid: 'secretary-1',
+    status: 'pending',
+    handledByMe: 'false',
+  });
+
+  assert.deepEqual(query.status, { $in: ['pending', 'verified'] });
+  assert.equal(query.$and, undefined);
+});
 
 test('backup requests support field reports and criminal blotter cases only', () => {
   assert.equal(supportsBackupRequests('Emergency Situations'), true);

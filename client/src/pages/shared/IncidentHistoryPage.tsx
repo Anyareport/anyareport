@@ -15,10 +15,14 @@ import { useAuth } from '../../contexts/AuthContext';
 
 export interface IncidentHistoryPageProps {
   variant?: 'admin' | 'responder';
+  defaultStatus?: string | 'all';
 }
 
-export default function IncidentHistoryPage({ variant = 'admin' }: IncidentHistoryPageProps) {
-  const [status, setStatus] = useState<string | 'all'>('all');
+export default function IncidentHistoryPage({
+  variant = 'admin',
+  defaultStatus = 'all',
+}: IncidentHistoryPageProps) {
+  const [status, setStatus] = useState<string | 'all'>(defaultStatus);
   const [search, setSearch] = useState('');
   const [datePeriod, setDatePeriod] = useState<'date' | 'month' | 'year'>('date');
   const [date, setDate] = useState('');
