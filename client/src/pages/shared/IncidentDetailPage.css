@@ -513,6 +513,10 @@
     background: var(--bg-primary);
   }
 
+  .incident-detail--admin .incident-mobile-actions {
+    bottom: env(safe-area-inset-bottom, 0px);
+  }
+
   .incident-mobile-actions.soft-card {
     box-shadow: none;
   }

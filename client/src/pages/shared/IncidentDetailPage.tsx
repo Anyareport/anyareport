@@ -342,7 +342,6 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     ? `Reference ${report.referenceNumber}`
     : 'Reference not assigned';
   const reportHistory = report.statusHistory || [];
-  const showMobileResponderActions = isResponder;
   const canStartBlotter =
     isBlotter && status === 'pending' && ['captain', 'secretary'].includes(role || '');
   const canResolveBlotter =
@@ -359,6 +358,19 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         referenceNumber={report.referenceNumber}
       />
     ) : null;
+  const isCaptain = variant === 'admin' && role === 'captain';
+  const captainResponseAction =
+    isCaptain && hotlineAction ? (
+      <Card
+        className="soft-card incident-side-section incident-mobile-hide-panel"
+        role="region"
+        aria-labelledby="incident-response-heading"
+      >
+        <h2 id="incident-response-heading">Response</h2>
+        {hotlineAction}
+      </Card>
+    ) : null;
+  const showMobileResponderActions = isResponder || !!captainResponseAction;
   const canStartFieldWork =
     isResponder && isOwner && status === 'coordinating' && (!isBlotter || isCriminalBlotter);
   const canResolveFieldWork =
@@ -634,7 +646,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     </Card>
   ) : ['captain', 'secretary'].includes(role || '') ? (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      {role === 'captain' && hotlineAction}
+      {captainResponseAction}
       {dispatchAction}
       {secretaryAction}
     </Space>
@@ -1202,7 +1214,9 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
             <span>Response</span>
             <DownOutlined className="incident-mobile-actions__chevron" aria-hidden="true" />
           </summary>
-          <div className="incident-mobile-actions__content">{actionPanel}</div>
+          <div className="incident-mobile-actions__content">
+            {isResponder ? actionPanel : captainResponseAction}
+          </div>
         </details>
       )}
     </main>
