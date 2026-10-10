@@ -10,6 +10,7 @@ import {
   getReportCount,
   getReportById,
   getReportAudit,
+  logHotlineOpened,
   getCaptainInactiveReports,
   flagReport,
   updateReportStatus,
@@ -48,6 +49,7 @@ router.get(
 router.get('/', requireRole('admin', 'captain', 'secretary', 'tanod', 'responder'), getReports);
 router.get('/:id/dispatch-options', requireRole('captain', 'secretary'), getDispatchOptions);
 router.get('/:id/audit', requireRole('admin', 'captain', 'secretary'), getReportAudit);
+router.post('/:id/hotline-opened', requireRole('captain', 'tanod', 'responder'), logHotlineOpened);
 router.get('/:id', getReportById);
 router.post('/:id/dispatch', requireRole('captain', 'secretary'), dispatchReport);
 router.post('/:id/dispatch-response', requireRole('tanod', 'responder'), respondToDispatch);

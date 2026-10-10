@@ -46,6 +46,7 @@ You can sign in with these demo accounts right away. In demo mode, any password 
 ## Notes
 
 - Demo mode is enabled automatically when Firebase env values are left blank.
+- Configure `VITE_HOTLINE_BFP_NUMBER`, `VITE_HOTLINE_PNP_NUMBER`, and `VITE_HOTLINE_RED_CROSS_NUMBER` in the client environment with numbers verified by the barangay. 911 is included as the national fallback. Placeholder and invalid agency numbers do not get a call link.
 - Leaflet is used for report submission and routing views.
 - Ant Design theming is centralized in `src/theme/antdTheme.ts`.
 - The server can also run without MongoDB/Firebase keys for the demo flow, but it will log warnings until real credentials are added.

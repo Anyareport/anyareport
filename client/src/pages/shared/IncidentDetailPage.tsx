@@ -37,6 +37,7 @@ import {
 import { api, type AuditLog, type DispatchResponder, type Report } from '../../lib/api';
 import StatusTag from '../../components/StatusTag';
 import SeverityTag from '../../components/SeverityTag';
+import EmergencyHotline from '../../components/EmergencyHotline';
 import { StaticMap, RouteMap } from '../../components/map/MapPicker';
 import { useAuth } from '../../contexts/AuthContext';
 import { notificationFeedQueryKey } from '../../lib/notificationFeed';
@@ -80,6 +81,8 @@ function getPhotoUrl(photo: string) {
 
 function getAuditLabel(entry: AuditLog) {
   const status = typeof entry.metadata?.status === 'string' ? entry.metadata.status : null;
+  const hotlineAgency =
+    typeof entry.metadata?.agency === 'string' ? entry.metadata.agency : 'an emergency agency';
   switch (entry.action) {
     case 'report_submitted':
       return 'Report received';
@@ -87,6 +90,8 @@ function getAuditLabel(entry: AuditLog) {
       return 'Classified by AI';
     case 'report_recipients_notified':
       return 'Response team notified';
+    case 'hotline_opened':
+      return `Hotline opened: ${hotlineAgency}`;
     case 'report_acknowledged':
       return `Acknowledged by ${entry.actorName || 'Responder'}`;
     case 'backup_requested':
@@ -343,6 +348,17 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const canResolveBlotter =
     isBlotter && status === 'in_progress' && ['captain', 'secretary'].includes(role || '');
   const isCriminalBlotter = isBlotter && report.subcategory === 'Criminal';
+  const hotlineAction =
+    variant !== 'resident' &&
+    (role === 'captain' || isResponder) &&
+    (report.category === 'Emergency Situations' || isCriminalBlotter) ? (
+      <EmergencyHotline
+        reportId={report._id}
+        category={report.category}
+        subcategory={report.subcategory}
+        referenceNumber={report.referenceNumber}
+      />
+    ) : null;
   const canStartFieldWork =
     isResponder && isOwner && status === 'coordinating' && (!isBlotter || isCriminalBlotter);
   const canResolveFieldWork =
@@ -564,7 +580,6 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       aria-labelledby="incident-actions-heading"
     >
       <h2 id="incident-actions-heading">Response</h2>
-
       {responderAction || (
         <Text type="secondary">
           {status === 'resolved'
@@ -576,6 +591,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                 : 'No response action is available for this report.'}
         </Text>
       )}
+      {hotlineAction}
       {isOwner && canUseResponderBackup && !isTerminalStatus && (
         <Button
           block
@@ -596,18 +612,6 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         >
           Enough help
         </Button>
-      )}
-      {isResponder && canUseResponderBackup && !isTerminalStatus && (
-        <Space className="incident-quick-actions" wrap>
-          <Button
-            icon={<CompassOutlined />}
-            href={`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Navigate
-          </Button>
-        </Space>
       )}
     </Card>
   ) : role === 'admin' ? (
@@ -630,6 +634,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     </Card>
   ) : ['captain', 'secretary'].includes(role || '') ? (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      {role === 'captain' && hotlineAction}
       {dispatchAction}
       {secretaryAction}
     </Space>
@@ -783,7 +788,19 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       ) : (
         <div className="incident-hero-map">
           {variant === 'responder' ? (
-            <RouteMap incidentLat={latitude} incidentLng={longitude} />
+            <section className="incident-route-section" aria-labelledby="incident-route-heading">
+              <h2 id="incident-route-heading">Route to incident</h2>
+              <RouteMap incidentLat={latitude} incidentLng={longitude} />
+              <Button
+                block
+                icon={<CompassOutlined />}
+                href={`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Open in Google Maps
+              </Button>
+            </section>
           ) : (
             <StaticMap latitude={latitude} longitude={longitude} height={340} />
           )}
@@ -983,9 +1000,21 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
 
             {photos.length > 0 && (
               <section className="incident-location-section">
-                <h2>Location</h2>
+                <h2>{variant === 'responder' ? 'Route to incident' : 'Location'}</h2>
                 {variant === 'responder' ? (
-                  <RouteMap incidentLat={latitude} incidentLng={longitude} />
+                  <>
+                    <RouteMap incidentLat={latitude} incidentLng={longitude} />
+                    <Button
+                      block
+                      icon={<CompassOutlined />}
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ marginTop: 8 }}
+                    >
+                      Open in Google Maps
+                    </Button>
+                  </>
                 ) : (
                   <StaticMap latitude={latitude} longitude={longitude} height={250} />
                 )}

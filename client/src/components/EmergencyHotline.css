@@ -1,0 +1,105 @@
+.emergency-hotline__panel {
+  display: flex;
+  width: min(340px, calc(100vw - 48px));
+  flex-direction: column;
+  gap: 10px;
+}
+
+.emergency-hotline__popover-title,
+.emergency-hotline__drawer-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.emergency-hotline__popover-title .ant-typography-secondary,
+.emergency-hotline__drawer-subtitle {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.emergency-hotline__list {
+  width: 100%;
+}
+
+.emergency-hotline__row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--bg-primary);
+}
+
+.emergency-hotline__row.is-suggested {
+  border-color: var(--brand-primary);
+  background: var(--bg-secondary);
+}
+
+.emergency-hotline__icon {
+  display: grid;
+  width: 34px;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+.emergency-hotline__row.is-suggested .emergency-hotline__icon {
+  color: var(--brand-primary);
+}
+
+.emergency-hotline__details,
+.emergency-hotline__name-line {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.emergency-hotline__name-line .ant-typography {
+  overflow-wrap: anywhere;
+}
+
+.emergency-hotline__name-line .ant-tag {
+  width: fit-content;
+  margin: 0;
+  line-height: 18px;
+}
+
+.emergency-hotline__description,
+.emergency-hotline__note {
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.emergency-hotline__note {
+  display: block;
+  text-align: center;
+}
+
+.emergency-hotline__drawer .ant-drawer-body {
+  padding: 12px;
+}
+
+.emergency-hotline__drawer-subtitle {
+  margin: -4px 0 12px;
+}
+
+@media (max-width: 767px) {
+  .emergency-hotline__panel {
+    width: 100%;
+  }
+
+  .emergency-hotline__row {
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 9px;
+  }
+}

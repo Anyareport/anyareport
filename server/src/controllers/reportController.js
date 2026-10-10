@@ -655,6 +655,45 @@ export async function getReportById(req, res) {
   }
 }
 
+export async function logHotlineOpened(req, res) {
+  const agencyNames = {
+    bfp: 'Bureau of Fire Protection',
+    pnp: 'Philippine National Police',
+    'red-cross': 'Philippine Red Cross',
+    911: 'National Emergency Hotline',
+  };
+
+  try {
+    const agency = req.body?.agency;
+    if (!Object.hasOwn(agencyNames, agency)) {
+      return res.status(400).json({ error: 'Select a valid hotline agency' });
+    }
+
+    const report = await Report.findById(req.params.id).select('_id category subcategory');
+    if (!report) return res.status(404).json({ error: 'Report not found' });
+
+    const isEligibleReport =
+      report.category === 'Emergency Situations' ||
+      (report.category === BLOTTER_REPORT_CATEGORY &&
+        report.subcategory === CRIMINAL_BLOTTER_SUBCATEGORY);
+    if (!isEligibleReport) {
+      return res.status(403).json({ error: 'Hotlines are unavailable for this report' });
+    }
+
+    if (
+      ['tanod', 'responder'].includes(req.userRole) &&
+      !canResponderViewReport(report, req.firebaseUser.uid)
+    ) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    await logAudit('hotline_opened', req, report._id, { agency: agencyNames[agency] });
+    return res.status(201).json({ logged: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+}
+
 export async function getReportAudit(req, res) {
   try {
     const report = await Report.findById(req.params.id).select('_id category referenceNumber');
