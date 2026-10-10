@@ -308,6 +308,15 @@
     display: none;
   }
 
+  .app-shell-header.is-map .app-shell-header__brand,
+  .app-shell-header.is-map .app-shell-header__title {
+    display: none;
+  }
+
+  .app-shell-header.is-map .app-shell-user-trigger {
+    margin-inline-start: auto;
+  }
+
   .app-shell-header__title {
     text-align: center;
   }

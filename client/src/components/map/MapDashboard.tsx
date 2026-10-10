@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import {
   CircleMarker,
   GeoJSON,
   MapContainer,
+  Popup,
   TileLayer,
   Tooltip,
   useMap,
@@ -15,12 +16,21 @@ import L from 'leaflet';
 import type { FeatureCollection } from 'geojson';
 import barangayData from '../../data/DMM.json';
 
+const severityMarkerColors: Record<string, string> = {
+  Critical: '#ef4444',
+  High: '#f97316',
+  Medium: '#eab308',
+  Low: '#22c55e',
+};
+
 export interface IncidentMarker {
   id: string;
   lat: number;
   lng: number;
   category?: string;
   status?: string;
+  severity?: string | null;
+  title?: string;
 }
 
 export type HeatmapMode = 'dots' | 'gradient' | 'choropleth';
@@ -30,6 +40,10 @@ interface MapDashboardProps {
   height?: string | number;
   mode?: HeatmapMode;
   onPointClick?: (point: IncidentMarker) => void;
+  onMapClick?: () => void;
+  selectedPointId?: string | null;
+  showPointPopup?: boolean;
+  renderPointPopup?: (point: IncidentMarker) => ReactNode;
   purokCounts?: Map<string, number>;
   selectedPurok?: string;
   onPurokClick?: (name: string) => void;
@@ -42,34 +56,125 @@ interface MapDashboardProps {
 function IncidentDots({
   points,
   onPointClick,
+  selectedPointId,
+  showPointPopup,
+  renderPointPopup,
 }: {
   points: IncidentMarker[];
   onPointClick?: (point: IncidentMarker) => void;
+  selectedPointId?: string | null;
+  showPointPopup?: boolean;
+  renderPointPopup?: (point: IncidentMarker) => ReactNode;
 }) {
   return (
     <>
       {points
         .filter(({ lat, lng }) => Number.isFinite(lat) && Number.isFinite(lng))
-        .map((point, index) => (
-          <CircleMarker
-            key={`${point.lat}-${point.lng}-${index}`}
-            center={[point.lat, point.lng]}
-            radius={7}
-            pathOptions={{
-              color: '#991b1b',
-              weight: 1.5,
-              fillColor: '#ef4444',
-              fillOpacity: 0.85,
-            }}
-            eventHandlers={onPointClick ? { click: () => onPointClick(point) } : undefined}
-          >
-            <Tooltip>
-              {point.category || 'Incident'}
-              {point.status ? ` - ${point.status.replace(/_/g, ' ')}` : ''}
-            </Tooltip>
-          </CircleMarker>
-        ))}
+        .map((point, index) => {
+          const isSelected = point.id === selectedPointId;
+
+          return (
+            <IncidentDot
+              key={`${point.lat}-${point.lng}-${index}`}
+              point={point}
+              isSelected={isSelected}
+              severityColor={severityMarkerColors[point.severity || ''] || '#ef4444'}
+              onPointClick={onPointClick}
+              showPopup={Boolean(showPointPopup && renderPointPopup)}
+              renderPopup={renderPointPopup}
+            />
+          );
+        })}
     </>
+  );
+}
+
+function IncidentDot({
+  point,
+  isSelected,
+  severityColor,
+  onPointClick,
+  showPopup,
+  renderPopup,
+}: {
+  point: IncidentMarker;
+  isSelected: boolean;
+  severityColor: string;
+  onPointClick?: (point: IncidentMarker) => void;
+  showPopup: boolean;
+  renderPopup?: (point: IncidentMarker) => ReactNode;
+}) {
+  const markerRef = useRef<L.CircleMarker | null>(null);
+  const popupRef = useRef<L.Popup | null>(null);
+  const map = useMap();
+
+  useEffect(() => {
+    if (!isSelected && popupRef.current && map.hasLayer(popupRef.current)) {
+      map.closePopup(popupRef.current);
+    }
+  }, [isSelected, map]);
+
+  useEffect(() => {
+    const element = markerRef.current?.getElement();
+    if (!element) return;
+
+    element.setAttribute('tabindex', '0');
+    element.setAttribute('role', 'button');
+    element.setAttribute('aria-label', point.title || point.category || 'Incident');
+    const handleKeyDown: EventListener = (event) => {
+      if (!(event instanceof KeyboardEvent)) return;
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      onPointClick?.(point);
+    };
+
+    element.addEventListener('keydown', handleKeyDown);
+    return () => element.removeEventListener('keydown', handleKeyDown);
+  }, [onPointClick, point]);
+
+  const label = point.title || point.category || 'Incident';
+
+  return (
+    <CircleMarker
+      ref={markerRef}
+      center={[point.lat, point.lng]}
+      radius={isSelected ? 9 : 7}
+      pathOptions={{
+        color: isSelected ? '#2563eb' : severityColor,
+        weight: isSelected ? 3 : 1.5,
+        fillColor: severityColor,
+        fillOpacity: 0.9,
+        bubblingMouseEvents: false,
+      }}
+      eventHandlers={
+        onPointClick
+          ? {
+              click: (event) => {
+                L.DomEvent.stopPropagation(event.originalEvent);
+                onPointClick(point);
+              },
+            }
+          : undefined
+      }
+    >
+      <Tooltip direction="top" offset={[0, -8]}>
+        <span className="map-marker-tooltip">
+          <span className="map-marker-tooltip__dot" style={{ backgroundColor: severityColor }} />
+          {label}
+        </span>
+      </Tooltip>
+      {showPopup && renderPopup && (
+        <Popup
+          ref={popupRef}
+          closeButton={false}
+          closeOnClick={false}
+          autoClose
+          className="incident-map-popup"
+        >
+          {isSelected ? renderPopup(point) : null}
+        </Popup>
+      )}
+    </CircleMarker>
   );
 }
 
@@ -106,15 +211,20 @@ function GradientLayer({ points }: { points: IncidentMarker[] }) {
 function LocationClickHandler({
   enabled,
   onPick,
+  onMapClick,
 }: {
   enabled: boolean;
   onPick?: (position: [number, number]) => void;
+  onMapClick?: () => void;
 }) {
   useMapEvents({
     click(event) {
-      if (!enabled) return;
-
-      onPick?.([event.latlng.lat, event.latlng.lng]);
+      if (enabled) onPick?.([event.latlng.lat, event.latlng.lng]);
+      else {
+        const target = event.originalEvent.target;
+        if (target instanceof Element && target.closest('.leaflet-interactive')) return;
+        onMapClick?.();
+      }
     },
   });
   return null;
@@ -125,6 +235,10 @@ export default function MapDashboard({
   height = '100vh',
   mode = 'dots',
   onPointClick,
+  onMapClick,
+  selectedPointId,
+  showPointPopup,
+  renderPointPopup,
   purokCounts = new Map(),
   selectedPurok,
   showBoundaries = true,
@@ -148,7 +262,11 @@ export default function MapDashboard({
         style={{ height: '100%', width: '100%' }}
         zoomControl={false}
       >
-        <LocationClickHandler enabled={isPickingLocation} onPick={onLocationPick} />
+        <LocationClickHandler
+          enabled={isPickingLocation}
+          onPick={onLocationPick}
+          onMapClick={onMapClick}
+        />
         <ZoomControl position="bottomright" />
         {showBoundaries && <GeoJSON key={geoJsonKey} data={barangayData as FeatureCollection} />}
         <TileLayer
@@ -158,7 +276,13 @@ export default function MapDashboard({
         {mode === 'gradient' ? (
           <GradientLayer points={points} />
         ) : (
-          <IncidentDots points={points} onPointClick={onPointClick} />
+          <IncidentDots
+            points={points}
+            onPointClick={onPointClick}
+            selectedPointId={selectedPointId}
+            showPointPopup={showPointPopup}
+            renderPointPopup={renderPointPopup}
+          />
         )}
         {selectedLocation && (
           <CircleMarker

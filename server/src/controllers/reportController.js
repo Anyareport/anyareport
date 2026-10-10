@@ -1295,7 +1295,7 @@ export async function getHeatmapData(req, res) {
   try {
     const match = { 'location.coordinates': { $exists: true } };
 
-    const points = await Report.find(match).select('_id location category status createdAt');
+    const points = await Report.find(match).select('_id location category status severity');
     res.json(
       points.map((p) => ({
         id: p._id.toString(),
@@ -1303,6 +1303,7 @@ export async function getHeatmapData(req, res) {
         lng: p.location.coordinates[0],
         category: p.category,
         status: normalizeReportStatus(p.status),
+        severity: p.severity,
       }))
     );
   } catch (err) {

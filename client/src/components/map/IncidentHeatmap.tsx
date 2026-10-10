@@ -1,5 +1,14 @@
 import { useEffect } from 'react';
-import { CircleMarker, GeoJSON, MapContainer, TileLayer, Tooltip, useMap } from 'react-leaflet';
+import type { ReactNode } from 'react';
+import {
+  CircleMarker,
+  GeoJSON,
+  MapContainer,
+  Popup,
+  TileLayer,
+  Tooltip,
+  useMap,
+} from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.heat';
 import L from 'leaflet';
@@ -13,7 +22,15 @@ export interface HeatmapPoint {
   lng: number;
   category?: string;
   status?: string;
+  severity?: string | null;
 }
+
+const severityMarkerColors: Record<string, string> = {
+  Critical: '#ef4444',
+  High: '#f97316',
+  Medium: '#eab308',
+  Low: '#22c55e',
+};
 
 export type HeatmapMode = 'dots' | 'gradient' | 'choropleth';
 
@@ -22,6 +39,8 @@ interface IncidentHeatmapProps {
   height?: number;
   mode?: HeatmapMode;
   onPointClick?: (point: HeatmapPoint) => void;
+  selectedPointId?: string | null;
+  renderPointPopup?: (point: HeatmapPoint) => ReactNode;
   purokCounts?: Map<string, number>;
   selectedPurok?: string;
   onPurokClick?: (name: string) => void;
@@ -143,33 +162,52 @@ function ChoroplethLegend({ maxCount }: { maxCount: number }) {
 function IncidentDots({
   points,
   onPointClick,
+  selectedPointId,
+  renderPointPopup,
 }: {
   points: HeatmapPoint[];
   onPointClick?: (point: HeatmapPoint) => void;
+  selectedPointId?: string | null;
+  renderPointPopup?: (point: HeatmapPoint) => ReactNode;
 }) {
   return (
     <>
       {points
         .filter(({ lat, lng }) => Number.isFinite(lat) && Number.isFinite(lng))
-        .map((point, index) => (
-          <CircleMarker
-            key={`${point.lat}-${point.lng}-${index}`}
-            center={[point.lat, point.lng]}
-            radius={7}
-            pathOptions={{
-              color: '#991b1b',
-              weight: 1.5,
-              fillColor: '#ef4444',
-              fillOpacity: 0.85,
-            }}
-            eventHandlers={onPointClick ? { click: () => onPointClick(point) } : undefined}
-          >
-            <Tooltip>
-              {point.category || 'Incident'}
-              {point.status ? ` - ${point.status.replace(/_/g, ' ')}` : ''}
-            </Tooltip>
-          </CircleMarker>
-        ))}
+        .map((point, index) => {
+          const severityColor = severityMarkerColors[point.severity || ''] || '#ef4444';
+
+          return (
+            <CircleMarker
+              key={`${point.lat}-${point.lng}-${index}`}
+              center={[point.lat, point.lng]}
+              radius={7}
+              pathOptions={{
+                color: severityColor,
+                weight: 1.5,
+                fillColor: severityColor,
+                fillOpacity: 0.9,
+                bubblingMouseEvents: false,
+              }}
+              eventHandlers={onPointClick ? { click: () => onPointClick(point) } : undefined}
+            >
+              <Tooltip>
+                {point.category || 'Incident'}
+                {point.status ? ` - ${point.status.replace(/_/g, ' ')}` : ''}
+              </Tooltip>
+              {point.id === selectedPointId && renderPointPopup && (
+                <Popup
+                  closeButton={false}
+                  closeOnClick={false}
+                  autoClose
+                  className="incident-map-popup"
+                >
+                  {renderPointPopup(point)}
+                </Popup>
+              )}
+            </CircleMarker>
+          );
+        })}
     </>
   );
 }
@@ -209,6 +247,8 @@ export default function IncidentHeatmap({
   height = 460,
   mode = 'dots',
   onPointClick,
+  selectedPointId,
+  renderPointPopup,
   purokCounts = new Map(),
   selectedPurok,
   onPurokClick,
@@ -243,9 +283,14 @@ export default function IncidentHeatmap({
         />
         {mode === 'gradient' ? (
           <GradientLayer points={points} />
-        ) : (
-          <IncidentDots points={points} onPointClick={onPointClick} />
-        )}
+        ) : mode === 'dots' ? (
+          <IncidentDots
+            points={points}
+            onPointClick={onPointClick}
+            selectedPointId={selectedPointId}
+            renderPointPopup={renderPointPopup}
+          />
+        ) : null}
       </MapContainer>
       {mode === 'choropleth' && <ChoroplethLegend maxCount={maxCount} />}
     </div>

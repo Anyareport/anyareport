@@ -194,7 +194,9 @@ export default function AppShell({
       )}
 
       <Layout className={`app-shell-main${fullWidthContent ? ' is-full-width' : ''}`}>
-        <Header className={`app-shell-header${fullWidthContent ? ' is-overlay' : ''}`}>
+        <Header
+          className={`app-shell-header${fullWidthContent ? ' is-overlay' : ''}${isResidentMapPage ? ' is-map' : ''}`}
+        >
           <div className="app-shell-header__leading">
             {!screens.md && !mobileNavigation && (
               <Button

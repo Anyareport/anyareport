@@ -1,0 +1,192 @@
+.map-report-card {
+  position: relative;
+  width: 300px;
+  overflow: hidden;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 18%);
+}
+
+.map-report-card__photo {
+  display: block;
+  width: 100%;
+  height: 124px;
+  object-fit: cover;
+  background: var(--bg-secondary);
+}
+
+.map-report-card__close {
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  right: 8px;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  box-shadow: 0 1px 5px rgb(15 23 42 / 22%);
+}
+
+.map-report-card__content {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 4px;
+  padding: 10px 12px 12px;
+}
+
+.map-report-card__summary,
+.map-report-card__tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.map-report-card__summary {
+  justify-content: space-between;
+}
+
+.map-report-card__tags {
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.map-report-card__time {
+  flex: 0 0 auto;
+  color: var(--text-secondary);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.map-report-card__title {
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+}
+
+.map-report-card__meta,
+.map-report-card__location {
+  margin: 0 !important;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.map-report-card__meta {
+  overflow-wrap: anywhere;
+}
+
+.map-report-card__location {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.map-report-card__location .anticon {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.incident-map-popup .leaflet-popup-content-wrapper {
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.incident-map-popup .leaflet-popup-content {
+  width: 300px !important;
+  margin: 0;
+}
+
+.incident-map-popup .leaflet-popup-tip {
+  background: var(--bg-primary);
+}
+
+.map-marker-tooltip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.map-marker-tooltip__dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+}
+
+.map-report-sheet {
+  position: absolute;
+  z-index: 1200;
+  right: 10px;
+  bottom: 10px;
+  left: 10px;
+  padding-top: 16px;
+  max-height: min(48dvh, 420px);
+  overflow: auto;
+  background: var(--bg-primary);
+  border-radius: 16px;
+  animation: map-report-sheet-enter 180ms ease-out both;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+.map-report-sheet__handle {
+  position: absolute;
+  z-index: 2;
+  top: 6px;
+  left: 50%;
+  width: 38px;
+  height: 4px;
+  border-radius: 4px;
+  background: rgb(127 127 127 / 55%);
+  transform: translateX(-50%);
+}
+
+.map-report-sheet .map-report-card {
+  width: 100%;
+  max-width: 440px;
+  margin-inline: auto;
+  border-radius: 16px;
+}
+
+.map-report-sheet .map-report-card__photo {
+  height: 112px;
+}
+
+.map-report-sheet .map-report-card__content {
+  gap: 7px;
+  padding: 20px 14px 14px;
+}
+
+@keyframes map-report-sheet-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 575px) {
+  .incident-map-popup .leaflet-popup-content {
+    width: min(300px, calc(100vw - 54px)) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-report-sheet {
+    animation: none;
+  }
+}
