@@ -6,49 +6,49 @@ const statusStyles: Record<
   { backgroundColor: string; borderColor: string; color: string }
 > = {
   pending: {
-    backgroundColor: 'var(--status-pending-bg)',
-    borderColor: 'var(--status-pending-border)',
+    backgroundColor: 'color-mix(in srgb, var(--status-pending-tag) 14%, transparent)',
+    borderColor: 'var(--status-pending-tag)',
     color: 'var(--status-pending-text)',
   },
   coordinating: {
-    backgroundColor: 'var(--status-coordinating-bg)',
+    backgroundColor: 'color-mix(in srgb, var(--status-coordinating-border) 14%, transparent)',
     borderColor: 'var(--status-coordinating-border)',
     color: 'var(--status-coordinating-text)',
   },
   verified: {
-    backgroundColor: 'var(--status-verified-bg)',
-    borderColor: 'var(--status-verified-border)',
-    color: 'var(--status-verified-text)',
+    backgroundColor: 'color-mix(in srgb, var(--status-verified-tag) 14%, transparent)',
+    borderColor: 'var(--status-verified-tag)',
+    color: 'var(--status-verified-tag)',
   },
   acknowledged: {
-    backgroundColor: 'var(--status-en-route-bg)',
-    borderColor: 'var(--status-en-route-border)',
-    color: 'var(--status-en-route-text)',
+    backgroundColor: 'color-mix(in srgb, var(--status-en-route-tag) 14%, transparent)',
+    borderColor: 'var(--status-en-route-tag)',
+    color: 'var(--status-en-route-tag)',
   },
   in_progress: {
-    backgroundColor: 'var(--status-on-scene-bg)',
-    borderColor: 'var(--status-on-scene-border)',
+    backgroundColor: 'color-mix(in srgb, var(--status-on-scene-tag) 14%, transparent)',
+    borderColor: 'var(--status-on-scene-tag)',
     color: 'var(--status-on-scene-text)',
   },
   en_route: {
-    backgroundColor: 'var(--status-en-route-bg)',
-    borderColor: 'var(--status-en-route-border)',
-    color: 'var(--status-en-route-text)',
+    backgroundColor: 'color-mix(in srgb, var(--status-en-route-tag) 14%, transparent)',
+    borderColor: 'var(--status-en-route-tag)',
+    color: 'var(--status-en-route-tag)',
   },
   on_scene: {
-    backgroundColor: 'var(--status-on-scene-bg)',
-    borderColor: 'var(--status-on-scene-border)',
-    color: 'var(--status-on-scene-text)',
+    backgroundColor: 'color-mix(in srgb, var(--status-on-scene-tag) 14%, transparent)',
+    borderColor: 'var(--status-on-scene-tag)',
+    color: 'var(--status-on-scene-tag)',
   },
   resolved: {
-    backgroundColor: 'var(--status-resolved-bg)',
-    borderColor: 'var(--status-resolved-border)',
-    color: 'var(--status-resolved-text)',
+    backgroundColor: 'color-mix(in srgb, var(--status-resolved-tag) 14%, transparent)',
+    borderColor: 'var(--status-resolved-tag)',
+    color: 'var(--status-resolved-tag)',
   },
   flagged: {
-    backgroundColor: 'var(--status-flagged-bg)',
-    borderColor: 'var(--status-flagged-border)',
-    color: 'var(--status-flagged-text)',
+    backgroundColor: 'color-mix(in srgb, var(--status-flagged-tag) 14%, transparent)',
+    borderColor: 'var(--status-flagged-tag)',
+    color: 'var(--status-flagged-tag)',
   },
 };
 

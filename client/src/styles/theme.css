@@ -245,7 +245,7 @@
   --status-on-scene-bg: #1c5170;
   --status-on-scene-border: #118fc0;
   --status-on-scene-text: #5fd2ff;
-  --status-on-scene-tag: var(--shared-color-blue400);
+  --status-on-scene-tag: #118fc0;
 
   --status-resolved-bg: #1d3985;
   --status-resolved-border: #1d4ed8;
