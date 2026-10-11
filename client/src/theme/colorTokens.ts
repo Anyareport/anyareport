@@ -1,5 +1,6 @@
 export const sharedColors = {
   brandPrimary: '#2e65ff',
+  brandPrimaryLight: '#4778fd',
   brandNavy: '#282F49',
   layoutBackground: '#e1e5f0',
   borderDefault: '#e1e5f0',

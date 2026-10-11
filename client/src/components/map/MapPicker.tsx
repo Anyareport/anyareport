@@ -5,8 +5,8 @@ import 'leaflet/dist/leaflet.css';
 import { GeoJSON } from 'react-leaflet';
 import type { Feature, Geometry, FeatureCollection } from 'geojson';
 import type { Layer, PathOptions } from 'leaflet';
+import { theme } from 'antd';
 import barangayData from '../../data/DMM.json';
-import { sharedColors } from '../../theme/colorTokens';
 
 const defaultCenter: [number, number] = [16.482, 121.1557];
 
@@ -306,6 +306,7 @@ export function RouteMap({ incidentLat, incidentLng, height = 350, zoom = 17 }: 
   const [responderPos, setResponderPos] = useState<[number, number] | null>(null);
   const [routeCoords, setRouteCoords] = useState<[number, number][] | null>(null);
   const incidentPos: [number, number] = [incidentLat, incidentLng];
+  const { token } = theme.useToken();
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -356,12 +357,7 @@ export function RouteMap({ incidentLat, incidentLng, height = 350, zoom = 17 }: 
       <Marker position={incidentPos} icon={markerIcon} />
       {responderPos && <Marker position={responderPos} icon={markerIcon} />}
       {routeCoords && (
-        <Polyline
-          positions={routeCoords}
-          color={sharedColors.brandPrimary}
-          weight={4}
-          dashArray="8 8"
-        />
+        <Polyline positions={routeCoords} color={token.colorPrimary} weight={4} dashArray="8 8" />
       )}
     </MapContainer>
   );

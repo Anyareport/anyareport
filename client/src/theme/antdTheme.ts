@@ -42,6 +42,8 @@ export const baseAntdTheme: ThemeConfig = {
 };
 
 export const darkTokenOverrides: ThemeConfig['token'] = {
+  colorPrimary: sharedColors.brandPrimaryLight,
+  colorLink: sharedColors.brandPrimaryLight,
   colorBgBase: sharedColors.gray900,
   colorTextBase: sharedColors.darkText,
   colorText: sharedColors.darkText,

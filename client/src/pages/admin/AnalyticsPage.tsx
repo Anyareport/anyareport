@@ -24,14 +24,6 @@ const periodLabels: Record<AnalyticsPeriod, string> = {
 };
 
 const workflowOrder = ['pending', 'coordinating', 'in_progress', 'resolved'];
-const categoryColors = [
-  sharedColors.brandPrimary,
-  sharedColors.red500,
-  sharedColors.blue400,
-  sharedColors.green500,
-  '#8e44ad',
-  '#06b6d4',
-];
 const severityColors: Record<string, string> = {
   Critical: 'var(--severity-critical-tag)',
   High: 'var(--severity-high-tag)',
@@ -103,6 +95,15 @@ export default function AdminAnalyticsPage() {
   }, [reports]);
 
   const { token } = theme.useToken();
+
+  const categoryColors = [
+    token.colorPrimary,
+    sharedColors.red500,
+    sharedColors.blue400,
+    sharedColors.green500,
+    '#8e44ad',
+    '#06b6d4',
+  ];
 
   const categoryData = useMemo(
     () =>
@@ -248,7 +249,7 @@ export default function AdminAnalyticsPage() {
                 <XAxis dataKey="label" tick={{ fill: token.colorTextTertiary }} minTickGap={28} />
                 <YAxis allowDecimals={false} tick={{ fill: token.colorTextTertiary }} />
                 <Tooltip />
-                <Bar dataKey="count" fill={sharedColors.brandPrimary} radius={[3, 3, 0, 0]} />
+                <Bar dataKey="count" fill={token.colorPrimary} radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
@@ -399,7 +400,7 @@ export default function AdminAnalyticsPage() {
                 <XAxis dataKey="_id" tick={{ fill: token.colorTextTertiary, fontSize: 11 }} />
                 <YAxis hide allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="count" fill={sharedColors.brandPrimary} radius={[3, 3, 0, 0]} />
+                <Bar dataKey="count" fill={token.colorPrimary} radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
@@ -430,7 +431,7 @@ export default function AdminAnalyticsPage() {
                           : 0
                       }
                       showInfo={false}
-                      strokeColor={sharedColors.brandPrimary}
+                      strokeColor={token.colorPrimary}
                     />
                   </div>
                 ))

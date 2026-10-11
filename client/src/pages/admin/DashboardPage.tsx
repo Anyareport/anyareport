@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import { api, type Analytics, type Report } from '../../lib/api';
 import IncidentCard from '../../components/IncidentCard';
 import KpiCard from '../../components/KpiCard';
+import StatusTag from '../../components/StatusTag';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotificationFeed } from '../../lib/notificationFeed';
 
@@ -260,36 +261,35 @@ export default function AdminDashboardPage() {
               className="soft-card"
               title="Recently Updated Reports"
               style={{ marginTop: 16 }}
-              extra={
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  onClick={() => navigate('/admin/incidents')}
-                >
-                  View All
-                </Button>
-              }
+              // extra={
+              //   <Button
+              //     variant="outlined"
+              //     color="primary"
+              //     onClick={() => navigate('/admin/incidents')}
+              //   >
+              //     View All
+              //   </Button>
+              // }
             >
               <List
                 dataSource={recentActivity}
                 split={false}
                 renderItem={(report) => (
-                  <List.Item style={{ paddingLeft: 0, paddingRight: 0 }}>
+                  <List.Item
+                    style={{ paddingLeft: 0, paddingRight: 0, cursor: 'pointer' }}
+                    onClick={() => navigate(`/admin/incidents/${report._id}`)}
+                  >
                     <div
                       style={{ display: 'flex', alignItems: 'flex-start', width: '100%', gap: 8 }}
                     >
-                      <Text style={{ marginTop: 3, color: 'var(--text-secondary)' }}>
-                        {report.status === 'resolved' ? '○' : '◌'}
-                      </Text>
                       <div style={{ flex: 1 }}>
                         <Text strong>{report.category}</Text>
-                        {' · '}
-                        <Text type="secondary">{report.status}</Text>
-                        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
                           {report.referenceNumber || report._id.slice(-6).toUpperCase()} ·{' '}
                           {new Date(report.updatedAt).toLocaleDateString()}
                         </div>
                       </div>
+                      <StatusTag status={report.status} />
                     </div>
                   </List.Item>
                 )}
