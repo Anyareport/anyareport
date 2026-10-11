@@ -212,6 +212,15 @@ export function getTransitionDecision({
 
     return reject(400, 'Unsupported field-report transition');
   }
+    // Criminal blotter cases follow the same pending > coordinating > in_progress > resolved
+  // workflow as field incidents, driven by the assigned tanod/responder. Captain/Secretary
+  // dispatch and verify; they must not skip steps or resolve on the responder's behalf.
+  if (category === BLOTTER_REPORT_CATEGORY && subcategory === CRIMINAL_BLOTTER_SUBCATEGORY) {
+    return reject(
+      403,
+      'Criminal blotter cases are worked by the dispatched tanod or responder. Dispatch a responder instead.'
+    );
+  }
 
   if (category === BLOTTER_REPORT_CATEGORY) {
     if (toStatus === 'in_progress') {

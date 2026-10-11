@@ -100,6 +100,36 @@ function tryAtomicJoin(report, decision, actorUid, ownerUid) {
   return true;
 }
 
+test('resolution details require all mandatory fields and conditional recommendation', () => {
+  const valid = {
+    summary: 'The incident was contained.',
+    actionsTaken: 'The responder secured the area and assisted the resident.',
+    outcome: 'No further danger was observed.',
+    furtherActionRequired: false,
+    assistanceRequested: false,
+  };
+  assert.equal(validateResolutionDetails(valid), null);
+  assert.match(validateResolutionDetails({ ...valid, outcome: ' ' }), /outcome/i);
+  assert.match(
+    validateResolutionDetails({
+      ...valid,
+      furtherActionRequired: true,
+      furtherActionRecommendation: '',
+    }),
+    /recommendation/i
+  );
+  assert.match(
+    validateResolutionDetails({ ...valid, assistanceRequested: undefined }),
+    /assistance/i
+  );
+});
+
+test('only the assigned responder can submit resolution details', () => {
+  assert.equal(canSubmitResolution('responder-1', 'responder-1'), true);
+  assert.equal(canSubmitResolution('backup-1', 'responder-1'), false);
+  assert.equal(canSubmitResolution('admin-1', null), false);
+});
+
 test('field workflow requires coordinating before in-progress and resolution', () => {
   const acknowledge = getTransitionDecision({
     category: 'Public Concerns',
@@ -109,35 +139,6 @@ test('field workflow requires coordinating before in-progress and resolution', (
     actorUid: 'tanod-1',
   });
 
-  test('resolution details require all mandatory fields and conditional recommendation', () => {
-    const valid = {
-      summary: 'The incident was contained.',
-      actionsTaken: 'The responder secured the area and assisted the resident.',
-      outcome: 'No further danger was observed.',
-      furtherActionRequired: false,
-      assistanceRequested: false,
-    };
-    assert.equal(validateResolutionDetails(valid), null);
-    assert.match(validateResolutionDetails({ ...valid, outcome: ' ' }), /outcome/i);
-    assert.match(
-      validateResolutionDetails({
-        ...valid,
-        furtherActionRequired: true,
-        furtherActionRecommendation: '',
-      }),
-      /recommendation/i
-    );
-    assert.match(
-      validateResolutionDetails({ ...valid, assistanceRequested: undefined }),
-      /assistance/i
-    );
-  });
-
-  test('only the assigned responder can submit resolution details', () => {
-    assert.equal(canSubmitResolution('responder-1', 'responder-1'), true);
-    assert.equal(canSubmitResolution('backup-1', 'responder-1'), false);
-    assert.equal(canSubmitResolution('admin-1', null), false);
-  });
   assert.equal(acknowledge.allowed, true);
 
   const start = getTransitionDecision({
@@ -317,14 +318,25 @@ test('responders can work criminal blotter cases through the field workflow', ()
   });
   assert.equal(resolve.allowed, true);
 
-  const secretaryProcess = getTransitionDecision({
-    category: 'Blotter Cases',
-    subcategory: 'Criminal',
-    role: 'secretary',
-    fromStatus: 'pending',
-    toStatus: 'in_progress',
-  });
-  assert.equal(secretaryProcess.allowed, true);
+  // Captain/Secretary must not skip the responder workflow on criminal cases.
+  for (const role of ['captain', 'secretary']) {
+    for (const [fromStatus, toStatus] of [
+      ['pending', 'in_progress'],
+      ['coordinating', 'in_progress'],
+      ['in_progress', 'resolved'],
+    ]) {
+      const decision = getTransitionDecision({
+        category: 'Blotter Cases',
+        subcategory: 'Criminal',
+        role,
+        fromStatus,
+        toStatus,
+        actorUid: `${role}-1`,
+      });
+      assert.equal(decision.allowed, false, `${role} ${fromStatus}->${toStatus}`);
+      assert.equal(decision.statusCode, 403);
+    }
+  }
 });
 
 test('civil blotter cases remain outside the responder status workflow', () => {

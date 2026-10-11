@@ -342,11 +342,18 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     ? `Reference ${report.referenceNumber}`
     : 'Reference not assigned';
   const reportHistory = report.statusHistory || [];
-  const canStartBlotter =
-    isBlotter && status === 'pending' && ['captain', 'secretary'].includes(role || '');
-  const canResolveBlotter =
-    isBlotter && status === 'in_progress' && ['captain', 'secretary'].includes(role || '');
   const isCriminalBlotter = isBlotter && report.subcategory === 'Criminal';
+  // Criminal blotter cases follow the responder workflow; Captain/Secretary dispatch and verify.
+  const canStartBlotter =
+    isBlotter &&
+    !isCriminalBlotter &&
+    status === 'pending' &&
+    ['captain', 'secretary'].includes(role || '');
+  const canResolveBlotter =
+    isBlotter &&
+    !isCriminalBlotter &&
+    status === 'in_progress' &&
+    ['captain', 'secretary'].includes(role || '');
   const hotlineAction =
     variant !== 'resident' &&
     (role === 'captain' || isResponder) &&
@@ -569,7 +576,9 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         <Text type="secondary">
           {status === 'resolved'
             ? 'This blotter case is resolved.'
-            : 'Blotter processing is managed by the Captain and Secretary.'}
+            : isCriminalBlotter
+              ? 'Criminal cases are worked by the dispatched tanod or responder. Dispatch a responder, then verify the resolution.'
+              : 'Blotter processing is managed by the Captain and Secretary.'}
         </Text>
       )}
       <Button
@@ -665,7 +674,9 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
               : 'Blotter cases can be resolved by the Captain or Secretary.'
             : status === 'resolved'
               ? 'This blotter case is resolved.'
-              : 'Blotter processing is managed by the Captain and Secretary.'}
+              : isCriminalBlotter
+                ? 'Criminal cases are worked by the dispatched tanod or responder.'
+                : 'Blotter processing is managed by the Captain and Secretary.'}
         </Text>
       )}
       {['captain', 'secretary'].includes(role || '') && (
@@ -743,7 +754,13 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     </div>
   );
 
-  const progress = <IncidentStatusSteps category={report.category} status={status} />;
+  const progress = (
+    <IncidentStatusSteps
+      category={report.category}
+      subcategory={report.subcategory}
+      status={status}
+    />
+  );
 
   const reportHero = (
     <section

@@ -968,6 +968,7 @@ export async function submitResolution(req, res) {
     if (!report) return res.status(404).json({ error: 'Report not found' });
     const canResolveAsBlotterOfficial =
       report.category === BLOTTER_REPORT_CATEGORY &&
+      report.subcategory !== CRIMINAL_BLOTTER_SUBCATEGORY &&
       ['captain', 'secretary'].includes(req.userRole);
     if (
       !canResolveAsBlotterOfficial &&

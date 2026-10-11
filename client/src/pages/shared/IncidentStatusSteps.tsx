@@ -7,13 +7,14 @@ import {
 
 interface IncidentStatusStepsProps {
   category: string;
+  subcategory?: string | null; 
   status: string;
 }
 
-export default function IncidentStatusSteps({ category, status }: IncidentStatusStepsProps) {
-  const steps = getReportSteps(category);
+export default function IncidentStatusSteps({ category,subcategory,   status }: IncidentStatusStepsProps) {
+  const steps = getReportSteps(category, subcategory);
   const canonicalStatus = normalizeReportStatus(status);
-  const currentStep = getActiveStep(category, canonicalStatus);
+  const currentStep = getActiveStep(category, canonicalStatus, subcategory);
   const isTerminal = canonicalStatus === 'resolved';
 
   if (canonicalStatus === 'flagged') {
