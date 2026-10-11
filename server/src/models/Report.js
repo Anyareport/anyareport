@@ -4,6 +4,7 @@ const reportSchema = new mongoose.Schema(
   {
     submittedBy: { type: String, required: true, index: true },
     referenceNumber: { type: String },
+    clientRequestId: { type: String, default: undefined },
     category: { type: String, required: true },
     description: { type: String, default: '' },
     photos: [{ type: String }],
@@ -86,5 +87,9 @@ const reportSchema = new mongoose.Schema(
 
 reportSchema.index({ location: '2dsphere' });
 reportSchema.index({ referenceNumber: 1 }, { unique: true, sparse: true });
+reportSchema.index(
+  { submittedBy: 1, clientRequestId: 1 },
+  { unique: true, partialFilterExpression: { clientRequestId: { $type: 'string' } } }
+);
 
 export default mongoose.model('Report', reportSchema);

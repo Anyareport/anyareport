@@ -179,14 +179,22 @@ export default function SubmitReportForm({
       classificationInProgressRef.current = false;
     },
   });
+  const clientRequestIdRef = useRef<string>(
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`
+  );
 
   const submitMutation = useMutation({
+    retry: (failureCount, error) => error instanceof TypeError && failureCount < 2,
+    retryDelay: 1500,
     mutationFn: async (values: ReportFormValues) => {
       if (!selectedLocation) {
         throw new Error('Please select a location before submitting.');
       }
 
       const formData = new FormData();
+      formData.append('clientRequestId', clientRequestIdRef.current);
       formData.append('category', values.category);
       formData.append('subcategory', values.subcategory);
       formData.append('severity', values.severity);

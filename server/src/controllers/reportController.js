@@ -174,12 +174,21 @@ async function notifyBestEffort(notification, context) {
     return null;
   }
 }
-
+const CLIENT_REQUEST_ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
 export async function createReport(req, res) {
   try {
     if (req.userProfile?.status === 'suspended') {
       return res.status(403).json({ error: 'Account suspended — cannot submit reports' });
     }
+        const rawRequestId =
+      typeof req.body?.clientRequestId === 'string' ? req.body.clientRequestId : '';
+    const clientRequestId = CLIENT_REQUEST_ID_PATTERN.test(rawRequestId) ? rawRequestId : null;
+    const findExisting = () =>
+      clientRequestId
+        ? Report.findOne({ submittedBy: req.firebaseUser.uid, clientRequestId })
+        : null;
+    const existing = await findExisting();
+    if (existing) return res.status(200).json(serializeReport(existing));
 
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
@@ -226,28 +235,41 @@ export async function createReport(req, res) {
       console.error('[Report Creation] AI classification failed:', classifyErr.message);
     }
 
+        const concurrent = await findExisting();
+    if (concurrent) return res.status(200).json(serializeReport(concurrent));
+
     const referenceNumber = await getNextReportReference();
-    const report = await Report.create({
-      submittedBy: req.firebaseUser.uid,
-      referenceNumber,
-      category,
-      subcategory: subcategory || null,
-      severity: severity || null,
-      description: trimmedDescription,
-      photos,
-      location: {
-        type: 'Point',
-        coordinates: [parseFloat(longitude), parseFloat(latitude)],
-        address: address || '',
-      },
-      aiTitle,
-      aiSuggestedCategory,
-      aiSummary,
-      status: 'pending',
-      statusHistory: [
-        { status: 'pending', updatedBy: await resolveActorName(req.firebaseUser.uid) },
-      ],
-    });
+    let report;
+    try {
+      report = await Report.create({
+        submittedBy: req.firebaseUser.uid,
+        referenceNumber,
+        clientRequestId: clientRequestId || undefined,
+        category,
+        subcategory: subcategory || null,
+        severity: severity || null,
+        description: trimmedDescription,
+        photos,
+        location: {
+          type: 'Point',
+          coordinates: [parseFloat(longitude), parseFloat(latitude)],
+          address: address || '',
+        },
+        aiTitle,
+        aiSuggestedCategory,
+        aiSummary,
+        status: 'pending',
+        statusHistory: [
+          { status: 'pending', updatedBy: await resolveActorName(req.firebaseUser.uid) },
+        ],
+      });
+    } catch (createErr) {
+      if (createErr.code === 11000 && clientRequestId) {
+        const winner = await findExisting();
+        if (winner) return res.status(200).json(serializeReport(winner));
+      }
+      throw createErr;
+    }
     await logAudit('report_submitted', req, report._id, { category });
     if (aiSuggestedCategory) {
       await logSystemAudit('report_classified', report._id, {
