@@ -1,15 +1,15 @@
 import type { Report } from './api';
+import { sharedColors } from '../theme/colorTokens';
 
 const severityColorTokens: Record<string, string> = {
-  Critical: '--severity-critical-tag',
-  High: '--severity-high-tag',
-  Medium: '--severity-medium-tag',
-  Low: '--severity-low-tag',
+  Critical: sharedColors.red500,
+  High: '#f97316',
+  Medium: '#eab308',
+  Low: sharedColors.green500,
 };
 
 export function getIncidentSeverityColor(severity?: string | null) {
-  const token = severityColorTokens[severity || ''] || severityColorTokens.Critical;
-  return `var(${token})`;
+  return severityColorTokens[severity || ''] || severityColorTokens.Critical;
 }
 
 export function getIncidentLabel(report: Report) {

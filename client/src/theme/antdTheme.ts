@@ -46,7 +46,7 @@ export const darkTokenOverrides: ThemeConfig['token'] = {
   colorTextBase: sharedColors.darkText,
   colorText: sharedColors.darkText,
   colorTextSecondary: sharedColors.darkTextSecondary,
-  colorBgContainer: sharedColors.darkCanvas,
+  colorBgContainer: sharedColors.darkElevated,
   colorBgElevated: sharedColors.darkElevated,
   colorBgLayout: sharedColors.darkCanvas,
   colorBorder: sharedColors.charcoalBorder,

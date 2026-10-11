@@ -30,6 +30,11 @@
   --app-scrollbar-radius: 999px;
 }
 
+[data-theme='dark'] {
+  --app-scrollbar-thumb: var(--brand-primary);
+  --app-scrollbar-thumb-hover: var(--brand-primary-light);
+}
+
 html,
 body,
 #root {

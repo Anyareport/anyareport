@@ -138,7 +138,7 @@ export default function AdminDashboardPage() {
           <Col xs={24} xl={16}>
             <Card
               className="soft-card"
-              title="Pending intake"
+              title="Pending Intake"
               extra={
                 <Button type="primary" variant="outlined" onClick={() => navigate('/admin/intake')}>
                   Open Intake Queue
@@ -165,7 +165,7 @@ export default function AdminDashboardPage() {
           <Col xs={24} xl={8}>
             <Card
               className="soft-card"
-              title="Report categories this month"
+              title="Monthly Report Categories"
               extra={
                 <Button
                   variant="outlined"
@@ -208,7 +208,7 @@ export default function AdminDashboardPage() {
 
             <Card
               className="soft-card"
-              title="Recently updated reports"
+              title="Recently Updated Reports"
               style={{ marginTop: 16 }}
               extra={
                 <Button
