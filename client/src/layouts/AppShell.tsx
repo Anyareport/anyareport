@@ -72,12 +72,7 @@ function addMenuBadges(
       label: (
         <span className="app-shell-menu-label">
           <span>{item.label}</span>
-          <Badge
-            count={count}
-            size="small"
-            overflowCount={99}
-            color={quietBadgeKeys.includes(item.key) ? 'var(--text-tertiary)' : undefined}
-          />
+          <Badge count={count} size="small" overflowCount={99} color={'var(--brand-primary)'} />
         </span>
       ),
     };
