@@ -207,7 +207,7 @@ export default function AdminAnalyticsPage() {
                 <XAxis dataKey="label" tick={{ fill: token.colorTextTertiary }} minTickGap={28} />
                 <YAxis allowDecimals={false} tick={{ fill: token.colorTextTertiary }} />
                 <Tooltip />
-                <Bar dataKey="count" fill={sharedColors.blue400} radius={[3, 3, 0, 0]} />
+                <Bar dataKey="count" fill={sharedColors.brandPrimary} radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
@@ -241,31 +241,95 @@ export default function AdminAnalyticsPage() {
       </Row>
 
       <Card className="soft-card" title="Where reports are in the workflow">
-        <div style={{ display: 'flex', height: 12, overflow: 'hidden', borderRadius: 999 }}>
-          {statusData.map((entry, index) => (
-            <div
-              key={entry.name}
-              title={`${entry.name}: ${entry.count}`}
-              style={{
-                width: `${analytics?.total ? (entry.count / analytics.total) * 100 : 0}%`,
-                minWidth: entry.count ? 3 : 0,
-                background: [
-                  'var(--status-pending-tag)',
-                  'var(--status-coordinating-border)',
-                  'var(--status-on-scene-tag)',
-                  'var(--status-resolved-tag)',
-                ][index],
-              }}
-            />
-          ))}
+        <div
+          style={{
+            display: 'flex',
+            height: 50,
+            overflow: 'hidden',
+            borderRadius: 4,
+            marginBottom: 16,
+          }}
+        >
+          {statusData.map((entry, index) => {
+            const width = analytics?.total ? (entry.count / analytics.total) * 100 : 0;
+            const percentage = Math.round(width);
+            const showInside = width > 5;
+            const isLightBg = index < 2;
+            const textColor = isLightBg ? 'var(--text-primary)' : 'white';
+
+            return (
+              <div
+                key={entry.name}
+                title={`${entry.name}: ${entry.count}`}
+                style={{
+                  width: `${width}%`,
+                  minWidth: entry.count ? 3 : 0,
+                  background: [
+                    'var(--status-pending-border)',
+                    'var(--status-coordinating-border)',
+                    'var(--status-on-scene-border)',
+                    'var(--status-resolved-border)',
+                  ][index],
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'column',
+                  gap: 1,
+                }}
+              >
+                {showInside && (
+                  <>
+                    <span
+                      style={{
+                        fontSize: 20,
+                        fontWeight: 700,
+                        color: textColor,
+                        lineHeight: 1,
+                      }}
+                    >
+                      {entry.count}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 500,
+                        color: textColor,
+                        lineHeight: 1,
+                      }}
+                    >
+                      {percentage}%
+                    </span>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
-        <Row justify="space-between" style={{ marginTop: 10 }}>
-          {statusData.map((entry) => (
-            <span key={entry.name}>
-              {entry.name}: {entry.count}
-            </span>
-          ))}
-        </Row>
+        <Space wrap style={{ width: '100%' }}>
+          {statusData.map((entry, index) => {
+            const percentage = analytics?.total
+              ? Math.round((entry.count / analytics.total) * 100)
+              : 0;
+            return (
+              <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div
+                  style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: 2,
+                    background: [
+                      'var(--status-pending-border)',
+                      'var(--status-coordinating-border)',
+                      'var(--status-on-scene-border)',
+                      'var(--status-resolved-border)',
+                    ][index],
+                  }}
+                />
+                <span style={{ fontSize: 13 }}>{entry.name}</span>
+              </div>
+            );
+          })}
+        </Space>
       </Card>
 
       <Row gutter={[16, 16]}>
@@ -297,7 +361,7 @@ export default function AdminAnalyticsPage() {
                 <XAxis dataKey="_id" tick={{ fill: token.colorTextTertiary, fontSize: 11 }} />
                 <YAxis hide allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="count" fill={sharedColors.blue400} radius={[3, 3, 0, 0]} />
+                <Bar dataKey="count" fill={sharedColors.brandPrimary} radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
@@ -328,7 +392,7 @@ export default function AdminAnalyticsPage() {
                           : 0
                       }
                       showInfo={false}
-                      strokeColor={sharedColors.blue400}
+                      strokeColor={sharedColors.brandPrimary}
                     />
                   </div>
                 ))
