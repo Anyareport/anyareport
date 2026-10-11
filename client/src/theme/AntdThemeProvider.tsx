@@ -1,4 +1,5 @@
 import { ConfigProvider, theme as antdTheme } from 'antd';
+import { LoadingOutlined } from '@ant-design/icons';
 import { useLayoutEffect, type ReactNode } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import {
@@ -45,6 +46,7 @@ export function AntdThemeProvider({ children }: { children: ReactNode }) {
 
   return (
     <ConfigProvider
+      spin={{ indicator: <LoadingOutlined spin /> }}
       theme={{
         ...baseAntdTheme,
         algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
