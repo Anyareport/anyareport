@@ -37,9 +37,12 @@ export function getSeverityStyle(severity: string | null | undefined): CSSProper
 
 export default function SeverityTag({ severity }: { severity: string | null | undefined }) {
   if (!severity) return null;
+
+  const style = getSeverityStyle(severity);
+
   return (
     <Tag
-      style={{ ...getSeverityStyle(severity), marginInlineEnd: 0, border: 0 }}
+      style={{ ...style, border: 0, fontWeight: 600, marginInlineEnd: 0 }}
       icon={<WarningOutlined />}
     >
       {severity}

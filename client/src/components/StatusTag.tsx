@@ -60,7 +60,7 @@ export default function StatusTag({ status }: { status: string }) {
     color: 'var(--text-secondary)',
   };
 
-  return <Tag style={{ ...style, border: 0 }}>{formatStatus(status)}</Tag>;
+  return <Tag style={{ ...style, border: 0, fontWeight: 600 }}>{formatStatus(status)}</Tag>;
 }
 
 export function formatStatus(status: string) {
