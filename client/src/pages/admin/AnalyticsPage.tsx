@@ -26,8 +26,8 @@ const periodLabels: Record<AnalyticsPeriod, string> = {
 const workflowOrder = ['pending', 'coordinating', 'in_progress', 'resolved'];
 const categoryColors = [
   sharedColors.brandPrimary,
+  sharedColors.red500,
   sharedColors.blue400,
-  '#f97316',
   sharedColors.green500,
   '#8e44ad',
   '#06b6d4',
