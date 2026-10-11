@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Input, Popover, Select, Space, Tag } from 'antd';
+import { Alert, Button, Input, Popover, Select, Space, Tag } from 'antd';
 import { FilterOutlined, SearchOutlined } from '@ant-design/icons';
 import { api, type Report } from '../../lib/api';
 import IncidentList from '../../components/IncidentList';
@@ -241,6 +241,15 @@ export default function IncidentHistoryPage({
   // Admin/Secretary settings
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      <Alert
+        type="info"
+        showIcon
+        message={
+          defaultStatus === 'pending'
+            ? 'Pending intake reports are prioritized by emergency or critical severity, then by status and oldest submission date.'
+            : 'Reports are prioritized by emergency or critical severity, then by status and submission date. Desktop table columns can also be sorted.'
+        }
+      />
       <Space.Compact style={{ display: 'flex', width: '100%' }}>
         <Input
           aria-label="Search incidents"
