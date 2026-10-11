@@ -294,7 +294,19 @@ export default function AdminHeatmapPage() {
       </section>
       <aside className="heatmap-analytics" aria-label="Heatmap analytics">
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
-          <Card className="soft-card heatmap-list-card" title="Purok Incidents">
+          <Card
+            className="soft-card heatmap-list-card"
+            title="Purok Incidents"
+            extra={
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={() => navigate('/admin/analytics')}
+              >
+                View Analytics
+              </Button>
+            }
+          >
             <div className="heatmap-list-meta">
               <Text type="secondary">Ranked by current filtered reports</Text>
               <Text strong>{mapTotal} total</Text>
