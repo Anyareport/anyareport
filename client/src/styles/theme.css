@@ -184,6 +184,7 @@
   --header-height: 64px;
   --footer-height: auto;
   --sidebar-width: 240px;
+  --blue-dark: var(--shared-color-blueDark);
 
   /* ===== Transitions ===== */
   --transition-fast: 150ms ease;

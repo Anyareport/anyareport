@@ -33,28 +33,6 @@
   overflow-y: auto;
   padding-right: 4px;
   scrollbar-gutter: stable;
-  scrollbar-color: var(--border-default) transparent;
-  scrollbar-width: thin;
-}
-
-.heatmap-analytics::-webkit-scrollbar {
-  width: 8px;
-}
-
-.heatmap-analytics::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.heatmap-analytics::-webkit-scrollbar-thumb {
-  border: 2px solid transparent;
-  border-radius: 999px;
-  background: var(--border-default);
-  background-clip: padding-box;
-}
-
-.heatmap-analytics::-webkit-scrollbar-thumb:hover {
-  background: var(--text-tertiary);
-  background-clip: padding-box;
 }
 
 .heatmap-map-controls {

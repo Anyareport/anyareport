@@ -7,6 +7,18 @@
   min-width: 0;
 }
 
+.app-shell-content:not(.app-shell-content--full-width) {
+  width: min(calc(100% - 48px), 1240px);
+  margin: 24px auto !important;
+}
+
+@media (max-width: 768px) {
+  .app-shell-content:not(.app-shell-content--full-width) {
+    width: calc(100% - 32px);
+    margin: 16px auto !important;
+  }
+}
+
 .app-shell-main.is-full-width {
   position: relative;
 }

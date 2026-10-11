@@ -24,6 +24,10 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  --app-scrollbar-width: 8px;
+  --app-scrollbar-thumb: var(--brand-color-info);
+  --app-scrollbar-thumb-hover: var(--text-tertiary);
+  --app-scrollbar-radius: 999px;
 }
 
 html,
@@ -50,6 +54,29 @@ body {
 
 * {
   box-sizing: border-box;
+  scrollbar-color: var(--app-scrollbar-thumb) transparent;
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: var(--app-scrollbar-width);
+  height: var(--app-scrollbar-width);
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: var(--app-scrollbar-radius);
+  background: var(--app-scrollbar-thumb);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--app-scrollbar-thumb-hover);
+  background-clip: padding-box;
 }
 
 .ant-typography,

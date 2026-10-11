@@ -236,7 +236,7 @@ export default function AppShell({
         </Header>
 
         <Content
-          className="app-shell-content"
+          className={`app-shell-content${fullWidthContent ? ' app-shell-content--full-width' : ''}`}
           style={{
             margin: fullWidthContent ? 0 : screens.md ? 24 : 16,
             height: fullWidthContent ? '100dvh' : undefined,
