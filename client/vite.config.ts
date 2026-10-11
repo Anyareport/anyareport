@@ -23,6 +23,10 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+        // Immediately activate new service worker instead of waiting for the
+        // next navigation — eliminates the "one refresh to see new version" bug.
+        skipWaiting: true,
+        clientsClaim: true,
       },
     }),
   ],
