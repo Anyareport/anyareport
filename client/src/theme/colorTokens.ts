@@ -1,7 +1,10 @@
 export const sharedColors = {
   brandPrimary: '#1251FF',
   brandNavy: '#282F49',
-  white: '#FFFFFF',
+  layoutBackground: '#e1e5f0',
+  borderDefault: '#e1e5f0',
+  borderSubtle: '#e1e5f0',
+  white: '#FBFCFE',
   black: '#000000',
   blue100: '#bfe7fe',
   blue400: '#60a5fa',
@@ -9,6 +12,8 @@ export const sharedColors = {
   charcoalBorder: '#353535',
   darkCanvas: '#0f1115',
   darkElevated: '#17191f',
+  darkText: '#f9fafb',
+  darkTextSecondary: '#d1d5db',
   gray50: '#f9fafb',
   gray100: '#f3f4f6',
   gray200: '#e5e7eb',
@@ -40,7 +45,8 @@ export const sharedColors = {
   yellow300: '#fde047',
   yellow400: '#facc15',
   infoBlue: '#3481f5',
-  neutralText: '#3c3d41',
+  neutralText: '#5E6472',
+  lightTextSecondary: '#6b7280',
   selectDarkBg: '#572328',
 } as const;
 

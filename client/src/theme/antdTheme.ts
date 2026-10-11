@@ -5,8 +5,15 @@ export const baseAntdTheme: ThemeConfig = {
   token: {
     colorPrimary: sharedColors.brandPrimary,
     colorInfo: sharedColors.infoBlue,
+    colorLink: sharedColors.brandPrimary,
     colorTextBase: sharedColors.brandNavy,
+    colorText: sharedColors.neutralText,
+    colorTextSecondary: sharedColors.lightTextSecondary,
     colorBgBase: sharedColors.white,
+    colorBgContainer: sharedColors.white,
+    colorBgElevated: sharedColors.white,
+    colorBorder: sharedColors.borderDefault,
+    colorBorderSecondary: sharedColors.borderSubtle,
     fontFamily: 'Roboto, sans-serif',
     borderRadius: 6,
   },
@@ -36,7 +43,9 @@ export const baseAntdTheme: ThemeConfig = {
 
 export const darkTokenOverrides: ThemeConfig['token'] = {
   colorBgBase: sharedColors.gray900,
-  colorTextBase: sharedColors.gray50,
+  colorTextBase: sharedColors.darkText,
+  colorText: sharedColors.darkText,
+  colorTextSecondary: sharedColors.darkTextSecondary,
   colorBgContainer: sharedColors.darkCanvas,
   colorBgElevated: sharedColors.darkElevated,
   colorBgLayout: sharedColors.darkCanvas,
@@ -46,7 +55,14 @@ export const darkTokenOverrides: ThemeConfig['token'] = {
 
 export const lightTokenOverrides: ThemeConfig['token'] = {
   colorBgBase: sharedColors.white,
+  colorBgLayout: sharedColors.layoutBackground,
   colorTextBase: sharedColors.neutralText,
+  colorText: sharedColors.neutralText,
+  colorTextSecondary: sharedColors.lightTextSecondary,
+  colorBgContainer: sharedColors.white,
+  colorBgElevated: sharedColors.white,
+  colorBorder: sharedColors.borderDefault,
+  colorBorderSecondary: sharedColors.borderSubtle,
 };
 
 export const darkComponentOverrides: ThemeConfig['components'] = {
