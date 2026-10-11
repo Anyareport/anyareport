@@ -38,7 +38,7 @@
   /* ===== Status Colors (Semantic) ===== */
   --status-pending-bg: var(--shared-color-slate100);
   --status-pending-border: var(--shared-color-slate300);
-  --status-pending-text: #475569;
+  --status-pending-text: #8ca9d1;
   --status-pending-tag: var(--shared-color-slate400);
 
   --status-verified-bg: var(--shared-color-green50);
@@ -46,7 +46,7 @@
   --status-verified-text: var(--shared-color-greenVerified);
   --status-verified-tag: var(--shared-color-greenVerified);
 
-  --status-coordinating-bg: #f1f8f9;
+  --status-coordinating-bg: rgb(228, 249, 252);
   --status-coordinating-border: #3bdaf6;
   --status-coordinating-text: #18c4e2;
 
@@ -55,12 +55,12 @@
   --status-en-route-text: #0cb5f8;
   --status-en-route-tag: #0ea5e9;
 
-  --status-on-scene-bg: #f1f7f9;
+  --status-on-scene-bg: #daeef5;
   --status-on-scene-border: var(--shared-color-sky400);
   --status-on-scene-text: var(--shared-color-sky400);
   --status-on-scene-tag: var(--shared-color-sky400);
 
-  --status-resolved-bg: var(--shared-color-slate100);
+  --status-resolved-bg: var(--shared-color-blue100);
   --status-resolved-border: var(--shared-color-blue500);
   --status-resolved-text: var(--shared-color-blue500);
   --status-resolved-tag: var(--shared-color-blue500);
@@ -73,22 +73,22 @@
   /* ===== Severity Colors ===== */
   --severity-critical-bg: var(--shared-color-red100);
   --severity-critical-border: var(--shared-color-red300);
-  --severity-critical-text: var(--shared-color-red800);
+  --severity-critical-text: var(--shared-color-red500);
   --severity-critical-tag: var(--shared-color-red500);
 
-  --severity-high-bg: #ffedd5;
+  --severity-high-bg: #fce7cb;
   --severity-high-border: var(--shared-color-orange300);
-  --severity-high-text: #9a3412;
+  --severity-high-text: #f97316;
   --severity-high-tag: #f97316;
 
-  --severity-medium-bg: #fef9c3;
+  --severity-medium-bg: #f8f5d3;
   --severity-medium-border: var(--shared-color-yellow300);
-  --severity-medium-text: #854d0e;
+  --severity-medium-text: #d8a406;
   --severity-medium-tag: #eab308;
 
   --severity-low-bg: #dcfce7;
   --severity-low-border: var(--shared-color-green300);
-  --severity-low-text: var(--shared-color-green800);
+  --severity-low-text: var(--shared-color-green500);
   --severity-low-tag: var(--shared-color-green500);
 
   /* ===== Map Colors ===== */
@@ -223,7 +223,7 @@
   --border-dark: var(--shared-color-gray500);
 
   /* ===== Status Colors (Dark) ===== */
-  --status-pending-bg: #242b35;
+  --status-pending-bg: #4d545e;
   --status-pending-border: #465264;
   --status-pending-text: var(--shared-color-slate300);
   --status-pending-tag: var(--shared-color-slate400);
@@ -233,23 +233,23 @@
   --status-verified-text: #71dd67;
   --status-verified-tag: var(--shared-color-green50);
 
-  --status-coordinating-bg: #174354;
+  --status-coordinating-bg: #006779;
   --status-coordinating-border: #11b4c0;
-  --status-coordinating-text: var(--shared-color-blue100);
+  --status-coordinating-text: #67e8ff;
 
   --status-en-route-bg: #082f49;
   --status-en-route-border: #0369a1;
   --status-en-route-text: #bae6fd;
   --status-en-route-tag: #38bdf8;
 
-  --status-on-scene-bg: #173154;
+  --status-on-scene-bg: #1c5170;
   --status-on-scene-border: #118fc0;
-  --status-on-scene-text: var(--shared-color-blue100);
+  --status-on-scene-text: #5fd2ff;
   --status-on-scene-tag: var(--shared-color-blue400);
 
-  --status-resolved-bg: #172554;
+  --status-resolved-bg: #1d3985;
   --status-resolved-border: #1d4ed8;
-  --status-resolved-text: #bfdbfe;
+  --status-resolved-text: #6dbdff;
   --status-resolved-tag: var(--shared-color-blue400);
 
   --status-flagged-bg: var(--shared-color-red900);

@@ -11,6 +11,9 @@ import { sharedColors } from './colorTokens';
 
 function CssTokenSync() {
   const { token } = antdTheme.useToken();
+  const sharedColorSignature = Object.entries(sharedColors)
+    .map(([name, value]) => `${name}:${value}`)
+    .join('|');
 
   useLayoutEffect(() => {
     const root = document.documentElement.style;
@@ -31,7 +34,7 @@ function CssTokenSync() {
     Object.entries(sharedColors).forEach(([name, value]) => {
       root.setProperty(`--shared-color-${name}`, value);
     });
-  }, [token]);
+  }, [sharedColorSignature, token]);
 
   return null;
 }
