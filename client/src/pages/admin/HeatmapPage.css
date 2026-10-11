@@ -1,16 +1,60 @@
 .heatmap-page {
+  display: grid;
+  height: calc(100dvh - var(--header-height) - 48px);
+  min-height: 0;
+  grid-template-areas: 'analytics map';
+  grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+  gap: 16px;
   min-width: 0;
+  overflow: hidden;
 }
 
-.heatmap-map-card .ant-card-body {
-  padding: 12px;
+.heatmap-map-panel {
+  grid-area: map;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background: var(--bg-primary);
 }
 
 .heatmap-map-shell {
+  height: 100%;
   position: relative;
   overflow: hidden;
-  border-radius: 6px;
   background: var(--bg-tertiary);
+}
+
+.heatmap-analytics {
+  grid-area: analytics;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+  scrollbar-color: var(--border-default) transparent;
+  scrollbar-width: thin;
+}
+
+.heatmap-analytics::-webkit-scrollbar {
+  width: 8px;
+}
+
+.heatmap-analytics::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.heatmap-analytics::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--border-default);
+  background-clip: padding-box;
+}
+
+.heatmap-analytics::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+  background-clip: padding-box;
 }
 
 .heatmap-map-controls {
@@ -260,6 +304,34 @@
 }
 
 @media (max-width: 768px) {
+  .heatmap-page {
+    display: flex;
+    height: auto;
+    flex-direction: column;
+    gap: 16px;
+    overflow: visible;
+  }
+
+  .heatmap-map-panel {
+    order: 1;
+    height: auto;
+    min-height: 0;
+  }
+
+  .heatmap-analytics {
+    order: 2;
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  .heatmap-map-shell {
+    height: auto;
+  }
+
+  .heatmap-map-shell .incident-heatmap {
+    height: 520px !important;
+  }
+
   .heatmap-map-controls {
     position: relative;
     top: auto;

@@ -32,7 +32,7 @@ export type HeatmapMode = 'dots' | 'gradient' | 'choropleth';
 
 interface IncidentHeatmapProps {
   points: HeatmapPoint[];
-  height?: number;
+  height?: number | string;
   mode?: HeatmapMode;
   onPointClick?: (point: HeatmapPoint) => void;
   selectedPointId?: string | null;
@@ -231,7 +231,10 @@ export default function IncidentHeatmap({
     .join(',')}`;
 
   return (
-    <div style={{ height, overflow: 'hidden', borderRadius: 8, position: 'relative' }}>
+    <div
+      className="incident-heatmap"
+      style={{ height, overflow: 'hidden', borderRadius: 8, position: 'relative' }}
+    >
       <MapContainer
         center={center}
         zoom={15}
