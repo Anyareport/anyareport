@@ -137,10 +137,25 @@ export default function AdminDashboardPage() {
               }
               badges={[
                 ...(openCriticalReports > 0
-                  ? [{ text: `${openCriticalReports} critical`, tone: 'danger' as const }]
+                  ? [
+                      {
+                        text: `${openCriticalReports} critical`,
+                        tone: 'danger' as const,
+                        color: 'var(--severity-critical-tag)',
+                        background:
+                          'color-mix(in srgb, var(--severity-critical-tag) 14%, transparent)',
+                      },
+                    ]
                   : []),
                 ...(openHighReports > 0
-                  ? [{ text: `${openHighReports} high`, tone: 'warning' as const }]
+                  ? [
+                      {
+                        text: `${openHighReports} high`,
+                        tone: 'warning' as const,
+                        color: 'var(--severity-high-tag)',
+                        background: 'color-mix(in srgb, var(--severity-high-tag) 14%, transparent)',
+                      },
+                    ]
                   : []),
               ]}
               link={{ text: 'View by severity', href: '/admin/incidents?severity=Critical' }}
@@ -151,7 +166,7 @@ export default function AdminDashboardPage() {
               label="Stale cases"
               value={staleCount}
               icon={<ClockCircleOutlined />}
-              tone={staleCount > 0 ? 'warning' : 'neutral'}
+              tone={staleCount > 0 ? 'medium' : 'neutral'}
               helper="No update in 7+ days"
               link={{ text: 'Check these cases', href: '/admin/incidents?stale=true' }}
             />
@@ -297,10 +312,25 @@ export default function AdminDashboardPage() {
             tone={openCriticalReports > 0 ? 'danger' : openHighReports > 0 ? 'warning' : 'neutral'}
             badges={[
               ...(openCriticalReports > 0
-                ? [{ text: `${openCriticalReports} critical`, tone: 'danger' as const }]
+                ? [
+                    {
+                      text: `${openCriticalReports} critical`,
+                      tone: 'danger' as const,
+                      color: 'var(--severity-critical-tag)',
+                      background:
+                        'color-mix(in srgb, var(--severity-critical-tag) 14%, transparent)',
+                    },
+                  ]
                 : []),
               ...(openHighReports > 0
-                ? [{ text: `${openHighReports} high`, tone: 'warning' as const }]
+                ? [
+                    {
+                      text: `${openHighReports} high`,
+                      tone: 'warning' as const,
+                      color: 'var(--severity-high-tag)',
+                      background: 'color-mix(in srgb, var(--severity-high-tag) 14%, transparent)',
+                    },
+                  ]
                 : []),
             ]}
             link={{ text: 'View incidents', href: '/admin/incidents' }}

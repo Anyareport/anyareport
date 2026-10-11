@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 
 const { Text } = Typography;
 
-export type KpiTone = 'neutral' | 'accent' | 'success' | 'warning' | 'danger';
+export type KpiTone = 'neutral' | 'accent' | 'success' | 'warning' | 'danger' | 'medium';
 
 export interface KpiBadge {
   text: string;
@@ -45,7 +45,8 @@ const toneIconBg: Record<KpiTone, string> = {
   neutral: 'var(--bg-secondary)',
   accent: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)',
   success: 'color-mix(in srgb, var(--severity-low-tag) 12%, transparent)',
-  warning: 'color-mix(in srgb, var(--severity-medium-tag) 14%, transparent)',
+  medium: 'color-mix(in srgb, var(--severity-medium-tag) 14%, transparent)',
+  warning: 'color-mix(in srgb, var(--severity-high-tag) 14%, transparent)',
   danger: 'color-mix(in srgb, var(--severity-critical-tag) 12%, transparent)',
 };
 
@@ -53,7 +54,8 @@ const toneIconColor: Record<KpiTone, string> = {
   neutral: 'var(--text-secondary)',
   accent: 'var(--brand-primary)',
   success: 'var(--severity-low-tag)',
-  warning: 'var(--severity-medium-tag)',
+  medium: 'var(--severity-medium-tag)',
+  warning: 'var(--severity-high-tag)',
   danger: 'var(--severity-critical-tag)',
 };
 
@@ -61,7 +63,8 @@ const toneProgressColor: Record<KpiTone, string> = {
   neutral: 'var(--brand-primary)',
   accent: 'var(--brand-primary)',
   success: 'var(--severity-low-tag)',
-  warning: 'var(--severity-medium-tag)',
+  medium: 'var(--severity-medium-tag)',
+  warning: 'var(--severity-high-tag)',
   danger: 'var(--severity-critical-tag)',
 };
 
@@ -69,7 +72,8 @@ const badgeBg: Record<KpiTone, string> = {
   neutral: 'var(--bg-secondary)',
   accent: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)',
   success: 'color-mix(in srgb, var(--severity-low-tag) 14%, transparent)',
-  warning: 'color-mix(in srgb, var(--severity-medium-tag) 16%, transparent)',
+  medium: 'color-mix(in srgb, var(--severity-medium-tag) 14%, transparent)',
+  warning: 'color-mix(in srgb, var(--severity-high-tag) 14%, transparent)',
   danger: 'color-mix(in srgb, var(--severity-critical-tag) 14%, transparent)',
 };
 
@@ -77,7 +81,8 @@ const badgeColor: Record<KpiTone, string> = {
   neutral: 'var(--text-secondary)',
   accent: 'var(--brand-primary)',
   success: 'var(--severity-low-tag)',
-  warning: 'var(--severity-medium-tag)',
+  medium: 'var(--severity-medium-tag)',
+  warning: 'var(--severity-high-tag)',
   danger: 'var(--severity-critical-tag)',
 };
 
