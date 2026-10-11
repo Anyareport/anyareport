@@ -90,7 +90,7 @@ export default function ResponderDashboardPage() {
       </Row>
 
       <Row gutter={[16, 16]}>
-        <Col xs={24} xl={12}>
+        <Col xs={24}>
           <Card className="soft-card" title="My handled incidents">
             <IncidentList
               reports={myActiveReports.slice(0, 5)}
@@ -99,7 +99,7 @@ export default function ResponderDashboardPage() {
             />
           </Card>
         </Col>
-        <Col xs={24} xl={12}>
+        <Col xs={24}>
           <Card className="soft-card" title="Backup requests">
             <IncidentList
               reports={otherIncidents.slice(0, 5)}
