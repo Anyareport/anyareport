@@ -148,7 +148,7 @@ export default function AdminDashboardPage() {
               {secretaryQueue.length === 0 ? (
                 <Text type="secondary">No open cases need action.</Text>
               ) : (
-                <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                <Space direction="vertical" size={20} style={{ width: '100%' }}>
                   {secretaryQueue.slice(0, 5).map((report) => (
                     <IncidentCard
                       key={report._id}

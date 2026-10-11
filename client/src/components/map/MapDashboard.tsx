@@ -135,10 +135,10 @@ function IncidentDot({
       center={[point.lat, point.lng]}
       radius={isSelected ? 9 : 7}
       pathOptions={{
-        color: isSelected ? 'var(--brand-color-info)' : severityColor,
-        weight: isSelected ? 3 : 1.5,
+        color: 'var(--shared-color-white)',
+        weight: 1,
         fillColor: severityColor,
-        fillOpacity: 0.9,
+        fillOpacity: 1,
         bubblingMouseEvents: false,
       }}
       eventHandlers={

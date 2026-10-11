@@ -142,10 +142,10 @@ function IncidentDots({
               center={[point.lat, point.lng]}
               radius={7}
               pathOptions={{
-                color: severityColor,
-                weight: 1.5,
+                color: 'var(--shared-color-white)',
+                weight: 1,
                 fillColor: severityColor,
-                fillOpacity: 0.9,
+                fillOpacity: 1,
                 bubblingMouseEvents: false,
               }}
               eventHandlers={onPointClick ? { click: () => onPointClick(point) } : undefined}
