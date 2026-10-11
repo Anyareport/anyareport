@@ -142,9 +142,6 @@ export default function AdminDashboardPage() {
                       {
                         text: `${openCriticalReports} critical`,
                         tone: 'danger' as const,
-                        color: 'var(--severity-critical-tag)',
-                        background:
-                          'color-mix(in srgb, var(--severity-critical-tag) 14%, transparent)',
                       },
                     ]
                   : []),
@@ -153,8 +150,6 @@ export default function AdminDashboardPage() {
                       {
                         text: `${openHighReports} high`,
                         tone: 'warning' as const,
-                        color: 'var(--severity-high-tag)',
-                        background: 'color-mix(in srgb, var(--severity-high-tag) 14%, transparent)',
                       },
                     ]
                   : []),
@@ -316,9 +311,6 @@ export default function AdminDashboardPage() {
                     {
                       text: `${openCriticalReports} critical`,
                       tone: 'danger' as const,
-                      color: 'var(--severity-critical-tag)',
-                      background:
-                        'color-mix(in srgb, var(--severity-critical-tag) 14%, transparent)',
                     },
                   ]
                 : []),
@@ -327,8 +319,6 @@ export default function AdminDashboardPage() {
                     {
                       text: `${openHighReports} high`,
                       tone: 'warning' as const,
-                      color: 'var(--severity-high-tag)',
-                      background: 'color-mix(in srgb, var(--severity-high-tag) 14%, transparent)',
                     },
                   ]
                 : []),

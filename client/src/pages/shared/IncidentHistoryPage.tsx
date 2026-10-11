@@ -27,7 +27,6 @@ export default function IncidentHistoryPage({
   const paramStatus = searchParams.get('status') ?? defaultStatus;
   const paramSeverity = searchParams.get('severity') ?? '';
   const paramStale = searchParams.get('stale') === 'true';
-  const paramResolutionPending = searchParams.get('resolutionPending') === 'true';
 
   const [status, setStatus] = useState<string | 'all'>(paramStatus);
   const [search, setSearch] = useState('');
