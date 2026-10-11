@@ -1,9 +1,19 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Col, Row, Statistic, Space, Typography, List, Button } from 'antd';
+import { Card, Col, Row, Space, Typography, List, Button } from 'antd';
+
+import {
+  AlertOutlined,
+  ClockCircleOutlined,
+  CheckCircleOutlined,
+  InboxOutlined,
+  BellOutlined,
+  FileSearchOutlined,
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { api, type Analytics, type Report } from '../../lib/api';
 import IncidentCard from '../../components/IncidentCard';
+import KpiCard from '../../components/KpiCard';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotificationFeed } from '../../lib/notificationFeed';
 
@@ -93,44 +103,69 @@ export default function AdminDashboardPage() {
 
   const maxCategoryCount = Math.max(...categoryCounts.map((item) => item.count), 1);
 
+  const staleCount = reports.filter((report) => {
+    const ageDays = (Date.now() - new Date(report.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
+    return report.status !== 'resolved' && ageDays >= 7;
+  }).length;
+
+  const resolvedPercent =
+    reportsThisMonth.length > 0
+      ? Math.round((resolvedThisMonth / reportsThisMonth.length) * 100)
+      : 0;
+
   if (isSecretary) {
     return (
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={12} xl={6}>
-            <Card className="soft-card">
-              <Statistic title="Pending intake" value={secretaryQueue.length} />
-              <Text type="secondary">Reports waiting to be reviewed</Text>
-            </Card>
+            <KpiCard
+              label="Pending intake"
+              value={secretaryQueue.length}
+              icon={<InboxOutlined />}
+              tone="accent"
+              helper="Waiting to be reviewed"
+              link={{ text: 'Review queue', href: '/admin/intake' }}
+            />
           </Col>
           <Col xs={24} sm={12} xl={6}>
-            <Card className="soft-card">
-              <Statistic title="Open incidents" value={openReports} />
-              <Text type="secondary">
-                {openCriticalReports} critical · {openHighReports} high
-              </Text>
-            </Card>
+            <KpiCard
+              label="Open incidents"
+              value={openReports}
+              icon={<AlertOutlined />}
+              tone={
+                openCriticalReports > 0 ? 'danger' : openHighReports > 0 ? 'warning' : 'neutral'
+              }
+              badges={[
+                ...(openCriticalReports > 0
+                  ? [{ text: `${openCriticalReports} critical`, tone: 'danger' as const }]
+                  : []),
+                ...(openHighReports > 0
+                  ? [{ text: `${openHighReports} high`, tone: 'warning' as const }]
+                  : []),
+              ]}
+              link={{ text: 'View by severity', href: '/admin/incidents' }}
+            />
           </Col>
           <Col xs={24} sm={12} xl={6}>
-            <Card className="soft-card">
-              <Statistic
-                title="Open reports not updated in 7 days"
-                value={
-                  reports.filter((report) => {
-                    const ageDays =
-                      (Date.now() - new Date(report.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
-                    return report.status !== 'resolved' && ageDays >= 7;
-                  }).length
-                }
-              />
-              <Text type="secondary">Check these cases</Text>
-            </Card>
+            <KpiCard
+              label="Stale cases"
+              value={staleCount}
+              icon={<ClockCircleOutlined />}
+              tone={staleCount > 0 ? 'warning' : 'neutral'}
+              helper="No update in 7+ days"
+              link={{ text: 'Check these cases', href: '/admin/incidents' }}
+            />
           </Col>
           <Col xs={24} sm={12} xl={6}>
-            <Card className="soft-card">
-              <Statistic title="Resolved this month" value={resolvedThisMonth} />
-              <Text type="secondary">of {reportsThisMonth.length} reports submitted</Text>
-            </Card>
+            <KpiCard
+              label="Resolved this month"
+              value={resolvedThisMonth}
+              suffix={`/ ${reportsThisMonth.length}`}
+              icon={<CheckCircleOutlined />}
+              tone="success"
+              progress={{ value: resolvedPercent }}
+              helper={`${resolvedPercent}% of reports filed this month`}
+            />
           </Col>
         </Row>
 
@@ -255,27 +290,48 @@ export default function AdminDashboardPage() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Row gutter={[16, 16]}>
         <Col xs={24} md={6}>
-          <Card className="soft-card">
-            <Statistic title="Open incidents" value={openReports} />
-          </Card>
+          <KpiCard
+            label="Open incidents"
+            value={openReports}
+            icon={<AlertOutlined />}
+            tone={openCriticalReports > 0 ? 'danger' : openHighReports > 0 ? 'warning' : 'neutral'}
+            badges={[
+              ...(openCriticalReports > 0
+                ? [{ text: `${openCriticalReports} critical`, tone: 'danger' as const }]
+                : []),
+              ...(openHighReports > 0
+                ? [{ text: `${openHighReports} high`, tone: 'warning' as const }]
+                : []),
+            ]}
+            link={{ text: 'View incidents', href: '/admin/incidents' }}
+          />
         </Col>
         <Col xs={24} md={6}>
-          <Card className="soft-card">
-            <Statistic title="Total reports" value={analytics?.total ?? reports.length} />
-          </Card>
+          <KpiCard
+            label="Total reports"
+            value={analytics?.total ?? reports.length}
+            icon={<FileSearchOutlined />}
+            tone="accent"
+            link={{ text: 'View analytics', href: '/admin/analytics' }}
+          />
         </Col>
         <Col xs={24} md={6}>
-          <Card className="soft-card">
-            <Statistic
-              title="Unread notifications"
-              value={notificationFeed?.pages[0]?.unreadCount ?? 0}
-            />
-          </Card>
+          <KpiCard
+            label="Unread notifications"
+            value={notificationFeed?.pages[0]?.unreadCount ?? 0}
+            icon={<BellOutlined />}
+            tone={(notificationFeed?.pages[0]?.unreadCount ?? 0) > 0 ? 'accent' : 'neutral'}
+            link={{ text: 'View notifications', href: '/admin/notifications' }}
+          />
         </Col>
         <Col xs={24} md={6}>
-          <Card className="soft-card">
-            <Statistic title="Pending resolution review" value={pendingResolutionReviews.length} />
-          </Card>
+          <KpiCard
+            label="Pending resolution review"
+            value={pendingResolutionReviews.length}
+            icon={<CheckCircleOutlined />}
+            tone={pendingResolutionReviews.length > 0 ? 'warning' : 'neutral'}
+            link={{ text: 'Review resolutions', href: '/admin/incidents?status=resolved' }}
+          />
         </Col>
       </Row>
 

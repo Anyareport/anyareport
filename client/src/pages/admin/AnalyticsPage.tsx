@@ -1,24 +1,18 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Alert, Card, Col, Empty, Progress, Row, Select, Space, Spin, theme, Button } from 'antd';
 import {
-  Alert,
-  Card,
-  Col,
-  Empty,
-  Progress,
-  Row,
-  Select,
-  Space,
-  Statistic,
-  Spin,
-  theme,
-  Button,
-} from 'antd';
+  FileTextOutlined,
+  CheckCircleOutlined,
+  FolderOpenOutlined,
+  HourglassOutlined,
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { api, type Analytics } from '../../lib/api';
 import { sharedColors } from '../../theme/colorTokens';
 import { getStatusLabel, normalizeReportStatus } from '../../lib/reportWorkflow';
+import KpiCard from '../../components/KpiCard';
 
 type AnalyticsPeriod = 'all' | 'week' | 'month' | 'year';
 
@@ -90,6 +84,24 @@ export default function AdminAnalyticsPage() {
     queryFn: () => api.get<Analytics>(`/api/reports/analytics?period=${period}`),
     refetchInterval: 30000,
   });
+
+  const { data: reports = [] } = useQuery({
+    queryKey: ['admin-analytics-reports', period],
+    queryFn: () => api.get<import('../../lib/api').Report[]>(`/api/reports?period=${period}`),
+    refetchInterval: 30000,
+  });
+
+  const avgResolutionDays = useMemo(() => {
+    const resolved = reports.filter((r) => r.resolution?.resolvedAt);
+    if (!resolved.length) return null;
+    const totalMs = resolved.reduce((sum, r) => {
+      const ms = new Date(r.resolution!.resolvedAt).getTime() - new Date(r.createdAt).getTime();
+      return sum + ms;
+    }, 0);
+    const days = totalMs / resolved.length / (1000 * 60 * 60 * 24);
+    return days < 1 ? `${Math.round(days * 24)}h` : `${days.toFixed(1)}d`;
+  }, [reports]);
+
   const { token } = theme.useToken();
 
   const categoryData = useMemo(
@@ -125,6 +137,9 @@ export default function AdminAnalyticsPage() {
     .reduce((total, entry) => total + entry.count, 0);
   const hasData = Boolean(analytics && analytics.total > 0);
 
+  const inProgressCount = statusData.find((e) => e.name === 'In Progress')?.count ?? 0;
+  const pendingCount = statusData.find((e) => e.name === 'Pending')?.count ?? 0;
+
   if (isLoading) {
     return <Spin size="large" style={{ display: 'block', margin: '48px auto' }} />;
   }
@@ -145,7 +160,9 @@ export default function AdminAnalyticsPage() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Row justify="space-between" align="middle" gutter={[16, 16]}>
         <Col>
-          <Statistic title="Reporting period" value={periodLabels[period]} />
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>
+            Period: <strong style={{ color: 'var(--text-primary)' }}>{periodLabels[period]}</strong>
+          </span>
         </Col>
         <Col>
           <Select
@@ -167,29 +184,53 @@ export default function AdminAnalyticsPage() {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} xl={6}>
-          <Card className="soft-card" style={{ height: '100%' }}>
-            <Statistic title="Total reports" value={analytics?.total || 0} />
-          </Card>
+          <KpiCard
+            label="Total reports"
+            value={analytics?.total || 0}
+            icon={<FileTextOutlined />}
+            tone="accent"
+            helper={`Showing data for ${periodLabels[period].toLowerCase()}`}
+          />
         </Col>
         <Col xs={24} sm={12} xl={6}>
-          <Card className="soft-card" style={{ height: '100%' }}>
-            <Statistic title="Resolution rate" value={analytics?.resolutionRate || 0} suffix="%" />
-            <span>
-              {analytics?.resolved || 0} of {analytics?.total || 0} resolved
-            </span>
-          </Card>
+          <KpiCard
+            label="Resolution rate"
+            value={analytics?.resolutionRate || 0}
+            suffix="%"
+            icon={<CheckCircleOutlined />}
+            tone="success"
+            progress={{
+              value: analytics?.resolutionRate || 0,
+              color: 'var(--severity-low-tag)',
+            }}
+            helper={`${analytics?.resolved || 0} of ${analytics?.total || 0} resolved`}
+          />
         </Col>
         <Col xs={24} sm={12} xl={6}>
-          <Card className="soft-card" style={{ height: '100%' }}>
-            <Statistic title="Still open" value={openCount} />
-            <span>{analytics?.pending || 0} pending</span>
-          </Card>
+          <KpiCard
+            label="Still open"
+            value={openCount}
+            icon={<FolderOpenOutlined />}
+            tone={openCount > 0 ? 'warning' : 'neutral'}
+            progress={{
+              value: analytics?.total ? Math.round((openCount / analytics.total) * 100) : 0,
+              color: 'var(--severity-medium-tag)',
+            }}
+            helper={`${inProgressCount} in progress · ${pendingCount} pending`}
+          />
         </Col>
         <Col xs={24} sm={12} xl={6}>
-          <Card className="soft-card" style={{ height: '100%' }}>
-            <Statistic title="Categories represented" value={categoryData.length} />
-            <span>Descriptive reporting only</span>
-          </Card>
+          <KpiCard
+            label="Avg. time to resolve"
+            value={avgResolutionDays ?? '—'}
+            icon={<HourglassOutlined />}
+            tone="neutral"
+            helper={
+              avgResolutionDays
+                ? `Based on ${reports.filter((r) => r.resolution?.resolvedAt).length} resolved reports`
+                : 'No resolved reports in this period'
+            }
+          />
         </Col>
       </Row>
 

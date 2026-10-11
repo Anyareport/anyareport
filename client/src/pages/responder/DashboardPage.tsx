@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Col, Row, Space, Statistic } from 'antd';
+import { Card, Col, Row, Space } from 'antd';
 import { AlertOutlined, EnvironmentOutlined, FireOutlined } from '@ant-design/icons';
 import { api, type Report } from '../../lib/api';
 import IncidentList from '../../components/IncidentList';
+import KpiCard from '../../components/KpiCard';
 import { compareIncidentPriority } from '../../lib/sortUtils';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -61,31 +62,31 @@ export default function ResponderDashboardPage() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Row gutter={[16, 16]}>
         <Col xs={24} md={8}>
-          <Card className="soft-card">
-            <Statistic
-              title="Active incidents"
-              value={activeReports.length}
-              prefix={<AlertOutlined />}
-            />
-          </Card>
+          <KpiCard
+            label="Active incidents"
+            value={activeReports.length}
+            icon={<AlertOutlined />}
+            tone={activeReports.length > 0 ? 'danger' : 'neutral'}
+            helper="Unacknowledged emergency reports"
+          />
         </Col>
         <Col xs={24} md={8}>
-          <Card className="soft-card">
-            <Statistic
-              title="Backup requests"
-              value={otherIncidents.length}
-              prefix={<FireOutlined />}
-            />
-          </Card>
+          <KpiCard
+            label="Backup requests"
+            value={otherIncidents.length}
+            icon={<FireOutlined />}
+            tone={otherIncidents.length > 0 ? 'warning' : 'neutral'}
+            helper="Open requests from other responders"
+          />
         </Col>
         <Col xs={24} md={8}>
-          <Card className="soft-card">
-            <Statistic
-              title="In progress"
-              value={myActiveReports.filter((report) => report.status === 'in_progress').length}
-              prefix={<EnvironmentOutlined />}
-            />
-          </Card>
+          <KpiCard
+            label="In progress"
+            value={myActiveReports.filter((report) => report.status === 'in_progress').length}
+            icon={<EnvironmentOutlined />}
+            tone="accent"
+            helper="Cases you're currently handling"
+          />
         </Col>
       </Row>
 
