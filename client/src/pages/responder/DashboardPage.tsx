@@ -89,21 +89,27 @@ export default function ResponderDashboardPage() {
         </Col>
       </Row>
 
-      <Card className="soft-card" title="My handled incidents">
-        <IncidentList
-          reports={myActiveReports.slice(0, 5)}
-          loading={handledReportsLoading}
-          basePath="/responder/incidents"
-        />
-      </Card>
-      <Card className="soft-card" title="Backup requests">
-        <IncidentList
-          reports={otherIncidents.slice(0, 5)}
-          loading={reportsLoading}
-          basePath="/responder/incidents"
-          showSubmitter={false}
-        />
-      </Card>
+      <Row gutter={[16, 16]}>
+        <Col xs={24} xl={12}>
+          <Card className="soft-card" title="My handled incidents">
+            <IncidentList
+              reports={myActiveReports.slice(0, 5)}
+              loading={handledReportsLoading}
+              basePath="/responder/incidents"
+            />
+          </Card>
+        </Col>
+        <Col xs={24} xl={12}>
+          <Card className="soft-card" title="Backup requests">
+            <IncidentList
+              reports={otherIncidents.slice(0, 5)}
+              loading={reportsLoading}
+              basePath="/responder/incidents"
+              showSubmitter={false}
+            />
+          </Card>
+        </Col>
+      </Row>
     </Space>
   );
 }

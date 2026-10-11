@@ -2,6 +2,14 @@
 
 @import './styles/theme.css';
 
+@font-face {
+  font-family: 'Roboto Slab';
+  src: url('./assets/fonts/RobotoSlab-VariableFont_wght.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 :root {
   color: var(--text-primary);
   background:
@@ -65,10 +73,9 @@ h5,
 .ant-typography h3,
 .ant-typography h4,
 .ant-typography h5 {
-  /* font-family: 'Bebas Neue', sans-serif; */
-  font-family: var(--app-font-family);
+  font-family: 'Roboto Slab', var(--app-font-family);
   letter-spacing: 0.06em;
-  text-transform: uppercase;
+  /* text-transform: uppercase; */
 }
 
 a {
