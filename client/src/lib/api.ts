@@ -229,4 +229,7 @@ export interface Analytics {
   byCategory: { _id: string; count: number }[];
   byStatus: { _id: string; count: number }[];
   last30Days: { _id: string; count: number }[];
+  bySeverity?: { _id: string; count: number }[];
+  byHour?: { _id: string; count: number }[];
+  byPurok?: { _id: string; count: number }[];
 }

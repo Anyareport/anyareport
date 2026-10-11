@@ -492,12 +492,9 @@ export async function respondToDispatch(req, res) {
 
     const uid = req.firebaseUser.uid;
 
-    const myInvites = (report.dispatchInvites || []).filter(
-      (entry) => entry.responderUid === uid
-    );
+    const myInvites = (report.dispatchInvites || []).filter((entry) => entry.responderUid === uid);
     const invite =
-      myInvites.find((entry) => entry.status === 'pending') ||
-      myInvites[myInvites.length - 1];
+      myInvites.find((entry) => entry.status === 'pending') || myInvites[myInvites.length - 1];
     if (!invite) return res.status(404).json({ error: 'Dispatch invitation not found' });
     if (invite.status !== 'pending') {
       return res.json({ accepted: invite.status === 'accepted', report: serializeReport(report) });
@@ -515,7 +512,6 @@ export async function respondToDispatch(req, res) {
       },
     };
 
-    
     const alreadyJoined = (report.backupRequests || []).some((request) =>
       (request.joinedBy || []).includes(uid)
     );
@@ -1359,6 +1355,46 @@ export async function getAnalytics(req, res) {
       { $sort: { _id: 1 } },
     ]);
 
+    const breakdownReports = await Report.find(match)
+      .select('severity createdAt location.address')
+      .lean();
+    const severityCounts = new Map();
+    const hourCounts = [0, 0, 0, 0];
+    const purokCounts = new Map();
+
+    breakdownReports.forEach((report) => {
+      if (report.severity) {
+        severityCounts.set(report.severity, (severityCounts.get(report.severity) || 0) + 1);
+      }
+
+      const hour = new Date(report.createdAt).getHours();
+      hourCounts[Math.min(Math.floor(hour / 6), 3)] += 1;
+
+      const purokMatch = report.location?.address?.match(
+        /purok\s+\d+(?:\s+(?:upper|lower)(?:\s+[ab])?)?/i
+      );
+      if (purokMatch) {
+        const purok = purokMatch[0]
+          .replace(/\s+/g, ' ')
+          .replace(/\b\w/g, (letter) => letter.toUpperCase());
+        purokCounts.set(purok, (purokCounts.get(purok) || 0) + 1);
+      }
+    });
+
+    const severityOrder = ['Critical', 'High', 'Medium', 'Low'];
+    const bySeverity = severityOrder.map((severity) => ({
+      _id: severity,
+      count: severityCounts.get(severity) || 0,
+    }));
+    const byHour = hourCounts.map((count, index) => ({
+      _id: ['12–6 AM', '6–12 PM', '12–6 PM', '6–12 AM'][index],
+      count,
+    }));
+    const byPurok = [...purokCounts.entries()]
+      .map(([_id, count]) => ({ _id, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
     res.json({
       total,
       resolved,
@@ -1367,6 +1403,9 @@ export async function getAnalytics(req, res) {
       byCategory,
       byStatus,
       last30Days,
+      bySeverity,
+      byHour,
+      byPurok,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

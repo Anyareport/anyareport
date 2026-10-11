@@ -12,7 +12,9 @@ import {
   Statistic,
   Spin,
   theme,
+  Button,
 } from 'antd';
+import { useNavigate } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { api, type Analytics } from '../../lib/api';
 import { sharedColors } from '../../theme/colorTokens';
@@ -36,6 +38,12 @@ const categoryColors = [
   '#8e44ad',
   '#06b6d4',
 ];
+const severityColors: Record<string, string> = {
+  Critical: 'var(--severity-critical-tag)',
+  High: 'var(--severity-high-tag)',
+  Medium: 'var(--severity-medium-tag)',
+  Low: 'var(--severity-low-tag)',
+};
 
 function startOfDay(date: Date) {
   const result = new Date(date);
@@ -69,6 +77,7 @@ function fillDailyData(data: Analytics['last30Days'], period: AnalyticsPeriod) {
 }
 
 export default function AdminAnalyticsPage() {
+  const navigate = useNavigate();
   const [period, setPeriod] = useState<AnalyticsPeriod>('month');
   const {
     data: analytics,
@@ -108,6 +117,9 @@ export default function AdminAnalyticsPage() {
     () => fillDailyData(analytics?.last30Days || [], period),
     [analytics, period]
   );
+  const severityData = analytics?.bySeverity || [];
+  const hourData = analytics?.byHour || [];
+  const purokData = analytics?.byPurok || [];
   const openCount = statusData
     .filter((entry) => entry.name !== 'Resolved')
     .reduce((total, entry) => total + entry.count, 0);
@@ -229,15 +241,25 @@ export default function AdminAnalyticsPage() {
       </Row>
 
       <Card className="soft-card" title="Where reports are in the workflow">
-        <Progress
-          percent={analytics?.total ? 100 : 0}
-          success={{
-            percent: analytics?.total ? (statusData[3].count / analytics.total) * 100 : 0,
-          }}
-          strokeColor={sharedColors.blue400}
-          format={() => ''}
-        />
-        <Row justify="space-between">
+        <div style={{ display: 'flex', height: 12, overflow: 'hidden', borderRadius: 999 }}>
+          {statusData.map((entry, index) => (
+            <div
+              key={entry.name}
+              title={`${entry.name}: ${entry.count}`}
+              style={{
+                width: `${analytics?.total ? (entry.count / analytics.total) * 100 : 0}%`,
+                minWidth: entry.count ? 3 : 0,
+                background: [
+                  'var(--status-pending-tag)',
+                  'var(--status-coordinating-border)',
+                  'var(--status-on-scene-tag)',
+                  'var(--status-resolved-tag)',
+                ][index],
+              }}
+            />
+          ))}
+        </div>
+        <Row justify="space-between" style={{ marginTop: 10 }}>
           {statusData.map((entry) => (
             <span key={entry.name}>
               {entry.name}: {entry.count}
@@ -246,22 +268,77 @@ export default function AdminAnalyticsPage() {
         </Row>
       </Card>
 
-      <Card className="soft-card" title="Status mix">
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={statusData} layout="vertical" margin={{ left: 20, right: 20 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke={token.colorBorderSecondary} />
-            <XAxis type="number" allowDecimals={false} tick={{ fill: token.colorTextTertiary }} />
-            <YAxis
-              type="category"
-              dataKey="name"
-              width={100}
-              tick={{ fill: token.colorTextTertiary }}
-            />
-            <Tooltip />
-            <Bar dataKey="count" fill={sharedColors.brandPrimary} radius={[0, 3, 3, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </Card>
+      <Row gutter={[16, 16]}>
+        <Col xs={24} md={8}>
+          <Card className="soft-card" title="By severity" style={{ height: '100%' }}>
+            <Space direction="vertical" size={10} style={{ width: '100%' }}>
+              {severityData.map((entry) => (
+                <div key={entry._id}>
+                  <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                    <span>{entry._id}</span>
+                    <span>{entry.count}</span>
+                  </Space>
+                  <Progress
+                    percent={
+                      analytics?.total ? Math.round((entry.count / analytics.total) * 100) : 0
+                    }
+                    showInfo={false}
+                    strokeColor={severityColors[entry._id] || token.colorPrimary}
+                  />
+                </div>
+              ))}
+            </Space>
+          </Card>
+        </Col>
+        <Col xs={24} md={8}>
+          <Card className="soft-card" title="Busiest time of day" style={{ height: '100%' }}>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={hourData} margin={{ top: 10, right: 4, left: 0, bottom: 8 }}>
+                <XAxis dataKey="_id" tick={{ fill: token.colorTextTertiary, fontSize: 11 }} />
+                <YAxis hide allowDecimals={false} />
+                <Tooltip />
+                <Bar dataKey="count" fill={sharedColors.blue400} radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+        </Col>
+        <Col xs={24} md={8}>
+          <Card
+            className="soft-card"
+            title="Top Puroks"
+            style={{ height: '100%' }}
+            extra={
+              <Button variant="outlined" color="primary" onClick={() => navigate('/admin/heatmap')}>
+                View Heatmap
+              </Button>
+            }
+          >
+            <Space direction="vertical" size={10} style={{ width: '100%' }}>
+              {purokData.length ? (
+                purokData.map((entry) => (
+                  <div key={entry._id}>
+                    <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                      <span>{entry._id}</span>
+                      <span>{entry.count}</span>
+                    </Space>
+                    <Progress
+                      percent={
+                        purokData[0].count
+                          ? Math.round((entry.count / purokData[0].count) * 100)
+                          : 0
+                      }
+                      showInfo={false}
+                      strokeColor={sharedColors.blue400}
+                    />
+                  </div>
+                ))
+              ) : (
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No Purok data" />
+              )}
+            </Space>
+          </Card>
+        </Col>
+      </Row>
     </Space>
   );
 }
