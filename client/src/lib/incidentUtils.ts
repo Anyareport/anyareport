@@ -1,5 +1,17 @@
 import type { Report } from './api';
 
+const severityColorTokens: Record<string, string> = {
+  Critical: '--severity-critical-tag',
+  High: '--severity-high-tag',
+  Medium: '--severity-medium-tag',
+  Low: '--severity-low-tag',
+};
+
+export function getIncidentSeverityColor(severity?: string | null) {
+  const token = severityColorTokens[severity || ''] || severityColorTokens.Critical;
+  return `var(${token})`;
+}
+
 export function getIncidentLabel(report: Report) {
   const aiTitle = report.aiTitle?.trim();
   if (aiTitle) return aiTitle;
@@ -70,7 +82,11 @@ export function isIncidentOnDate(report: Report, date: string) {
   return isIncidentInDateRange(report, startTimestamp, endTimestamp);
 }
 
-export function isIncidentInPeriod(report: Report, period: 'date' | 'month' | 'year', value: string) {
+export function isIncidentInPeriod(
+  report: Report,
+  period: 'date' | 'month' | 'year',
+  value: string
+) {
   if (!value) return true;
 
   const createdDate = new Date(report.createdAt);

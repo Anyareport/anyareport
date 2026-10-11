@@ -209,7 +209,7 @@
 .app-shell-drawer__account .ant-avatar {
   flex: none;
   background: var(--brand-color-info);
-  color: #fff;
+  color: var(--shared-color-white);
   font-size: 12px;
 }
 

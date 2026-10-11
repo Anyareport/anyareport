@@ -15,13 +15,8 @@ import 'leaflet.heat';
 import L from 'leaflet';
 import type { FeatureCollection } from 'geojson';
 import barangayData from '../../data/DMM.json';
-
-const severityMarkerColors: Record<string, string> = {
-  Critical: '#ef4444',
-  High: '#f97316',
-  Medium: '#eab308',
-  Low: '#22c55e',
-};
+import { getIncidentSeverityColor } from '../../lib/incidentUtils';
+import { incidentHeatGradient } from '../../theme/colorTokens';
 
 export interface IncidentMarker {
   id: string;
@@ -78,7 +73,7 @@ function IncidentDots({
               key={`${point.lat}-${point.lng}-${index}`}
               point={point}
               isSelected={isSelected}
-              severityColor={severityMarkerColors[point.severity || ''] || '#ef4444'}
+              severityColor={getIncidentSeverityColor(point.severity)}
               onPointClick={onPointClick}
               showPopup={Boolean(showPointPopup && renderPointPopup)}
               renderPopup={renderPointPopup}
@@ -140,7 +135,7 @@ function IncidentDot({
       center={[point.lat, point.lng]}
       radius={isSelected ? 9 : 7}
       pathOptions={{
-        color: isSelected ? '#2563eb' : severityColor,
+        color: isSelected ? 'var(--brand-color-info)' : severityColor,
         weight: isSelected ? 3 : 1.5,
         fillColor: severityColor,
         fillOpacity: 0.9,
@@ -191,12 +186,7 @@ function GradientLayer({ points }: { points: IncidentMarker[] }) {
       maxZoom: 17,
       max: 1,
       minOpacity: 0.35,
-      gradient: {
-        0.2: '#3b82f6',
-        0.45: '#22c55e',
-        0.7: '#facc15',
-        0.9: '#ef4444',
-      },
+      gradient: incidentHeatGradient,
     });
 
     heatLayer.addTo(map);
@@ -289,7 +279,7 @@ export default function MapDashboard({
             center={selectedLocation}
             radius={11}
             pathOptions={{
-              color: '#ffffff',
+              color: 'var(--shared-color-white)',
               weight: 3,
               fillColor: 'var(--brand-color-info)',
               fillOpacity: 1,

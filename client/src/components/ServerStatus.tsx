@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
+import { theme } from 'antd';
 import { api } from '../lib/api';
 
 type ServerState = 'checking' | 'active' | 'inactive';
 
-const statusDetails: Record<ServerState, { color: string; label: string }> = {
-  checking: { color: '#d89614', label: 'Checking server...' },
-  active: { color: '#389e0d', label: 'Server active' },
-  inactive: { color: '#cf1322', label: 'Server unavailable' },
-};
-
 export default function ServerStatus() {
   const [state, setState] = useState<ServerState>('checking');
+  const { token } = theme.useToken();
+  const statusDetails: Record<ServerState, { color: string; label: string }> = {
+    checking: { color: token.colorWarning, label: 'Checking server...' },
+    active: { color: token.colorSuccess, label: 'Server active' },
+    inactive: { color: token.colorError, label: 'Server unavailable' },
+  };
 
   const checkServer = async () => {
     try {

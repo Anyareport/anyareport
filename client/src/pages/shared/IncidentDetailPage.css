@@ -266,8 +266,8 @@
   left: 50%;
   padding: 4px 9px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.64);
-  color: #fff;
+  background: var(--shared-color-black-alpha-64);
+  color: var(--shared-color-white);
   font-size: 12px;
   line-height: 1.3;
   font-variant-numeric: tabular-nums;

@@ -12,9 +12,11 @@ import {
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.heat';
 import L from 'leaflet';
+import { incidentHeatGradient } from '../../theme/colorTokens';
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
 import type { PathOptions } from 'leaflet';
 import barangayData from '../../data/DMM.json';
+import { getIncidentSeverityColor } from '../../lib/incidentUtils';
 
 export interface HeatmapPoint {
   id: string;
@@ -24,13 +26,6 @@ export interface HeatmapPoint {
   status?: string;
   severity?: string | null;
 }
-
-const severityMarkerColors: Record<string, string> = {
-  Critical: '#ef4444',
-  High: '#f97316',
-  Medium: '#eab308',
-  Low: '#22c55e',
-};
 
 export type HeatmapMode = 'dots' | 'gradient' | 'choropleth';
 
@@ -47,7 +42,7 @@ interface IncidentHeatmapProps {
 }
 
 function getChoroplethColor(count: number, maxCount: number): string {
-  if (count === 0) return '#f1f5f9';
+  if (count === 0) return 'var(--shared-color-slate100)';
   const intensity = Math.min(count / maxCount, 1);
 
   const start = { r: 216, g: 232, b: 248 };
@@ -76,7 +71,7 @@ function createBoundaryStyle({
     const isBarangayBoundary = name.toLowerCase().includes('don mariano marcos');
 
     if (isBarangayBoundary) {
-      return { color: '#94a3b8', weight: 2, fillOpacity: 0, dashArray: '6 4' };
+      return { color: 'var(--map-boundary)', weight: 2, fillOpacity: 0, dashArray: '6 4' };
     }
 
     const isSelected = name === selectedPurok;
@@ -84,7 +79,7 @@ function createBoundaryStyle({
     if (mode === 'choropleth') {
       const count = purokCounts.get(name) || 0;
       return {
-        color: isSelected ? '#1677ff' : '#ffffff',
+        color: isSelected ? 'var(--brand-color-info)' : 'var(--shared-color-white)',
         weight: isSelected ? 2.5 : 1,
         fillOpacity: 0.7,
         fillColor: getChoroplethColor(count, maxCount),
@@ -92,10 +87,10 @@ function createBoundaryStyle({
     }
 
     return {
-      color: isSelected ? '#1677ff' : '#79a8ee',
+      color: isSelected ? 'var(--brand-color-info)' : 'var(--map-area)',
       weight: isSelected ? 2.5 : 1,
       fillOpacity: isSelected ? 0.22 : 0.12,
-      fillColor: '#79a8ee',
+      fillColor: 'var(--map-area)',
     };
   };
 }
@@ -131,11 +126,11 @@ function ChoroplethLegend({ maxCount }: { maxCount: number }) {
         bottom: 12,
         left: 12,
         zIndex: 1000,
-        background: 'rgba(255,255,255,0.92)',
+        background: 'var(--shared-color-white-alpha-92)',
         borderRadius: 6,
         padding: '8px 10px',
         fontSize: 12,
-        boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+        boxShadow: '0 1px 4px var(--shared-color-black-alpha-20)',
       }}
     >
       <div style={{ marginBottom: 4, fontWeight: 600 }}>Incidents</div>
@@ -175,7 +170,7 @@ function IncidentDots({
       {points
         .filter(({ lat, lng }) => Number.isFinite(lat) && Number.isFinite(lng))
         .map((point, index) => {
-          const severityColor = severityMarkerColors[point.severity || ''] || '#ef4444';
+          const severityColor = getIncidentSeverityColor(point.severity);
 
           return (
             <CircleMarker
@@ -225,12 +220,7 @@ function GradientLayer({ points }: { points: HeatmapPoint[] }) {
       maxZoom: 17,
       max: 1,
       minOpacity: 0.35,
-      gradient: {
-        0.2: '#3b82f6',
-        0.45: '#22c55e',
-        0.7: '#facc15',
-        0.9: '#ef4444',
-      },
+      gradient: incidentHeatGradient,
     });
 
     heatLayer.addTo(map);

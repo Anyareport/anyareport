@@ -1,3 +1,5 @@
+import { sharedColors } from '../theme/colorTokens';
+
 export async function compressImage(file: File, maxDimension = 800, quality = 0.75): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -31,7 +33,7 @@ export async function compressImage(file: File, maxDimension = 800, quality = 0.
         }
 
         // Fill background with white for JPEG compatibility
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = sharedColors.white;
         ctx.fillRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
 

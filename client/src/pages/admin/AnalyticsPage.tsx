@@ -16,8 +16,9 @@ import {
   Line,
 } from 'recharts';
 import { api, type Analytics } from '../../lib/api';
+import { sharedColors } from '../../theme/colorTokens';
 
-const COLORS = ['#E63333', '#5b6b9a', '#ff9f43', '#2ecc71', '#8e44ad', '#06b6d4'];
+const COLORS = [sharedColors.brandPrimary, '#5b6b9a', '#ff9f43', '#2ecc71', '#8e44ad', '#06b6d4'];
 
 export default function AdminAnalyticsPage() {
   const [period, setPeriod] = useState<'all' | 'week' | 'month' | 'year'>('month');

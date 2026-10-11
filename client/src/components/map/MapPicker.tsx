@@ -6,6 +6,7 @@ import { GeoJSON } from 'react-leaflet';
 import type { Feature, Geometry, FeatureCollection } from 'geojson';
 import type { Layer, PathOptions } from 'leaflet';
 import barangayData from '../../data/DMM.json';
+import { sharedColors } from '../../theme/colorTokens';
 
 const defaultCenter: [number, number] = [16.482, 121.1557];
 
@@ -22,8 +23,13 @@ function getBarangayStyle(feature?: Feature<Geometry, any>): PathOptions {
   const isBoundary = name.includes('don mariano marcos');
 
   return isBoundary
-    ? { color: '#94a3b8', weight: 2, fillOpacity: 0, dashArray: '6 4' }
-    : { color: '#79a8ee', weight: 2, fillOpacity: 0.12, fillColor: '#79a8ee' };
+    ? { color: 'var(--map-boundary)', weight: 2, fillOpacity: 0, dashArray: '6 4' }
+    : {
+        color: 'var(--map-area)',
+        weight: 2,
+        fillOpacity: 0.12,
+        fillColor: 'var(--map-area)',
+      };
 }
 
 function onEachBarangayFeature(feature: Feature<Geometry, any>, layer: Layer) {
@@ -217,7 +223,7 @@ export default function MapPicker({
             borderRadius: 6,
             fontSize: 13,
             fontWeight: 600,
-            boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+            boxShadow: '0 1px 4px var(--shared-color-black-alpha-20)',
           }}
         >
           You must be inside the barangay to pick a location
@@ -237,7 +243,7 @@ export default function MapPicker({
             borderRadius: 6,
             fontSize: 13,
             fontWeight: 600,
-            boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+            boxShadow: '0 1px 4px var(--shared-color-black-alpha-20)',
           }}
         >
           Location unavailable — tap the map to pin your location manually
@@ -350,7 +356,12 @@ export function RouteMap({ incidentLat, incidentLng, height = 350, zoom = 17 }: 
       <Marker position={incidentPos} icon={markerIcon} />
       {responderPos && <Marker position={responderPos} icon={markerIcon} />}
       {routeCoords && (
-        <Polyline positions={routeCoords} color="#E63333" weight={4} dashArray="8 8" />
+        <Polyline
+          positions={routeCoords}
+          color={sharedColors.brandPrimary}
+          weight={4}
+          dashArray="8 8"
+        />
       )}
     </MapContainer>
   );
