@@ -143,7 +143,7 @@ export default function AdminDashboardPage() {
                   ? [{ text: `${openHighReports} high`, tone: 'warning' as const }]
                   : []),
               ]}
-              link={{ text: 'View by severity', href: '/admin/incidents' }}
+              link={{ text: 'View by severity', href: '/admin/incidents?severity=Critical' }}
             />
           </Col>
           <Col xs={24} sm={12} xl={6}>
@@ -153,7 +153,7 @@ export default function AdminDashboardPage() {
               icon={<ClockCircleOutlined />}
               tone={staleCount > 0 ? 'warning' : 'neutral'}
               helper="No update in 7+ days"
-              link={{ text: 'Check these cases', href: '/admin/incidents' }}
+              link={{ text: 'Check these cases', href: '/admin/incidents?stale=true' }}
             />
           </Col>
           <Col xs={24} sm={12} xl={6}>

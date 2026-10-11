@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Input, Popover, Select, Space, Tag } from 'antd';
 import { FilterOutlined, SearchOutlined } from '@ant-design/icons';
+import { useSearchParams } from 'react-router-dom';
 import { api, type Report } from '../../lib/api';
 import IncidentList from '../../components/IncidentList';
 import StatusFilter from '../../components/StatusFilter';
@@ -22,13 +23,20 @@ export default function IncidentHistoryPage({
   variant = 'admin',
   defaultStatus = 'all',
 }: IncidentHistoryPageProps) {
-  const [status, setStatus] = useState<string | 'all'>(defaultStatus);
+  const [searchParams] = useSearchParams();
+  const paramStatus = searchParams.get('status') ?? defaultStatus;
+  const paramSeverity = searchParams.get('severity') ?? '';
+  const paramStale = searchParams.get('stale') === 'true';
+  const paramResolutionPending = searchParams.get('resolutionPending') === 'true';
+
+  const [status, setStatus] = useState<string | 'all'>(paramStatus);
   const [search, setSearch] = useState('');
   const [datePeriod, setDatePeriod] = useState<'date' | 'month' | 'year'>('date');
   const [date, setDate] = useState('');
   const [category, setCategory] = useState('');
   const [subcategory, setSubcategory] = useState('');
   const [location, setLocation] = useState('');
+  const [severity, setSeverity] = useState(paramSeverity);
   const { role } = useAuth();
 
   const { data: reports = [] } = useQuery({
@@ -49,7 +57,14 @@ export default function IncidentHistoryPage({
       isIncidentInPeriod(report, datePeriod, date) &&
       (!category || report.category === category) &&
       (!subcategory || report.subcategory === subcategory) &&
-      (!location || getLocationLabel(report) === location);
+      (!location || getLocationLabel(report) === location) &&
+      (!severity || report.severity === severity) &&
+      (!paramStale ||
+        (() => {
+          const ageDays =
+            (Date.now() - new Date(report.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
+          return report.status !== 'resolved' && ageDays >= 7;
+        })());
 
     if (variant === 'responder') {
       return sorted
@@ -159,6 +174,7 @@ export default function IncidentHistoryPage({
     setCategory('');
     setSubcategory('');
     setLocation('');
+    setSeverity('');
   };
 
   const activeFilterTags = [
@@ -166,6 +182,16 @@ export default function IncidentHistoryPage({
       key: 'status',
       label: `Status: ${status}`,
       onClose: () => setStatus('all'),
+    },
+    severity && {
+      key: 'severity',
+      label: `Severity: ${severity}`,
+      onClose: () => setSeverity(''),
+    },
+    paramStale && {
+      key: 'stale',
+      label: 'No update in 7+ days',
+      onClose: () => {},
     },
     date && {
       key: 'date',
