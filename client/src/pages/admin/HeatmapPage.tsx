@@ -11,6 +11,7 @@ import '../../components/map/MapReportCard.css';
 import { api, type Report } from '../../lib/api';
 import type { FeatureCollection } from 'geojson';
 import barangayData from '../../data/DMM.json';
+import './HeatmapPage.css';
 
 const { Text } = Typography;
 const severityLevels = ['Critical', 'High', 'Medium', 'Low'] as const;
@@ -57,6 +58,7 @@ export default function AdminHeatmapPage() {
   const [heatmapMode, setHeatmapMode] = useState<HeatmapMode>('dots');
   const [selectedPurok, setSelectedPurok] = useState<string>();
   const [selectedCategory, setSelectedCategory] = useState<string>();
+  const [selectedSeverity, setSelectedSeverity] = useState<string>();
   const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
 
   const { data: points = [] } = useQuery({
@@ -90,27 +92,32 @@ export default function AdminHeatmapPage() {
     [purokFeatures, selectedPurok]
   );
 
-  const categoryFilteredPoints = useMemo(
-    () => points.filter((point) => !selectedCategory || point.category === selectedCategory),
-    [points, selectedCategory]
+  const filteredMapPoints = useMemo(
+    () =>
+      points.filter(
+        (point) =>
+          (!selectedCategory || point.category === selectedCategory) &&
+          (!selectedSeverity || point.severity === selectedSeverity)
+      ),
+    [points, selectedCategory, selectedSeverity]
   );
 
   const filteredPoints = useMemo(() => {
-    return categoryFilteredPoints.filter((point) => {
+    return filteredMapPoints.filter((point) => {
       const matchesPurok = !selectedFeature || isPointInFeature(point, selectedFeature);
       return matchesPurok;
     });
-  }, [categoryFilteredPoints, selectedFeature]);
+  }, [filteredMapPoints, selectedFeature]);
 
   const categoryPanelPoints = useMemo(() => {
-    if (!selectedFeature) return points;
-    return points.filter((point) => isPointInFeature(point, selectedFeature));
-  }, [points, selectedFeature]);
+    if (!selectedFeature) return filteredMapPoints;
+    return filteredMapPoints.filter((point) => isPointInFeature(point, selectedFeature));
+  }, [filteredMapPoints, selectedFeature]);
 
   const selectedPurokPoints = useMemo(() => {
     if (!selectedFeature) return [];
-    return categoryFilteredPoints.filter((point) => isPointInFeature(point, selectedFeature));
-  }, [categoryFilteredPoints, selectedFeature]);
+    return filteredMapPoints.filter((point) => isPointInFeature(point, selectedFeature));
+  }, [filteredMapPoints, selectedFeature]);
 
   const categoryCounts = useMemo(() => {
     const map = new Map<string, number>();
@@ -147,170 +154,232 @@ export default function AdminHeatmapPage() {
     return purokFeatures
       .map((feature) => {
         const name = feature.properties?.name || 'Unnamed purok';
-        const count = categoryFilteredPoints.filter((point) =>
-          isPointInFeature(point, feature)
-        ).length;
+        const count = filteredMapPoints.filter((point) => isPointInFeature(point, feature)).length;
         return [name, count] as const;
       })
       .sort(
         (left, right) =>
+          right[1] - left[1] ||
           getPurokNumber(left[0]) - getPurokNumber(right[0]) ||
           left[0].localeCompare(right[0], undefined, { numeric: true })
       );
-  }, [categoryFilteredPoints, purokFeatures]);
+  }, [filteredMapPoints, purokFeatures]);
 
   const selectedReport = reports.find((report) => report._id === selectedPointId);
 
   const categoryOptions = useMemo(
-    () => Array.from(new Set(reports.map((report) => report.category))).sort(),
-    [reports]
+    () => Array.from(new Set(points.map((point) => point.category).filter(Boolean))).sort(),
+    [points]
   );
 
+  const severityOptions = useMemo(
+    () => severityLevels.filter((severity) => points.some((point) => point.severity === severity)),
+    [points]
+  );
+
+  const mapTotal = filteredMapPoints.length;
+  const selectedPurokRank = selectedPurok
+    ? purokCounts.findIndex(([name]) => name === selectedPurok) + 1
+    : 0;
+
   return (
-    <Row gutter={[16, 16]}>
-      <Col xs={24} xl={16}>
-        <Card className="soft-card" title="Incident map">
-          <Space direction="vertical" size={12} style={{ width: '100%' }}>
-            <Space wrap>
-              <Select
-                allowClear
-                placeholder="Filter by purok"
-                value={selectedPurok}
-                onChange={(value) => {
-                  setSelectedPurok(value);
-                  setSelectedPointId(null);
+    <div className="heatmap-page">
+      <Row gutter={[16, 16]} align="top">
+        <Col xs={24} xl={17}>
+          <Card className="soft-card heatmap-map-card" title="Incident map">
+            <div className="heatmap-map-shell">
+              <div className="heatmap-map-controls">
+                <Select
+                  allowClear
+                  placeholder="All categories"
+                  value={selectedCategory}
+                  onChange={(value) => {
+                    setSelectedCategory(value);
+                    setSelectedPointId(null);
+                  }}
+                  options={categoryOptions.map((category) => ({
+                    label: category,
+                    value: category,
+                  }))}
+                  className="heatmap-filter"
+                />
+                <Select
+                  allowClear
+                  placeholder="All severity"
+                  value={selectedSeverity}
+                  onChange={(value) => {
+                    setSelectedSeverity(value);
+                    setSelectedPointId(null);
+                  }}
+                  options={severityOptions.map((severity) => ({
+                    label: severity,
+                    value: severity,
+                  }))}
+                  className="heatmap-filter heatmap-filter--severity"
+                />
+                <Segmented
+                  value={heatmapMode}
+                  onChange={(value) => {
+                    setHeatmapMode(value as HeatmapMode);
+                    setSelectedPointId(null);
+                  }}
+                  options={[
+                    { label: 'Dots', value: 'dots' },
+                    { label: 'Gradient', value: 'gradient' },
+                    { label: 'Choropleth', value: 'choropleth' },
+                  ]}
+                />
+                {(selectedCategory || selectedSeverity) && (
+                  <Button
+                    type="link"
+                    onClick={() => {
+                      setSelectedCategory(undefined);
+                      setSelectedSeverity(undefined);
+                      setSelectedPointId(null);
+                    }}
+                  >
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+              <IncidentHeatmap
+                points={filteredPoints}
+                height={640}
+                mode={heatmapMode}
+                onPointClick={(point) => setSelectedPointId(point.id)}
+                selectedPointId={selectedPointId}
+                renderPointPopup={(point) => {
+                  if (!selectedReport || selectedReport._id !== point.id) return null;
+                  return (
+                    <MapReportCard
+                      report={selectedReport}
+                      showPhoto={false}
+                      onViewDetails={() => navigate(`/admin/incidents/${selectedReport._id}`)}
+                      onDismiss={() => setSelectedPointId(null)}
+                    />
+                  );
                 }}
-                options={purokFeatures.map((feature) => ({
-                  label: feature.properties?.name,
-                  value: feature.properties?.name,
-                }))}
-                style={{ minWidth: 180 }}
-              />
-              <Select
-                allowClear
-                placeholder="Filter by category"
-                value={selectedCategory}
-                onChange={(value) => {
-                  setSelectedCategory(value);
-                  setSelectedPointId(null);
-                }}
-                options={categoryOptions.map((category) => ({
-                  label: category,
-                  value: category,
-                }))}
-                style={{ minWidth: 220 }}
-              />
-              <Segmented
-                value={heatmapMode}
-                onChange={(value) => {
-                  setHeatmapMode(value as HeatmapMode);
-                  setSelectedPointId(null);
-                }}
-                options={[
-                  { label: 'Dots', value: 'dots' },
-                  { label: 'Gradient', value: 'gradient' },
-                  { label: 'Choropleth', value: 'choropleth' },
-                ]}
-              />
-            </Space>
-            <IncidentHeatmap
-              points={filteredPoints}
-              height={500}
-              mode={heatmapMode}
-              onPointClick={(point) => setSelectedPointId(point.id)}
-              selectedPointId={selectedPointId}
-              renderPointPopup={(point) => {
-                if (!selectedReport || selectedReport._id !== point.id) return null;
-                return (
-                  <MapReportCard
-                    report={selectedReport}
-                    showPhoto={false}
-                    onViewDetails={() => navigate(`/admin/incidents/${selectedReport._id}`)}
-                    onDismiss={() => setSelectedPointId(null)}
-                  />
-                );
-              }}
-              purokCounts={new Map(purokCounts)}
-              selectedPurok={selectedPurok}
-              onPurokClick={(name) => {
-                setSelectedPurok(name);
-                setSelectedPointId(null);
-              }}
-            />
-          </Space>
-        </Card>
-      </Col>
-      <Col xs={24} xl={8}>
-        {selectedPurok && (
-          <Card
-            className="soft-card"
-            title={`${selectedPurok} summary`}
-            style={{ marginBottom: 16 }}
-          >
-            <Space direction="vertical" size={8} style={{ width: '100%' }}>
-              <Text>{selectedPurokPoints.length} reports</Text>
-              <Text>
-                Top category: <strong>{topCategory || 'None'}</strong>
-              </Text>
-              <Text strong>Severity breakdown</Text>
-              <Space wrap>
-                {severityCounts.map(({ severity, count }) => (
-                  <Text key={severity} type="secondary">
-                    {severity}: {count}
-                  </Text>
-                ))}
-              </Space>
-              {selectedCategory && <Text type="secondary">Filtered by {selectedCategory}</Text>}
-            </Space>
-          </Card>
-        )}
-        <Card className="soft-card" title="Purok incidents" style={{ marginBottom: 16 }}>
-          <Space direction="vertical" size={4} style={{ width: '100%' }}>
-            {purokCounts.map(([name, count]) => (
-              <Button
-                key={name}
-                type={selectedPurok === name ? 'primary' : 'text'}
-                block
-                aria-pressed={selectedPurok === name}
-                onClick={() => {
+                purokCounts={new Map(purokCounts)}
+                selectedPurok={selectedPurok}
+                onPurokClick={(name) => {
                   setSelectedPurok(selectedPurok === name ? undefined : name);
                   setSelectedPointId(null);
                 }}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  textAlign: 'left',
-                }}
-              >
-                <span>{name}</span>
-                <Text strong type={selectedPurok === name ? undefined : 'secondary'}>
-                  {count}
+              />
+              <div className="heatmap-map-summary">
+                <Text className="heatmap-map-summary__eyebrow">
+                  {selectedPurok ? `${selectedPurok} selected` : 'All mapped incidents'}
                 </Text>
-              </Button>
-            ))}
-          </Space>
-        </Card>
-        <Card className="soft-card" title="Category concentration">
-          <Space direction="vertical" size={12} style={{ width: '100%' }}>
-            {categoryCounts.map(([category, count]) => (
-              <Card key={category} size="small">
-                <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                  <Text strong>{category}</Text>
-                  <Progress
-                    percent={categoryTotal ? Math.round((count / categoryTotal) * 100) : 0}
-                    status="normal"
-                    strokeColor="var(--brand-primary)"
-                  />
-                  <Text type="secondary">
-                    {count} of {categoryTotal} reports
+                <strong>{selectedPurok ? selectedPurokPoints.length : mapTotal}</strong>
+                <span>reports in current view</span>
+              </div>
+              <div className="heatmap-legend" aria-label="Map legend">
+                {heatmapMode === 'choropleth' ? (
+                  <>
+                    <span>Low</span>
+                    <i className="heatmap-legend__ramp" aria-hidden="true" />
+                    <span>High</span>
+                  </>
+                ) : (
+                  severityLevels.map((severity) => (
+                    <span key={severity} className="heatmap-legend__item">
+                      <i
+                        className={`heatmap-legend__dot heatmap-legend__dot--${severity.toLowerCase()}`}
+                        aria-hidden="true"
+                      />
+                      {severity}
+                    </span>
+                  ))
+                )}
+              </div>
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} xl={7}>
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Card className="soft-card heatmap-list-card" title="Purok incidents">
+              <div className="heatmap-list-meta">
+                <Text type="secondary">Ranked by current filtered reports</Text>
+                <Text strong>{mapTotal} total</Text>
+              </div>
+              <div className="heatmap-purok-list">
+                {purokCounts.map(([name, count]) => (
+                  <Button
+                    key={name}
+                    type="text"
+                    block
+                    className={`heatmap-purok-row${selectedPurok === name ? ' is-selected' : ''}`}
+                    aria-pressed={selectedPurok === name}
+                    onClick={() => {
+                      setSelectedPurok(selectedPurok === name ? undefined : name);
+                      setSelectedPointId(null);
+                    }}
+                  >
+                    <span className="heatmap-purok-row__name">{name}</span>
+                    <span className="heatmap-purok-row__count">{count}</span>
+                    <span className="heatmap-purok-row__track" aria-hidden="true">
+                      <span
+                        style={{
+                          width: `${purokCounts[0]?.[1] ? (count / purokCounts[0][1]) * 100 : 0}%`,
+                        }}
+                      />
+                    </span>
+                  </Button>
+                ))}
+              </div>
+            </Card>
+
+            {selectedPurok && (
+              <Card className="soft-card heatmap-summary-card" title={`${selectedPurok} summary`}>
+                <div className="heatmap-summary-stat">
+                  <strong>{selectedPurokPoints.length}</strong>
+                  <span>reports</span>
+                  <Text type="secondary">Ranked #{selectedPurokRank}</Text>
+                </div>
+                <div className="heatmap-summary-detail">
+                  <Text>Top category</Text>
+                  <strong>{topCategory || 'None'}</strong>
+                </div>
+                <div className="heatmap-severity-grid">
+                  {severityCounts.map(({ severity, count }) => (
+                    <div key={severity}>
+                      <span>{severity}</span>
+                      <strong>{count}</strong>
+                    </div>
+                  ))}
+                </div>
+                {(selectedCategory || selectedSeverity) && (
+                  <Text type="secondary" className="heatmap-filter-note">
+                    Results reflect the active filters.
                   </Text>
-                </Space>
+                )}
               </Card>
-            ))}
-            {selectedPurok && <Text type="secondary">Filtered by {selectedPurok}</Text>}
+            )}
+
+            <Card className="soft-card heatmap-category-card" title="Category concentration">
+              <div className="heatmap-category-list">
+                {categoryCounts.map(([category, count]) => (
+                  <div className="heatmap-category-row" key={category}>
+                    <div className="heatmap-category-row__topline">
+                      <Text strong>{category}</Text>
+                      <Text type="secondary">{count}</Text>
+                    </div>
+                    <Progress
+                      percent={categoryTotal ? Math.round((count / categoryTotal) * 100) : 0}
+                      showInfo={false}
+                      strokeColor="var(--brand-primary)"
+                      size="small"
+                    />
+                  </div>
+                ))}
+                {categoryCounts.length === 0 && (
+                  <Text type="secondary">No incidents match the current filters.</Text>
+                )}
+              </div>
+            </Card>
           </Space>
-        </Card>
-      </Col>
-    </Row>
+        </Col>
+      </Row>
+    </div>
   );
 }

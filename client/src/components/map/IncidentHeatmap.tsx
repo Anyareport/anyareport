@@ -7,6 +7,7 @@ import {
   Popup,
   TileLayer,
   Tooltip,
+  ZoomControl,
   useMap,
 } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -117,43 +118,6 @@ function createOnEachFeature({
   };
 }
 
-function ChoroplethLegend({ maxCount }: { maxCount: number }) {
-  const steps = [0, 0.25, 0.5, 0.75, 1];
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        bottom: 12,
-        left: 12,
-        zIndex: 1000,
-        background: 'var(--shared-color-white-alpha-92)',
-        borderRadius: 6,
-        padding: '8px 10px',
-        fontSize: 12,
-        boxShadow: '0 1px 4px var(--shared-color-black-alpha-20)',
-      }}
-    >
-      <div style={{ marginBottom: 4, fontWeight: 600 }}>Incidents</div>
-      <div style={{ display: 'flex', gap: 2 }}>
-        {steps.map((step) => (
-          <div
-            key={step}
-            style={{
-              width: 20,
-              height: 10,
-              background: getChoroplethColor(Math.round(step * maxCount), maxCount),
-            }}
-          />
-        ))}
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
-        <span>0</span>
-        <span>{maxCount}</span>
-      </div>
-    </div>
-  );
-}
-
 function IncidentDots({
   points,
   onPointClick,
@@ -232,6 +196,19 @@ function GradientLayer({ points }: { points: HeatmapPoint[] }) {
   return null;
 }
 
+function FitToBarangay() {
+  const map = useMap();
+
+  useEffect(() => {
+    const bounds = L.geoJSON(barangayData as FeatureCollection).getBounds();
+    if (bounds.isValid()) {
+      map.fitBounds(bounds.pad(0.04), { animate: false });
+    }
+  }, [map]);
+
+  return null;
+}
+
 export default function IncidentHeatmap({
   points,
   height = 460,
@@ -259,8 +236,11 @@ export default function IncidentHeatmap({
         center={center}
         zoom={15}
         scrollWheelZoom
+        zoomControl={false}
         style={{ height: '100%', width: '100%' }}
       >
+        <FitToBarangay />
+        <ZoomControl position="bottomleft" />
         <GeoJSON
           key={geoJsonKey}
           data={barangayData as FeatureCollection}
@@ -282,7 +262,6 @@ export default function IncidentHeatmap({
           />
         ) : null}
       </MapContainer>
-      {mode === 'choropleth' && <ChoroplethLegend maxCount={maxCount} />}
     </div>
   );
 }
