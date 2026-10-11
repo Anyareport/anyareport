@@ -307,9 +307,6 @@ export default function AdminAnalyticsPage() {
         </div>
         <Space wrap style={{ width: '100%' }}>
           {statusData.map((entry, index) => {
-            const percentage = analytics?.total
-              ? Math.round((entry.count / analytics.total) * 100)
-              : 0;
             return (
               <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <div
