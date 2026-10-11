@@ -731,7 +731,7 @@ export async function getReportAudit(req, res) {
   try {
     const report = await Report.findById(req.params.id).select('_id category referenceNumber');
     if (!report) return res.status(404).json({ error: 'Report not found' });
-    if (!['admin', 'secretary'].includes(req.userRole)) {
+    if (!['admin','captain','secretary'].includes(req.userRole)) {
       return res.status(403).json({ error: 'Insufficient permissions to view this report audit' });
     }
 
