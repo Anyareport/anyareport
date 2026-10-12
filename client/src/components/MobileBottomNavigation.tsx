@@ -13,7 +13,6 @@ interface MobileNavigationItem {
 interface MobileBottomNavigationProps {
   menuItems: ItemType[];
   badgeCounts?: Record<string, number>;
-  quietBadgeKeys?: string[];
   currentPath: string;
   primaryAction?: string;
   onNavigate: (path: string) => void;
@@ -55,7 +54,6 @@ function getActiveKey(items: MobileNavigationItem[], currentPath: string): strin
 export default function MobileBottomNavigation({
   menuItems,
   badgeCounts = {},
-  quietBadgeKeys = [],
   currentPath,
   primaryAction,
   onNavigate,
@@ -101,7 +99,7 @@ export default function MobileBottomNavigation({
                     count={badgeCounts[item.key]}
                     size="small"
                     overflowCount={99}
-                    color={quietBadgeKeys.includes(item.key) ? 'var(--text-tertiary)' : undefined}
+                    color="var(--brand-primary)"
                   >
                     {item.icon}
                   </Badge>

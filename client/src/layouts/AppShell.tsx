@@ -301,7 +301,6 @@ export default function AppShell({
         <MobileBottomNavigation
           menuItems={mobileMenuItems ?? menuItems}
           badgeCounts={menuBadgeCounts}
-          quietBadgeKeys={quietBadgeKeys}
           currentPath={location.pathname}
           primaryAction={mobilePrimaryAction}
           onNavigate={navigate}
