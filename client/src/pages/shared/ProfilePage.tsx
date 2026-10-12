@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { Button, Card, Col, Form, Input, Row, Space, Tag, Typography, message } from 'antd';
 import { api } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLang } from '../../contexts/LanguageContext';
 import { getRoleLabel } from '../../lib/roles';
 
 const { Text, Paragraph } = Typography;
@@ -12,7 +13,9 @@ interface ProfilePageProps {
 }
 
 export default function ProfilePage({ title }: ProfilePageProps) {
-  const { profile, refreshProfile } = useAuth();
+  const { profile, refreshProfile, role } = useAuth();
+  const { lang, t } = useLang();
+  const translate = lang === 'fil' && ['tanod', 'responder'].includes(role || '');
   const [form] = Form.useForm();
   const [editing, setEditing] = useState(false);
 
@@ -30,7 +33,7 @@ export default function ProfilePage({ title }: ProfilePageProps) {
     mutationFn: (values: { name: string; phone: string; address?: string }) =>
       api.patch('/api/auth/profile', values),
     onSuccess: async () => {
-      message.success('Profile updated');
+      message.success(translate ? t('profileUpdated') : 'Profile updated');
       await refreshProfile();
       setEditing(false);
     },
@@ -40,7 +43,7 @@ export default function ProfilePage({ title }: ProfilePageProps) {
   if (!profile) {
     return (
       <Card className="soft-card">
-        <Text>Profile not loaded.</Text>
+        <Text>{translate ? t('profileNotLoaded') : 'Profile not loaded.'}</Text>
       </Card>
     );
   }
@@ -50,11 +53,17 @@ export default function ProfilePage({ title }: ProfilePageProps) {
       <Col xs={24} lg={16}>
         <Card
           className="soft-card"
-          title={title}
-          extra={<Tag color={profile.status === 'active' ? 'green' : 'red'}>{profile.status}</Tag>}
+          title={translate ? t('profilePageHeading') : title}
+          extra={
+            <Tag color={profile.status === 'active' ? 'green' : 'red'}>
+              {translate && profile.status === 'active' ? t('active') : profile.status}
+            </Tag>
+          }
         >
           <Paragraph type="secondary" style={{ marginTop: -4 }}>
-            Account details and contact information for {getRoleLabel(profile.role)}.
+            {translate
+              ? t('accountDetails')
+              : `Account details and contact information for ${getRoleLabel(profile.role)}.`}
           </Paragraph>
 
           <Form
@@ -65,23 +74,31 @@ export default function ProfilePage({ title }: ProfilePageProps) {
               updateMutation.mutate(values);
             }}
           >
-            <Form.Item name="name" label="Full name" rules={[{ required: true }]}>
+            <Form.Item
+              name="name"
+              label={translate ? t('fullName') : 'Full name'}
+              rules={[{ required: true, message: translate ? t('nameRequired') : undefined }]}
+            >
               <Input disabled={!editing} />
             </Form.Item>
-            <Form.Item name="phone" label="Phone number" rules={[{ required: true }]}>
+            <Form.Item
+              name="phone"
+              label={translate ? t('phoneNumber') : 'Phone number'}
+              rules={[{ required: true, message: translate ? t('phoneRequired') : undefined }]}
+            >
               <Input disabled={!editing} />
             </Form.Item>
-            <Form.Item name="address" label="Address">
+            <Form.Item name="address" label={translate ? t('address') : 'Address'}>
               <Input.TextArea disabled={!editing} rows={3} />
             </Form.Item>
             <Space>
               {editing ? (
                 <>
                   <Button type="primary" htmlType="submit" loading={updateMutation.isPending}>
-                    Save changes
+                    {translate ? t('saveChanges') : 'Save changes'}
                   </Button>
                   <Button htmlType="button" onClick={() => setEditing(false)}>
-                    Cancel
+                    {translate ? t('cancel') : 'Cancel'}
                   </Button>
                 </>
               ) : (
@@ -94,7 +111,7 @@ export default function ProfilePage({ title }: ProfilePageProps) {
                     setEditing(true);
                   }}
                 >
-                  Edit profile
+                  {translate ? t('editProfile') : 'Edit profile'}
                 </Button>
               )}
             </Space>
@@ -103,12 +120,23 @@ export default function ProfilePage({ title }: ProfilePageProps) {
       </Col>
 
       <Col xs={24} lg={8}>
-        <Card className="soft-card" title="Account summary">
+        <Card className="soft-card" title={translate ? t('accountSummary') : 'Account summary'}>
           <Space direction="vertical" size={8}>
             <Text strong>{profile.email}</Text>
-            <Text type="secondary">Role: {getRoleLabel(profile.role)}</Text>
-            <Text type="secondary">Email verified: {profile.emailVerified ? 'Yes' : 'No'}</Text>
-            <Text type="secondary">Flagged reports: {profile.flaggedReportCount}</Text>
+            <Text type="secondary">
+              {translate ? t('role') : 'Role'}: {getRoleLabel(profile.role)}
+            </Text>
+            <Text type="secondary">
+              {translate ? t('emailVerified') : 'Email verified'}:{' '}
+              {translate
+                ? t(profile.emailVerified ? 'yes' : 'no')
+                : profile.emailVerified
+                  ? 'Yes'
+                  : 'No'}
+            </Text>
+            <Text type="secondary">
+              {translate ? t('flaggedReports') : 'Flagged reports'}: {profile.flaggedReportCount}
+            </Text>
           </Space>
         </Card>
       </Col>

@@ -13,6 +13,8 @@ import {
   matchesIncidentSearch,
 } from '../../lib/incidentUtils';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLang } from '../../contexts/LanguageContext';
+import { getLocalizedCategory } from '../../i18n/labels';
 
 export interface IncidentHistoryPageProps {
   variant?: 'admin' | 'responder';
@@ -37,6 +39,9 @@ export default function IncidentHistoryPage({
   const [location, setLocation] = useState('');
   const [severity, setSeverity] = useState(paramSeverity);
   const { role } = useAuth();
+  const { lang, t } = useLang();
+  const translate =
+    variant === 'responder' && lang === 'fil' && ['tanod', 'responder'].includes(role || '');
 
   const { data: reports = [] } = useQuery({
     queryKey: variant === 'responder' ? ['responder-history'] : ['admin-reports', status],
@@ -78,8 +83,11 @@ export default function IncidentHistoryPage({
     () =>
       [...new Set(reports.map((report) => report.category).filter(Boolean))]
         .sort()
-        .map((value) => ({ value, label: value })),
-    [reports]
+        .map((value) => ({
+          value,
+          label: translate ? getLocalizedCategory(value, null, t).category : value,
+        })),
+    [reports, t, translate]
   );
   const subcategoryOptions = useMemo(
     () =>
@@ -92,8 +100,11 @@ export default function IncidentHistoryPage({
         ),
       ]
         .sort()
-        .map((value) => ({ value, label: value })),
-    [category, reports]
+        .map((value) => ({
+          value,
+          label: translate ? getLocalizedCategory('', value, t).subcategory || value : value,
+        })),
+    [category, reports, t, translate]
   );
   const locationOptions = useMemo(
     () =>
@@ -200,10 +211,20 @@ export default function IncidentHistoryPage({
         setDate('');
       },
     },
-    category && { key: 'category', label: `Category: ${category}`, onClose: () => setCategory('') },
+    category && {
+      key: 'category',
+      label: `${translate ? t('categoryFilter') : 'Category'}: ${
+        translate ? getLocalizedCategory(category, null, t).category : category
+      }`,
+      onClose: () => setCategory(''),
+    },
     subcategory && {
       key: 'subcategory',
-      label: `Subcategory: ${subcategory}`,
+      label: `${translate ? t('subcategoryFilter') : 'Subcategory'}: ${
+        translate
+          ? getLocalizedCategory('', subcategory, t).subcategory || subcategory
+          : subcategory
+      }`,
       onClose: () => setSubcategory(''),
     },
     location && { key: 'location', label: `Location: ${location}`, onClose: () => setLocation('') },

@@ -7,6 +7,8 @@ import {
 import { Button, Drawer, Grid, Popover, Space, Tag, Typography } from 'antd';
 import { useState } from 'react';
 import { api } from '../lib/api';
+import { useAuth } from '../contexts/AuthContext';
+import { useLang } from '../contexts/LanguageContext';
 import './EmergencyHotline.css';
 
 const { Text } = Typography;
@@ -39,33 +41,35 @@ function getDialNumber(value: string, isNationalHotline = false) {
   return dialNumber;
 }
 
-function getContacts(): HotlineContact[] {
+function getContacts(translate: boolean): HotlineContact[] {
   return [
     {
       id: 'bfp',
       name: 'Bureau of Fire Protection',
-      description: 'BFP · fire and rescue',
+      description: translate ? 'BFP · sunog at rescue' : 'BFP · fire and rescue',
       number: import.meta.env.VITE_HOTLINE_BFP_NUMBER || '',
       icon: <FireOutlined />,
     },
     {
       id: 'pnp',
       name: 'Philippine National Police',
-      description: 'PNP · crime and public safety',
+      description: translate ? 'PNP · krimen at kaligtasan' : 'PNP · crime and public safety',
       number: import.meta.env.VITE_HOTLINE_PNP_NUMBER || '',
       icon: <SafetyOutlined />,
     },
     {
       id: 'red-cross',
       name: 'Philippine Red Cross',
-      description: 'Medical and ambulance assistance',
+      description: translate ? 'Tulong medikal at ambulansya' : 'Medical and ambulance assistance',
       number: import.meta.env.VITE_HOTLINE_RED_CROSS_NUMBER || '',
       icon: <MedicineBoxOutlined />,
     },
     {
       id: '911',
       name: 'National Emergency Hotline',
-      description: 'Police, fire, medical, and rescue',
+      description: translate
+        ? 'Pulis, bumbero, medikal, at rescue'
+        : 'Police, fire, medical, and rescue',
       number: '911',
       icon: <PhoneOutlined />,
     },
@@ -79,6 +83,10 @@ export default function EmergencyHotline({
   referenceNumber,
 }: EmergencyHotlineProps) {
   const screens = Grid.useBreakpoint();
+  const { role } = useAuth();
+  const { lang, t } = useLang();
+  const translate = lang === 'fil' && ['tanod', 'responder'].includes(role || '');
+  const text = (key: Parameters<typeof t>[0], english: string) => (translate ? t(key) : english);
   const [open, setOpen] = useState(false);
   const isMobile = !screens.md;
   const isCriminalCase = category === 'Blotter Cases' && subcategory === 'Criminal';
@@ -86,10 +94,12 @@ export default function EmergencyHotline({
 
   if (!reportId || (!isEmergency && !isCriminalCase)) return null;
 
-  const title = 'Call for help';
-  const incidentLabel = isCriminalCase ? 'Blotter · Criminal' : 'Emergency';
-  const subtitle = `${referenceNumber || 'Incident'} · ${incidentLabel}`;
-  const contacts = getContacts();
+  const title = text('callHelp', 'Call for help');
+  const incidentLabel = isCriminalCase
+    ? `${text('blotterCase', 'Blotter')} · ${text('criminal', 'Criminal')}`
+    : text('emergency', 'Emergency');
+  const subtitle = `${referenceNumber || text('incidentLabel', 'Incident')} · ${incidentLabel}`;
+  const contacts = getContacts(translate);
 
   const panel = (
     <div className={`emergency-hotline__panel${isMobile ? ' is-mobile' : ''}`}>
@@ -109,12 +119,12 @@ export default function EmergencyHotline({
               <div className="emergency-hotline__details">
                 <div className="emergency-hotline__name-line">
                   <Text strong>{contact.name}</Text>
-                  {isSuggested && <Tag color="blue">Criminal case</Tag>}
+                  {isSuggested && <Tag color="blue">{text('criminalCase', 'Criminal case')}</Tag>}
                 </div>
                 <Text type="secondary" className="emergency-hotline__description">
                   {dialNumber
                     ? `${contact.description} · ${contact.number}`
-                    : 'Number not configured'}
+                    : text('numberNotConfigured', 'Number not configured')}
                 </Text>
               </div>
               <Button
@@ -122,7 +132,7 @@ export default function EmergencyHotline({
                 icon={<PhoneOutlined />}
                 href={dialNumber ? `tel:${dialNumber}` : undefined}
                 disabled={!dialNumber}
-                aria-label={`Call ${contact.name}${dialNumber ? ` at ${contact.number}` : ''}`}
+                aria-label={`${text('call', 'Call')} ${contact.name}${dialNumber ? ` at ${contact.number}` : ''}`}
                 onClick={() => {
                   if (!dialNumber) return;
                   void api
@@ -132,22 +142,24 @@ export default function EmergencyHotline({
                     );
                 }}
               >
-                Call
+                {text('call', 'Call')}
               </Button>
             </div>
           );
         })}
       </Space>
       <Text type="secondary" className="emergency-hotline__note">
-        Tapping Call records “Hotline opened” on this incident. Anyareport cannot confirm whether
-        the call connected or was answered.
+        {text(
+          'hotlineNote',
+          'Tapping Call records “Hotline opened” on this incident. Anyareport cannot confirm whether the call connected or was answered.'
+        )}
       </Text>
     </div>
   );
 
   const trigger = (
     <Button block size="large" icon={<PhoneOutlined />} onClick={() => setOpen(true)}>
-      Hotlines
+      {text('hotlines', 'Hotlines')}
     </Button>
   );
 
@@ -164,7 +176,7 @@ export default function EmergencyHotline({
           title={<div className="emergency-hotline__drawer-title">{title}</div>}
           footer={
             <Button block onClick={() => setOpen(false)}>
-              Close
+              {text('close', 'Close')}
             </Button>
           }
           zIndex={1400}
@@ -184,7 +196,7 @@ export default function EmergencyHotline({
       placement="rightTop"
       title={
         <div className="emergency-hotline__popover-title">
-          <Text strong>Hotlines</Text>
+          <Text strong>{text('hotlines', 'Hotlines')}</Text>
           <Text type="secondary">{subtitle}</Text>
         </div>
       }

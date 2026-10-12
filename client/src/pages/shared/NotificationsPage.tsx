@@ -6,6 +6,7 @@ import { api, type NotificationFeedItem } from '../../lib/api';
 import { notificationFeedQueryKey, useNotificationFeed } from '../../lib/notificationFeed';
 import NotificationCard from '../../components/NotificationCard';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLang } from '../../contexts/LanguageContext';
 import { FilterControl } from '../../components/StatusFilter';
 import { registerPushToken } from '../../lib/pushNotifications';
 import {
@@ -33,6 +34,8 @@ function getDayGroup(value: string) {
 export default function NotificationsPage() {
   const queryClient = useQueryClient();
   const { role } = useAuth();
+  const { lang, t } = useLang();
+  const translate = lang === 'fil' && ['tanod', 'responder'].includes(role || '');
   const feed = useNotificationFeed();
   const [filter, setFilter] = useState<NotificationFilter>('all');
   const [notificationPermission, setNotificationPermission] =
@@ -84,7 +87,11 @@ export default function NotificationsPage() {
       invalidateFeed();
       queryClient.invalidateQueries({ queryKey: ['reports'] });
       message.success(
-        accepted ? 'You accepted the assistance request' : 'Assistance request declined'
+        translate
+          ? t(accepted ? 'assistanceAccepted' : 'assistanceDeclined')
+          : accepted
+            ? 'You accepted the assistance request'
+            : 'Assistance request declined'
       );
     },
     onError: (error: Error) => message.error(error.message),
@@ -95,10 +102,18 @@ export default function NotificationsPage() {
       const permission = await requestBrowserNotificationPermission();
       setNotificationPermission(permission);
       if (permission === 'granted' && !(await registerPushToken())) {
-        message.error('Push notifications are not configured for this app.');
+        message.error(
+          translate ? t('pushNotConfigured') : 'Push notifications are not configured for this app.'
+        );
       }
     } catch (error) {
-      message.error(error instanceof Error ? error.message : 'Could not enable notifications.');
+      message.error(
+        error instanceof Error
+          ? error.message
+          : translate
+            ? t('pushEnableFailed')
+            : 'Could not enable notifications.'
+      );
     }
   };
 
@@ -113,14 +128,20 @@ export default function NotificationsPage() {
   };
 
   const filterOptions = [
-    { label: `All ${counts.all}`, value: 'all' },
-    { label: `Unread ${counts.unread}`, value: 'unread' },
-    { label: `Alerts ${counts.alerts}`, value: 'alerts' },
-    { label: `Updates ${counts.updates}`, value: 'updates' },
+    { label: `${translate ? t('allNotifications') : 'All'} ${counts.all}`, value: 'all' },
+    { label: `${translate ? t('unread') : 'Unread'} ${counts.unread}`, value: 'unread' },
+    {
+      label: `${translate ? t('notificationAlerts') : 'Alerts'} ${counts.alerts}`,
+      value: 'alerts',
+    },
+    { label: `${translate ? t('updates') : 'Updates'} ${counts.updates}`, value: 'updates' },
   ];
 
   const dayGroups = ['Today', 'Yesterday', 'Earlier'].map((day) => ({
     day,
+    label: translate
+      ? t(day === 'Today' ? 'today' : day === 'Yesterday' ? 'yesterday' : 'earlier')
+      : day,
     items: filteredItems.filter((item) => getDayGroup(item.createdAt) === day),
   }));
 
@@ -130,25 +151,43 @@ export default function NotificationsPage() {
         <Alert
           type="success"
           showIcon
-          message="Push notifications are enabled for new incident updates."
+          message={
+            translate
+              ? t('pushEnabled')
+              : 'Push notifications are enabled for new incident updates.'
+          }
         />
       ) : notificationPermission === 'denied' ? (
         <Alert
           type="warning"
           showIcon
-          message="Push notifications are blocked. Allow notifications in your browser settings to enable them."
+          message={
+            translate
+              ? t('pushBlocked')
+              : 'Push notifications are blocked. Allow notifications in your browser settings to enable them.'
+          }
         />
       ) : notificationPermission === 'unsupported' ? (
-        <Alert type="info" showIcon message="This browser does not support push notifications." />
+        <Alert
+          type="info"
+          showIcon
+          message={
+            translate ? t('pushUnsupported') : 'This browser does not support push notifications.'
+          }
+        />
       ) : (
         <Alert
           type="info"
           showIcon
-          message="Get notified about new incident updates"
-          description="Enable browser notifications to receive alerts while using Anyareport."
+          message={translate ? t('getNotified') : 'Get notified about new incident updates'}
+          description={
+            translate
+              ? t('enableNotificationsDescription')
+              : 'Enable browser notifications to receive alerts while using Anyareport.'
+          }
           action={
             <Button size="small" icon={<BellOutlined />} onClick={enablePushNotifications}>
-              Enable
+              {translate ? t('enable') : 'Enable'}
             </Button>
           }
         />
@@ -158,7 +197,7 @@ export default function NotificationsPage() {
           value={filter}
           onChange={(value) => setFilter(value as NotificationFilter)}
           options={filterOptions}
-          ariaLabel="Filter notifications"
+          ariaLabel={translate ? t('filterNotifications') : 'Filter notifications'}
         />
         <Button
           type="default"
@@ -167,7 +206,7 @@ export default function NotificationsPage() {
           disabled={unreadCount === 0}
           onClick={() => markAllRead.mutate()}
         >
-          Mark all as read
+          {translate ? t('markAllRead') : 'Mark all as read'}
         </Button>
       </div>
 
@@ -179,30 +218,40 @@ export default function NotificationsPage() {
         <Alert
           type="error"
           showIcon
-          title="Notifications could not be loaded"
+          title={translate ? t('notificationsLoadError') : 'Notifications could not be loaded'}
           description={feed.error.message}
-          action={<Button onClick={() => feed.refetch()}>Retry</Button>}
+          action={
+            <Button onClick={() => feed.refetch()}>{translate ? t('retry') : 'Retry'}</Button>
+          }
         />
       ) : filteredItems.length === 0 ? (
         <div className="notifications-page__empty">
           {feed.hasNextPage && filter !== 'all' ? (
             <Text type="secondary">
-              No matching notifications on this page. Load older items to continue.
+              {translate
+                ? t('noMatchingNotifications')
+                : 'No matching notifications on this page. Load older items to continue.'}
             </Text>
           ) : (
             <Empty
-              description={filter === 'unread' ? 'You are all caught up' : 'No notifications yet'}
+              description={
+                translate
+                  ? t(filter === 'unread' ? 'allCaughtUp' : 'noNotificationsYet')
+                  : filter === 'unread'
+                    ? 'You are all caught up'
+                    : 'No notifications yet'
+              }
             />
           )}
         </div>
       ) : (
         <div>
           {dayGroups.map(
-            ({ day, items }) =>
+            ({ day, label, items }) =>
               items.length > 0 && (
-                <section key={day} aria-label={day}>
+                <section key={day} aria-label={label}>
                   <Title level={5} className="notification-day__heading">
-                    {day}
+                    {label}
                   </Title>
                   <Space direction="vertical" size={8} style={{ width: '100%' }}>
                     {items.map((item) => (
@@ -248,15 +297,15 @@ export default function NotificationsPage() {
           loading={feed.isFetchingNextPage}
           onClick={() => feed.fetchNextPage()}
         >
-          Load older notifications
+          {translate ? t('loadOlderNotifications') : 'Load older notifications'}
         </Button>
       )}
 
       <Modal
-        title="Assistance request"
+        title={translate ? t('assistanceRequest') : 'Assistance request'}
         open={!!dispatchInvite}
-        okText="Accept"
-        cancelText="Decline"
+        okText={translate ? t('accept') : 'Accept'}
+        cancelText={translate ? t('decline') : 'Decline'}
         confirmLoading={dispatchResponse.isPending}
         onOk={() => {
           if (dispatchInvite?.reportId) {
@@ -281,7 +330,9 @@ export default function NotificationsPage() {
       >
         <Text>
           {dispatchInvite?.message ||
-            'Would you like to accept this civil blotter assistance request?'}
+            (translate
+              ? t('acceptAssistancePrompt')
+              : 'Would you like to accept this civil blotter assistance request?')}
         </Text>
       </Modal>
     </Space>

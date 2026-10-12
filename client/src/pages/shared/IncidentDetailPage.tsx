@@ -161,6 +161,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const { profile, role } = useAuth();
   const { lang, t } = useLang();
   const useFilipinoLabels = lang === 'fil' && ['tanod', 'responder'].includes(role || '');
+  const text = (key: LabelKey, english: string) => (useFilipinoLabels ? t(key) : english);
   const [selectedResponderUids, setSelectedResponderUids] = useState<string[]>([]);
   const [resolutionOpen, setResolutionOpen] = useState(false);
   const [resolutionViewOpen, setResolutionViewOpen] = useState(false);
@@ -316,7 +317,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   }
 
   if (!report) {
-    return <Alert type="error" showIcon message="Report not found" />;
+    return <Alert type="error" showIcon message={text('reportNotFound', 'Report not found')} />;
   }
 
   const isResident = variant === 'resident';
@@ -356,8 +357,8 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       ? categoryLabels.subcategory || categoryLabels.category
       : report.subcategory || report.category);
   const referenceLabel = report.referenceNumber
-    ? `Reference ${report.referenceNumber}`
-    : 'Reference not assigned';
+    ? `${text('reference', 'Reference')} ${report.referenceNumber}`
+    : text('noReference', 'Reference not assigned');
   const reportHistory = report.statusHistory || [];
   const isCriminalBlotter = isBlotter && report.subcategory === 'Criminal';
   // Criminal blotter cases follow the responder workflow; Captain/Secretary dispatch and verify.
@@ -390,7 +391,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         role="region"
         aria-labelledby="incident-response-heading"
       >
-        <h2 id="incident-response-heading">Response</h2>
+        <h2 id="incident-response-heading">{text('responseHeading', 'Response')}</h2>
         {hotlineAction}
       </Card>
     ) : null;
@@ -588,7 +589,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       role="region"
       aria-labelledby="incident-actions-heading"
     >
-      <h2 id="incident-actions-heading">Actions</h2>
+      <h2 id="incident-actions-heading">{text('actionsHeading', 'Actions')}</h2>
       {oversightAction || (
         <Text type="secondary">
           {status === 'resolved'
@@ -617,16 +618,16 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       role="region"
       aria-labelledby="incident-actions-heading"
     >
-      <h2 id="incident-actions-heading">Response</h2>
+      <h2 id="incident-actions-heading">{text('responseHeading', 'Response')}</h2>
       {responderAction || (
         <Text type="secondary">
           {status === 'resolved'
-            ? 'This incident is resolved.'
+            ? text('incidentResolvedNotice', 'This incident is resolved.')
             : status === 'flagged'
-              ? 'This report is flagged for review.'
+              ? text('reportFlaggedNotice', 'This report is flagged for review.')
               : report.acknowledgedBy
-                ? `Being handled by ${report.acknowledgedByName || 'the lead responder'}.`
-                : 'No response action is available for this report.'}
+                ? `${text('beingHandledBy', 'Being handled by')} ${report.acknowledgedByName || text('leadResponder', 'the lead responder')}.`
+                : text('noResponseAction', 'No response action is available for this report.')}
         </Text>
       )}
       {hotlineAction}
@@ -715,7 +716,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       role="region"
       aria-labelledby="incident-actions-heading"
     >
-      <h2 id="incident-actions-heading">Monitoring</h2>
+      <h2 id="incident-actions-heading">{text('monitoringHeading', 'Monitoring')}</h2>
       <Text type="secondary">Field status changes are handled by tanods and responders.</Text>
     </Card>
   );
@@ -795,13 +796,17 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const reportHero = (
     <section
       className={photos.length ? 'incident-gallery' : 'incident-hero'}
-      aria-label={photos.length ? 'Report photo' : 'Incident location'}
+      aria-label={
+        photos.length
+          ? text('reportPhoto', 'Report photo')
+          : text('incidentLocation', 'Incident location')
+      }
     >
       {photos.length > 0 && activePhotoUrl ? (
         <div
           className="incident-gallery__stage"
           role="group"
-          aria-label={`Photo ${activePhotoIndex + 1} of ${photos.length}`}
+          aria-label={`${text('reportPhoto', 'Photo')} ${activePhotoIndex + 1} / ${photos.length}`}
           tabIndex={photos.length > 1 ? 0 : undefined}
           onTouchStart={handleGalleryTouchStart}
           onTouchEnd={handleGalleryTouchEnd}
@@ -817,7 +822,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
             <Image
               className="incident-gallery__image"
               src={activePhotoUrl}
-              alt={`Report photo ${activePhotoIndex + 1}`}
+              alt={`${text('reportPhoto', 'Report photo')} ${activePhotoIndex + 1}`}
             />
           </Image.PreviewGroup>
           {photos.length > 1 && (
@@ -826,16 +831,16 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                 className="incident-gallery__control incident-gallery__control--previous"
                 shape="circle"
                 icon={<LeftOutlined />}
-                aria-label="Previous photo"
-                title="Previous photo"
+                aria-label={text('previousPhoto', 'Previous photo')}
+                title={text('previousPhoto', 'Previous photo')}
                 onClick={showPreviousPhoto}
               />
               <Button
                 className="incident-gallery__control incident-gallery__control--next"
                 shape="circle"
                 icon={<RightOutlined />}
-                aria-label="Next photo"
-                title="Next photo"
+                aria-label={text('nextPhoto', 'Next photo')}
+                title={text('nextPhoto', 'Next photo')}
                 onClick={showNextPhoto}
               />
               <span className="incident-gallery__count" aria-live="polite">
@@ -848,7 +853,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         <div className="incident-hero-map">
           {variant === 'responder' ? (
             <section className="incident-route-section" aria-labelledby="incident-route-heading">
-              <h2 id="incident-route-heading">Route to incident</h2>
+              <h2 id="incident-route-heading">{text('routeToIncident', 'Route to incident')}</h2>
               <RouteMap incidentLat={latitude} incidentLng={longitude} />
               <Button
                 block
@@ -857,7 +862,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                 target="_blank"
                 rel="noreferrer"
               >
-                Open in Google Maps
+                {text('openMaps', 'Open in Google Maps')}
               </Button>
             </section>
           ) : (
@@ -876,67 +881,77 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         aria-labelledby="resolution-details-heading"
       >
         <div className="incident-panel-heading">
-          <h2 id="resolution-details-heading">Resolution Details</h2>
+          <h2 id="resolution-details-heading">{text('resolutionDetails', 'Resolution Details')}</h2>
         </div>
         <Button
           type="primary"
           onClick={() => setResolutionViewOpen(true)}
           style={{ width: '100%' }}
         >
-          View details
+          {text('viewDetails', 'View details')}
         </Button>
-        <Text type="secondary">Resolution details are available for review.</Text>
+        <Text type="secondary">
+          {text('resolutionAvailable', 'Resolution details are available for review.')}
+        </Text>
       </Card>
       <Modal
-        title="Resolution Details"
+        title={text('resolutionDetails', 'Resolution Details')}
         open={resolutionViewOpen}
         zIndex={1200}
         footer={null}
         onCancel={() => setResolutionViewOpen(false)}
       >
         <Space direction="vertical" size={8} style={{ width: '100%' }}>
-          <Text strong>Resolution Summary</Text>
+          <Text strong>{text('resolutionSummary', 'Resolution Summary')}</Text>
           <Paragraph>{report.resolution.summary}</Paragraph>
-          <Text strong>Actions Taken</Text>
+          <Text strong>{text('actionsTaken', 'Actions Taken')}</Text>
           <Paragraph>{report.resolution.actionsTaken}</Paragraph>
-          <Text strong>Outcome</Text>
+          <Text strong>{text('outcome', 'Outcome')}</Text>
           <Paragraph>{report.resolution.outcome}</Paragraph>
-          <Text strong>Further Action Required</Text>
-          <Text>{report.resolution.furtherActionRequired ? 'Yes' : 'No'}</Text>
+          <Text strong>{text('furtherActionRequired', 'Further Action Required')}</Text>
+          <Text>
+            {report.resolution.furtherActionRequired ? text('yes', 'Yes') : text('no', 'No')}
+          </Text>
           {report.resolution.furtherActionRequired && (
             <>
-              <Text strong>Further Action / Recommendation</Text>
+              <Text strong>
+                {text('furtherActionRecommendation', 'Further Action / Recommendation')}
+              </Text>
               <Paragraph>{report.resolution.furtherActionRecommendation}</Paragraph>
             </>
           )}
-          <Text strong>Assistance Requested</Text>
-          <Text>{report.resolution.assistanceRequested ? 'Yes' : 'No'}</Text>
+          <Text strong>{text('assistanceRequested', 'Assistance Requested')}</Text>
+          <Text>
+            {report.resolution.assistanceRequested ? text('yes', 'Yes') : text('no', 'No')}
+          </Text>
           {!!report.resolution.supportingEvidence.length && (
             <>
-              <Text strong>Supporting Evidence</Text>
+              <Text strong>{text('supportingEvidence', 'Supporting Evidence')}</Text>
               <Space wrap>
                 {report.resolution.supportingEvidence.map((evidence) => (
                   <Image
                     key={evidence}
                     width={96}
                     src={getPhotoUrl(evidence)}
-                    alt="Supporting evidence"
+                    alt={text('imageEvidence', 'Supporting evidence')}
                   />
                 ))}
               </Space>
             </>
           )}
           <Text>
-            Resolved By: {report.resolution.resolvedByName || report.resolution.resolvedBy}
+            {text('resolvedBy', 'Resolved By')}:{' '}
+            {report.resolution.resolvedByName || report.resolution.resolvedBy}
           </Text>
           <Text>
-            Resolved Date &amp; Time: {new Date(report.resolution.resolvedAt).toLocaleString()}
+            {text('resolvedDateTime', 'Resolved Date & Time')}:{' '}
+            {new Date(report.resolution.resolvedAt).toLocaleString()}
           </Text>
           <Text>
-            Verification:{' '}
+            {text('verification', 'Verification')}:{' '}
             {report.resolution.verificationStatus === 'verified'
-              ? `Verified by ${report.resolution.verifiedByName || report.resolution.verifiedBy} on ${new Date(report.resolution.verifiedAt || '').toLocaleString()}`
-              : 'Pending review'}
+              ? `${text('verifiedBy', 'Verified by')} ${report.resolution.verifiedByName || report.resolution.verifiedBy} · ${new Date(report.resolution.verifiedAt || '').toLocaleString()}`
+              : text('pendingReview', 'Pending review')}
           </Text>
           {canReviewResolution && report.resolution.verificationStatus !== 'verified' && (
             <Button
@@ -944,7 +959,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
               loading={verifyResolutionMutation.isPending}
               onClick={() => verifyResolutionMutation.mutate()}
             >
-              Verify resolution
+              {text('verifyResolution', 'Verify resolution')}
             </Button>
           )}
         </Space>
@@ -956,7 +971,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     <main className={`incident-detail incident-detail--${variant}`}>
       <header className="incident-detail-header">
         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
-          Back
+          {text('back', 'Back')}
         </Button>
         {/* {variant === 'admin' && <Text className="incident-role-label">{role?.toUpperCase()}</Text>} */}
       </header>
@@ -980,7 +995,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
 
             {description && (
               <section className="incident-description-section">
-                <h2>Report description</h2>
+                <h2>{text('reportDescription', 'Report description')}</h2>
                 <Paragraph className="incident-description">{description}</Paragraph>
               </section>
             )}
@@ -988,37 +1003,47 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
             {report.aiSummary && (
               <section className="incident-ai-summary">
                 <div className="incident-section-label">
-                  <RobotOutlined /> <Text strong>AI summary</Text>
+                  <RobotOutlined /> <Text strong>{text('aiSummaryLabel', 'AI summary')}</Text>
                 </div>
                 <Paragraph>{report.aiSummary}</Paragraph>
                 {report.aiSuggestedCategory && report.aiSuggestedCategory !== report.category && (
-                  <Text type="secondary">Suggested category: {report.aiSuggestedCategory}</Text>
+                  <Text type="secondary">
+                    {text('suggestedCategory', 'Suggested category')}:{' '}
+                    {useFilipinoLabels
+                      ? getLocalizedCategory(report.aiSuggestedCategory, null, t).category
+                      : report.aiSuggestedCategory}
+                  </Text>
                 )}
               </section>
             )}
 
-            <section className="incident-facts" aria-label="Report details">
+            <section
+              className="incident-facts"
+              aria-label={text('reportDetails', 'Report details')}
+            >
               <div className="incident-fact">
                 <EnvironmentOutlined />
-                <Text>{report.location?.address || 'Location unavailable'}</Text>
+                <Text>
+                  {report.location?.address || text('locationUnavailable', 'Location unavailable')}
+                </Text>
               </div>
               {!isResident && canViewReporter && (
                 <div className="incident-fact">
                   <UserOutlined />
                   {report.submitterName ? (
                     <Text>
-                      Reporter: {report.submitterName}
+                      {text('reporterLabel', 'Reporter')}: {report.submitterName}
                       {canViewReporterContact
                         ? report.submitterPhone
                           ? ` · ${report.submitterPhone}`
-                          : ' · No contact on file'
+                          : ` · ${text('noContact', 'No contact on file')}`
                         : ''}
                     </Text>
                   ) : (
                     <Text type="secondary">
                       {isResponder && report.acknowledgedBy !== profile?.firebaseUid
-                        ? 'Reporter hidden until you acknowledge'
-                        : 'Reporter details unavailable'}
+                        ? text('reporterHidden', 'Reporter hidden until you acknowledge')
+                        : text('reporterUnavailable', 'Reporter details unavailable')}
                     </Text>
                   )}
                 </div>
@@ -1026,13 +1051,15 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
               {isResponder && !canViewReporter && (
                 <div className="incident-fact">
                   <UserOutlined />
-                  <Text type="secondary">Reporter hidden until you acknowledge</Text>
+                  <Text type="secondary">
+                    {text('reporterHidden', 'Reporter hidden until you acknowledge')}
+                  </Text>
                 </div>
               )}
               {!isResident && report.acknowledgedBy && (
                 <div className="incident-participants">
                   <div className="incident-participant-group">
-                    <Text strong>Lead</Text>
+                    <Text strong>{text('lead', 'Lead')}</Text>
                     <span className="incident-participant-chip">
                       <Avatar size={22}>
                         {getInitials(report.acknowledgedByName || 'Responder')}
@@ -1042,7 +1069,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                   </div>
                   {backupResponderNames.length > 0 && (
                     <div className="incident-participant-group">
-                      <Text strong>Backup</Text>
+                      <Text strong>{text('backup', 'Backup')}</Text>
                       <div className="incident-participant-list">
                         {backupResponderNames.map((name) => (
                           <span key={name} className="incident-participant-chip">
@@ -1059,7 +1086,11 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
 
             {photos.length > 0 && (
               <section className="incident-location-section">
-                <h2>{variant === 'responder' ? 'Route to incident' : 'Location'}</h2>
+                <h2>
+                  {variant === 'responder'
+                    ? text('routeToIncident', 'Route to incident')
+                    : 'Location'}
+                </h2>
                 {variant === 'responder' ? (
                   <>
                     <RouteMap incidentLat={latitude} incidentLng={longitude} />
@@ -1071,7 +1102,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                       rel="noreferrer"
                       style={{ marginTop: 8 }}
                     >
-                      Open in Google Maps
+                      {text('openMaps', 'Open in Google Maps')}
                     </Button>
                   </>
                 ) : (
@@ -1092,11 +1123,11 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
               role="region"
               aria-labelledby="incident-timeline-heading"
             >
-              <h2 id="incident-timeline-heading">Timeline</h2>
+              <h2 id="incident-timeline-heading">{text('timeline', 'Timeline')}</h2>
               {reportHistory.length ? (
                 historyTimeline
               ) : (
-                <Empty description="No activity recorded" />
+                <Empty description={text('noActivity', 'No activity recorded')} />
               )}
             </Card>
           )}
@@ -1134,7 +1165,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       </div>
 
       <Modal
-        title="Resolution Details"
+        title={text('resolutionDetails', 'Resolution Details')}
         open={resolutionOpen}
         zIndex={1200}
         destroyOnClose
@@ -1151,47 +1182,49 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         >
           <Form.Item
             name="summary"
-            label="Resolution Summary"
-            rules={[
-              {
-                required: true,
-                whitespace: true,
-              },
-            ]}
-          >
-            <Input.TextArea rows={3} placeholder="Briefly describe what happened" />
-          </Form.Item>
-          <Form.Item
-            name="actionsTaken"
-            label="Actions Taken"
-            rules={[
-              {
-                required: true,
-                whitespace: true,
-              },
-            ]}
+            label={text('resolutionSummary', 'Resolution Summary')}
+            rules={[{ required: true, whitespace: true }]}
           >
             <Input.TextArea
               rows={3}
-              placeholder="Describe the actions or interventions performed."
+              placeholder={text('describeWhatHappened', 'Briefly describe what happened')}
+            />
+          </Form.Item>
+          <Form.Item
+            name="actionsTaken"
+            label={text('actionsTaken', 'Actions Taken')}
+            rules={[{ required: true, whitespace: true }]}
+          >
+            <Input.TextArea
+              rows={3}
+              placeholder={text(
+                'describeActions',
+                'Describe the actions or interventions performed.'
+              )}
             />
           </Form.Item>
           <Form.Item
             name="outcome"
-            label="Outcome"
-            rules={[{ required: true, whitespace: true, message: 'Describe the final result.' }]}
+            label={text('outcome', 'Outcome')}
+            rules={[
+              {
+                required: true,
+                whitespace: true,
+                message: text('describeFinalResult', 'Describe the final result.'),
+              },
+            ]}
           >
             <Input.TextArea rows={3} />
           </Form.Item>
           <Form.Item
             name="furtherActionRequired"
-            label="Further Action Required"
-            rules={[{ required: true, message: 'Select Yes or No.' }]}
+            label={text('furtherActionRequired', 'Further Action Required')}
+            rules={[{ required: true, message: text('selectYesNo', 'Select Yes or No.') }]}
           >
             <Radio.Group
               options={[
-                { label: 'Yes', value: true },
-                { label: 'No', value: false },
+                { label: text('yes', 'Yes'), value: true },
+                { label: text('no', 'No'), value: false },
               ]}
             />
           </Form.Item>
@@ -1205,18 +1238,24 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
               getFieldValue('furtherActionRequired') ? (
                 <Form.Item
                   name="furtherActionRecommendation"
-                  label="Further Action / Recommendation"
+                  label={text('furtherActionRecommendation', 'Further Action / Recommendation')}
                   rules={[
                     {
                       required: true,
                       whitespace: true,
-                      message: 'Provide the further action or recommendation.',
+                      message: text(
+                        'provideRecommendation',
+                        'Provide the further action or recommendation.'
+                      ),
                     },
                   ]}
                 >
                   <Input.TextArea
                     rows={2}
-                    placeholder="Example: Conduct a follow-up visit or refer the matter to the appropriate office."
+                    placeholder={text(
+                      'exampleRecommendation',
+                      'Example: Conduct a follow-up visit or refer the matter to the appropriate office.'
+                    )}
                   />
                 </Form.Item>
               ) : null
@@ -1224,17 +1263,17 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           </Form.Item>
           <Form.Item
             name="assistanceRequested"
-            label="Assistance Requested"
-            rules={[{ required: true, message: 'Select Yes or No.' }]}
+            label={text('assistanceRequested', 'Assistance Requested')}
+            rules={[{ required: true, message: text('selectYesNo', 'Select Yes or No.') }]}
           >
             <Radio.Group
               options={[
-                { label: 'Yes', value: true },
-                { label: 'No', value: false },
+                { label: text('yes', 'Yes'), value: true },
+                { label: text('no', 'No'), value: false },
               ]}
             />
           </Form.Item>
-          <Form.Item label="Supporting Evidence">
+          <Form.Item label={text('supportingEvidence', 'Supporting Evidence')}>
             <Upload
               beforeUpload={() => false}
               accept="image/*"
@@ -1245,12 +1284,14 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                 setEvidenceFiles((current) => current.filter((entry) => entry.uid !== file.uid));
               }}
             >
-              <Button>Upload photos</Button>
+              <Button>{text('uploadPhotos', 'Upload photos')}</Button>
             </Upload>
-            <Text type="secondary">Images only, up to 3 files and 5 MB each.</Text>
+            <Text type="secondary">
+              {text('evidenceLimit', 'Images only, up to 3 files and 5 MB each.')}
+            </Text>
           </Form.Item>
           <Button type="primary" htmlType="submit" loading={resolutionMutation.isPending} block>
-            Submit Resolution
+            {text('submitResolution', 'Submit Resolution')}
           </Button>
         </Form>
       </Modal>
@@ -1258,7 +1299,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       {showMobileResponderActions && (
         <details open className="incident-mobile-actions soft-card">
           <summary className="incident-mobile-actions__summary">
-            <span>Response</span>
+            <span>{text('responseHeading', 'Response')}</span>
             <DownOutlined className="incident-mobile-actions__chevron" aria-hidden="true" />
           </summary>
           <div className="incident-mobile-actions__content">

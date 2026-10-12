@@ -1,6 +1,8 @@
 import type { CSSProperties } from 'react';
 import { Tag } from 'antd';
 import { WarningOutlined } from '@ant-design/icons';
+import { useAuth } from '../contexts/AuthContext';
+import { useLang } from '../contexts/LanguageContext';
 
 export const SEVERITY_STYLES: Record<string, CSSProperties> = {
   Critical: {
@@ -36,16 +38,28 @@ export function getSeverityStyle(severity: string | null | undefined): CSSProper
 }
 
 export default function SeverityTag({ severity }: { severity: string | null | undefined }) {
+  const { role } = useAuth();
+  const { lang, t } = useLang();
   if (!severity) return null;
 
   const style = getSeverityStyle(severity);
+  const severityKey = {
+    Critical: 'severityCritical',
+    High: 'severityHigh',
+    Medium: 'severityMedium',
+    Low: 'severityLow',
+  } as const;
+  const label =
+    lang === 'fil' && ['tanod', 'responder'].includes(role || '') && severity in severityKey
+      ? t(severityKey[severity as keyof typeof severityKey])
+      : severity;
 
   return (
     <Tag
       style={{ ...style, border: 0, fontWeight: 600, marginInlineEnd: 0 }}
       icon={<WarningOutlined />}
     >
-      {severity}
+      {label}
     </Tag>
   );
 }

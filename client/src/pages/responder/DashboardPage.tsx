@@ -7,9 +7,11 @@ import IncidentList from '../../components/IncidentList';
 import KpiCard from '../../components/KpiCard';
 import { compareIncidentPriority } from '../../lib/sortUtils';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLang } from '../../contexts/LanguageContext';
 
 export default function ResponderDashboardPage() {
   const { profile } = useAuth();
+  const { t } = useLang();
 
   const { data: reports = [], isLoading: reportsLoading } = useQuery({
     queryKey: ['responder-reports'],
@@ -63,36 +65,36 @@ export default function ResponderDashboardPage() {
       <Row gutter={[16, 16]}>
         <Col xs={24} md={8}>
           <KpiCard
-            label="Active incidents"
+            label={t('activeIncidents')}
             value={activeReports.length}
             icon={<AlertOutlined />}
             tone={activeReports.length > 0 ? 'danger' : 'neutral'}
-            helper="Unacknowledged emergency reports"
+            helper={t('unacknowledgedEmergencyReports')}
           />
         </Col>
         <Col xs={24} md={8}>
           <KpiCard
-            label="Backup requests"
+            label={t('backupRequests')}
             value={otherIncidents.length}
             icon={<FireOutlined />}
             tone={otherIncidents.length > 0 ? 'warning' : 'neutral'}
-            helper="Open requests from other responders"
+            helper={t('openBackupRequests')}
           />
         </Col>
         <Col xs={24} md={8}>
           <KpiCard
-            label="In progress"
+            label={t('inProgressCases')}
             value={myActiveReports.filter((report) => report.status === 'in_progress').length}
             icon={<EnvironmentOutlined />}
             tone="accent"
-            helper="Cases you're currently handling"
+            helper={t('casesCurrentlyHandling')}
           />
         </Col>
       </Row>
 
       <Row gutter={[16, 16]}>
         <Col xs={24}>
-          <Card className="soft-card" title="My handled incidents">
+          <Card className="soft-card" title={t('myHandledIncidents')}>
             <IncidentList
               reports={myActiveReports.slice(0, 5)}
               loading={handledReportsLoading}
@@ -101,7 +103,7 @@ export default function ResponderDashboardPage() {
           </Card>
         </Col>
         <Col xs={24}>
-          <Card className="soft-card" title="Backup requests">
+          <Card className="soft-card" title={t('backupRequests')}>
             <IncidentList
               reports={otherIncidents.slice(0, 5)}
               loading={reportsLoading}

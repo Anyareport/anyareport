@@ -82,7 +82,7 @@ export default function IncidentList({
 
   const columns: ColumnsType<Report> = [
     {
-      title: 'Incident',
+      title: translate ? t('incident') : 'Incident',
       key: 'aiTitle',
       render: (_: unknown, report: Report) => (
         <Space direction="vertical" size={0}>
@@ -96,7 +96,7 @@ export default function IncidentList({
       ),
     },
     {
-      title: 'Severity',
+      title: translate ? t('severity') : 'Severity',
       dataIndex: 'severity',
       key: 'severity',
       sorter: compareSeverity,
@@ -104,7 +104,7 @@ export default function IncidentList({
       render: (severity: string | null) => (severity ? <SeverityTag severity={severity} /> : '—'),
     },
     {
-      title: 'Status',
+      title: translate ? t('status') : 'Status',
       dataIndex: 'status',
       key: 'status',
       sorter: compareStatus,
@@ -112,12 +112,12 @@ export default function IncidentList({
       render: (s: string) => <StatusTag status={s} />,
     },
     {
-      title: 'Location',
+      title: translate ? t('location') : 'Location',
       key: 'location',
       render: (_: unknown, r: Report) => getLocationLabel(r),
     },
     {
-      title: 'Submitted',
+      title: translate ? t('submitted') : 'Submitted',
       dataIndex: 'createdAt',
       key: 'createdAt',
       sorter: compareCreatedAt,
@@ -131,7 +131,7 @@ export default function IncidentList({
     ...(showSubmitter
       ? [
           {
-            title: 'Submitted By',
+            title: translate ? t('submittedBy') : 'Submitted By',
             key: 'submittedBy',
             render: (_: unknown, report: Report) => (
               <Space direction="vertical" size={0}>
