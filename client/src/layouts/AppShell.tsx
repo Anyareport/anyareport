@@ -4,6 +4,7 @@ import {
   DownOutlined,
   DoubleLeftOutlined,
   DoubleRightOutlined,
+  GlobalOutlined,
   LogoutOutlined,
   MenuOutlined,
   MoonOutlined,
@@ -99,6 +100,7 @@ export default function AppShell({
   const { profile, role } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { lang, setLang } = useLang();
+  const showLanguageToggle = ['tanod', 'responder'].includes(role || '');
   const navigationEntries = getNavigationEntries(menuItems);
   const normalizedPath = location.pathname.replace(/\/$/, '') || '/';
   const isResidentMapPage = role === 'resident' && normalizedPath === '/resident/map';
@@ -137,8 +139,31 @@ export default function AppShell({
   };
 
   const decoratedMenuItems = addMenuBadges(menuItems, menuBadgeCounts, quietBadgeKeys);
-  const accountMenuItems = [
+  const accountMenuItems: ItemType[] = [
     { key: 'profile', icon: <UserOutlined />, label: 'Profile' },
+    ...(showLanguageToggle
+      ? [
+          {
+            key: 'language-toggle',
+            icon: <GlobalOutlined />,
+            className: 'app-shell-language-toggle-item',
+            label: (
+              <Segmented
+                block
+                size={screens.md ? 'small' : 'large'}
+                aria-label="Language"
+                value={lang}
+                options={[
+                  { label: 'English', value: 'en' },
+                  { label: 'Filipino', value: 'fil' },
+                ]}
+                onChange={(value) => setLang(value as typeof lang)}
+                onClick={(event) => event.stopPropagation()}
+              />
+            ),
+          },
+        ]
+      : []),
     {
       key: 'theme',
       icon: theme === 'light' ? <MoonOutlined /> : <SunOutlined />,
@@ -211,18 +236,10 @@ export default function AppShell({
             )}
           </div>
           <h1 className="app-shell-header__title">{pageTitle}</h1>
-          {['tanod', 'responder'].includes(role || '') && (
-            <Segmented
-              size="small"
-              aria-label="Language"
-              value={lang.toUpperCase()}
-              options={['EN', 'FIL']}
-              onChange={(value) => setLang(value === 'FIL' ? 'fil' : 'en')}
-            />
-          )}
           <Dropdown
             trigger={['click']}
             menu={{
+              className: `app-shell-account-menu${showLanguageToggle ? ' app-shell-account-menu--language' : ''}`,
               items: accountMenuItems,
               onClick: ({ key }) => {
                 if (key === 'profile') navigate(profilePath);

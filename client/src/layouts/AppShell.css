@@ -108,6 +108,13 @@
   text-transform: uppercase;
 }
 
+.app-shell-account-menu.ant-menu .app-shell-language-toggle-item {
+  height: auto;
+  min-height: 44px;
+  padding-block: 4px;
+  line-height: 1.5;
+}
+
 .app-shell-menu-label {
   display: flex;
   min-width: 0;
@@ -301,6 +308,14 @@
   color: var(--text-secondary);
 }
 
+.app-shell-language-menu-label {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 @media (max-width: 767px) {
   .app-shell-header.ant-layout-header {
     height: 54px;
@@ -347,5 +362,15 @@
   .app-shell-user-trigger__identity,
   .app-shell-user-trigger__chevron {
     display: none;
+  }
+
+  .app-shell-account-menu--language {
+    min-width: 240px;
+  }
+
+  .app-shell-language-toggle-item {
+    height: auto !important;
+    padding-block: 6px !important;
+    cursor: default;
   }
 }
