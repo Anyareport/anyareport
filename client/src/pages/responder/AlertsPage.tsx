@@ -6,6 +6,8 @@ import { api, type Report } from '../../lib/api';
 import IncidentCard from '../../components/IncidentCard';
 import { compareDateAsc, compareSeverity } from '../../lib/sortUtils';
 import { FilterControl } from '../../components/StatusFilter';
+import { useLang } from '../../contexts/LanguageContext';
+import { getLocalizedCategory } from '../../i18n/labels';
 
 const { Text } = Typography;
 type AlertCategoryFilter = 'all' | 'emergency' | 'public-concern' | 'criminal';
@@ -25,6 +27,8 @@ function formatWaitingTime(createdAt: string) {
 }
 
 export default function ResponderAlertsPage() {
+  const { lang, t } = useLang();
+  const translate = lang === 'fil';
   const { data: reports = [], isLoading } = useQuery({
     queryKey: ['responder-alerts'],
     queryFn: () => api.get<Report[]>('/api/reports'),
@@ -61,10 +65,19 @@ export default function ResponderAlertsPage() {
   });
 
   const filterOptions = [
-    { label: `All ${alerts.length}`, value: 'all' },
-    { label: `Emergency ${emergencyCount}`, value: 'emergency' },
-    { label: `Public concern ${publicConcernCount}`, value: 'public-concern' },
-    { label: `Criminal ${criminalCount}`, value: 'criminal' },
+    { label: `${translate ? t('all') : 'All'} ${alerts.length}`, value: 'all' },
+    {
+      label: `${translate ? t('emergencyFilter') : 'Emergency'} ${emergencyCount}`,
+      value: 'emergency',
+    },
+    {
+      label: `${translate ? t('publicConcernFilter') : 'Public concern'} ${publicConcernCount}`,
+      value: 'public-concern',
+    },
+    {
+      label: `${translate ? t('criminalFilter') : 'Criminal'} ${criminalCount}`,
+      value: 'criminal',
+    },
   ];
 
   return (
@@ -73,7 +86,7 @@ export default function ResponderAlertsPage() {
         value={categoryFilter}
         onChange={(value) => setCategoryFilter(value as AlertCategoryFilter)}
         options={filterOptions}
-        ariaLabel="Filter alerts by category"
+        ariaLabel={translate ? t('filterAlerts') : 'Filter alerts by category'}
       />
 
       {isLoading ? (
@@ -82,8 +95,12 @@ export default function ResponderAlertsPage() {
         <Empty
           description={
             alerts.length === 0
-              ? 'No reports are waiting for a response'
-              : 'No alerts in this category'
+              ? translate
+                ? t('noReportsWaiting')
+                : 'No reports are waiting for a response'
+              : translate
+                ? t('noAlertsInCategory')
+                : 'No alerts in this category'
           }
         />
       ) : (
@@ -93,7 +110,19 @@ export default function ResponderAlertsPage() {
               <IncidentCard
                 key={report._id}
                 report={report}
-                title={report.aiTitle?.trim() || report.subcategory || report.category}
+                title={
+                  report.aiTitle?.trim() ||
+                  (translate
+                    ? (() => {
+                        const category = getLocalizedCategory(
+                          report.category,
+                          report.subcategory,
+                          t
+                        );
+                        return category.subcategory || category.category;
+                      })()
+                    : report.subcategory || report.category)
+                }
                 to={`/responder/incidents/${encodeURIComponent(report._id)}`}
                 showSubmitter={false}
                 showStatus={false}

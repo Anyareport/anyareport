@@ -12,6 +12,9 @@ import {
   getIncidentMeta,
   getLocationLabel,
 } from '../lib/incidentUtils';
+import { useAuth } from '../contexts/AuthContext';
+import { useLang } from '../contexts/LanguageContext';
+import { getLocalizedCategory } from '../i18n/labels';
 
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
@@ -35,7 +38,27 @@ export default function IncidentList({
 }: IncidentListProps) {
   const screens = useBreakpoint();
   const navigate = useNavigate();
+  const { role } = useAuth();
+  const { lang, t } = useLang();
+  const translate = lang === 'fil' && ['tanod', 'responder'].includes(role || '');
   const isMobile = !screens.md;
+
+  const getListTitle = (report: Report) => {
+    if (!translate || report.aiTitle?.trim() || report.description.trim()) {
+      return getIncidentLabel(report);
+    }
+    const categoryLabels = getLocalizedCategory(report.category, report.subcategory, t);
+    return categoryLabels.subcategory || categoryLabels.category;
+  };
+
+  const getListMeta = (report: Report) => {
+    if (!translate) return getIncidentMeta(report);
+    const categoryLabels = getLocalizedCategory(report.category, report.subcategory, t);
+    const categoryDetail = report.subcategory
+      ? `${categoryLabels.category} · ${categoryLabels.subcategory}`
+      : categoryLabels.category;
+    return [report.referenceNumber, categoryDetail].filter(Boolean).join(' · ');
+  };
 
   const handleClick = (id: string) => {
     if (onRowClick) onRowClick(id);
@@ -64,10 +87,10 @@ export default function IncidentList({
       render: (_: unknown, report: Report) => (
         <Space direction="vertical" size={0}>
           <Text strong ellipsis={{ tooltip: report.description }}>
-            {getIncidentLabel(report)}
+            {getListTitle(report)}
           </Text>
           <Text type="secondary" style={{ fontSize: 11 }}>
-            {getIncidentMeta(report)}
+            {getListMeta(report)}
           </Text>
         </Space>
       ),

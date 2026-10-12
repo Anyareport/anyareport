@@ -40,6 +40,8 @@ import SeverityTag from '../../components/SeverityTag';
 import EmergencyHotline from '../../components/EmergencyHotline';
 import { StaticMap, RouteMap } from '../../components/map/MapPicker';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLang } from '../../contexts/LanguageContext';
+import { getLocalizedCategory, getLocalizedStatus, type LabelKey } from '../../i18n/labels';
 import { notificationFeedQueryKey } from '../../lib/notificationFeed';
 import { invalidateReportQueries } from '../../lib/reportUpdates';
 import {
@@ -115,11 +117,14 @@ function getAuditLabel(entry: AuditLog) {
   }
 }
 
-function getHistoryLabel(status: string, actor?: string) {
+function getHistoryLabel(status: string, actor?: string, translate?: (key: LabelKey) => string) {
   const canonicalStatus = normalizeReportStatus(status);
-  if (canonicalStatus === 'coordinating') return `Acknowledged by ${actor || 'Responder'}`;
-  if (canonicalStatus === 'pending') return 'Report received';
-  const label = getStatusLabel(status);
+  if (canonicalStatus === 'coordinating') {
+    return `${translate ? translate('acknowledgedBy') : 'Acknowledged by'} ${actor || 'Responder'}`;
+  }
+  if (canonicalStatus === 'pending')
+    return translate ? translate('reportReceived') : 'Report received';
+  const label = translate ? getLocalizedStatus(status, translate) : getStatusLabel(status);
   return actor ? `${label} by ${actor}` : label;
 }
 
@@ -154,6 +159,8 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { profile, role } = useAuth();
+  const { lang, t } = useLang();
+  const useFilipinoLabels = lang === 'fil' && ['tanod', 'responder'].includes(role || '');
   const [selectedResponderUids, setSelectedResponderUids] = useState<string[]>([]);
   const [resolutionOpen, setResolutionOpen] = useState(false);
   const [resolutionViewOpen, setResolutionViewOpen] = useState(false);
@@ -185,7 +192,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       setEvidenceFiles([]);
       await invalidateReportViews();
       await queryClient.invalidateQueries({ queryKey: ['report-audit', id] });
-      message.success('Resolution submitted');
+      message.success(useFilipinoLabels ? t('resolutionSuccess') : 'Resolution submitted');
     },
     onError: (error: Error) => message.error(error.message),
   });
@@ -238,7 +245,12 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const updateStatus = useMutation({
     mutationFn: (status: 'in_progress' | 'resolved') =>
       api.patch<Report>(`/api/reports/${id}/status`, { status }),
-    onSuccess: invalidateReportViews,
+    onSuccess: async (_report, status) => {
+      await invalidateReportViews();
+      if (['tanod', 'responder'].includes(role || '')) {
+        message.success(t(status === 'in_progress' ? 'startWorkSuccess' : 'resolutionSuccess'));
+      }
+    },
     onError: (error: Error) => message.error(error.message),
   });
 
@@ -246,7 +258,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     mutationFn: () => api.patch<Report>(`/api/reports/${id}/acknowledge`, {}),
     onSuccess: async () => {
       await invalidateReportViews();
-      message.success('Incident acknowledged');
+      message.success(t('acknowledgeSuccess'));
     },
     onError: (error: Error) => message.error(error.message),
   });
@@ -255,7 +267,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     mutationFn: () => api.post<BackupRequestResponse>(`/api/reports/${id}/backup`, {}),
     onSuccess: async ({ alreadyRequested }) => {
       await invalidateReportViews();
-      message.success(alreadyRequested ? 'Backup is already requested' : 'Backup requested');
+      message.success(t(alreadyRequested ? 'requestBackupAlready' : 'requestBackupSuccess'));
     },
     onError: (error: Error) => message.error(error.message),
   });
@@ -266,7 +278,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     onSuccess: async ({ alreadyJoined }) => {
       await invalidateReportViews();
       await queryClient.invalidateQueries({ queryKey: notificationFeedQueryKey });
-      message.success(alreadyJoined ? 'You are already assisting' : 'You joined as backup');
+      message.success(t(alreadyJoined ? 'joinBackupAlready' : 'joinBackupSuccess'));
     },
     onError: (error: Error) => message.error(error.message),
   });
@@ -276,7 +288,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       api.post<{ report: Report; alreadyClosed: boolean }>(`/api/reports/${id}/backup/close`, {}),
     onSuccess: async ({ alreadyClosed }) => {
       await invalidateReportViews();
-      message.success(alreadyClosed ? 'Backup request is already closed' : 'No more backup needed');
+      message.success(t(alreadyClosed ? 'closeBackupAlready' : 'closeBackupSuccess'));
     },
     onError: (error: Error) => message.error(error.message),
   });
@@ -337,7 +349,12 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const activePhotoUrl = activePhoto ? getPhotoUrl(activePhoto) : undefined;
   const [longitude, latitude] = report.location?.coordinates || [0, 0];
   const description = report.description.trim();
-  const title = report.aiTitle?.trim() || report.subcategory || report.category;
+  const categoryLabels = getLocalizedCategory(report.category, report.subcategory, t);
+  const title =
+    report.aiTitle?.trim() ||
+    (useFilipinoLabels
+      ? categoryLabels.subcategory || categoryLabels.category
+      : report.subcategory || report.category);
   const referenceLabel = report.referenceNumber
     ? `Reference ${report.referenceNumber}`
     : 'Reference not assigned';
@@ -441,7 +458,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       loading={joinBackupMutation.isPending}
       onClick={() => joinBackupMutation.mutate()}
     >
-      Join as assisting responder
+      {t('joinBackup')}
     </Button>
   ) : isResponder && !report.acknowledgedBy && status === 'pending' ? (
     <Button
@@ -452,7 +469,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       loading={acknowledgeMutation.isPending}
       onClick={() => acknowledgeMutation.mutate()}
     >
-      Acknowledge
+      {t('acknowledge')}
     </Button>
   ) : canStartFieldWork ? (
     <Button
@@ -463,7 +480,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       loading={updateStatus.isPending}
       onClick={() => updateStatus.mutate('in_progress')}
     >
-      Start work
+      {t('startWork')}
     </Button>
   ) : canResolveFieldWork ? (
     <Button
@@ -474,7 +491,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       loading={updateStatus.isPending}
       onClick={() => setResolutionOpen(true)}
     >
-      Mark resolved
+      {t('resolve')}
     </Button>
   ) : null;
 
@@ -620,7 +637,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           loading={backupMutation.isPending}
           onClick={() => backupMutation.mutate()}
         >
-          {openBackupRequest ? 'Backup requested' : 'Request backup'}
+          {openBackupRequest ? t('requestBackupSuccess') : t('requestBackup')}
         </Button>
       )}
       {isOwner && canUseResponderBackup && !isTerminalStatus && openBackupRequest && (
@@ -631,7 +648,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           loading={closeBackupMutation.isPending}
           onClick={() => closeBackupMutation.mutate()}
         >
-          Enough help
+          {t('closeBackup')}
         </Button>
       )}
     </Card>
@@ -710,7 +727,11 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         children: (
           <div className="incident-timeline-entry">
             <Text strong>
-              {getHistoryLabel(entry.status, isResident ? undefined : entry.updatedBy)}
+              {getHistoryLabel(
+                entry.status,
+                isResident ? undefined : entry.updatedBy,
+                useFilipinoLabels ? (key) => t(key) : undefined
+              )}
             </Text>
             <Text type="secondary">{new Date(entry.timestamp).toLocaleString()}</Text>
           </div>
@@ -739,8 +760,16 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const titleBlock = (
     <div className="incident-title-block">
       <Text className="incident-eyebrow">
-        {isBlotter ? 'Blotter case' : report.category}
-        {report.subcategory ? ` · ${report.subcategory}` : ''}
+        {isBlotter
+          ? useFilipinoLabels
+            ? t('blotterCase')
+            : 'Blotter case'
+          : useFilipinoLabels
+            ? categoryLabels.category
+            : report.category}
+        {report.subcategory
+          ? ` · ${useFilipinoLabels ? categoryLabels.subcategory : report.subcategory}`
+          : ''}
       </Text>
       <Title level={1}>{title}</Title>
       <Space wrap size={[8, 8]} className="incident-meta-tags">
@@ -759,6 +788,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       category={report.category}
       subcategory={report.subcategory}
       status={status}
+      translate={useFilipinoLabels}
     />
   );
 

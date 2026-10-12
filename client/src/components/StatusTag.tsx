@@ -1,5 +1,8 @@
 import { Tag } from 'antd';
 import { getStatusLabel, normalizeReportStatus } from '../lib/reportWorkflow';
+import { useAuth } from '../contexts/AuthContext';
+import { useLang } from '../contexts/LanguageContext';
+import { getLocalizedStatus } from '../i18n/labels';
 
 const statusStyles: Record<
   string,
@@ -53,6 +56,8 @@ const statusStyles: Record<
 };
 
 export default function StatusTag({ status }: { status: string }) {
+  const { role } = useAuth();
+  const { lang, t } = useLang();
   const displayStatus = normalizeReportStatus(status);
   const style = statusStyles[displayStatus] ?? {
     backgroundColor: 'var(--neutral-100)',
@@ -60,7 +65,12 @@ export default function StatusTag({ status }: { status: string }) {
     color: 'var(--text-secondary)',
   };
 
-  return <Tag style={{ ...style, border: 0, fontWeight: 600 }}>{formatStatus(status)}</Tag>;
+  const label =
+    lang === 'fil' && ['tanod', 'responder'].includes(role || '')
+      ? getLocalizedStatus(status, t)
+      : formatStatus(status);
+
+  return <Tag style={{ ...style, border: 0, fontWeight: 600 }}>{label}</Tag>;
 }
 
 export function formatStatus(status: string) {

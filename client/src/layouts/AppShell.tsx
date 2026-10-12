@@ -1,4 +1,4 @@
-import { Avatar, Badge, Button, Drawer, Dropdown, Grid, Layout, Menu } from 'antd';
+import { Avatar, Badge, Button, Drawer, Dropdown, Grid, Layout, Menu, Segmented } from 'antd';
 import type { ItemType } from 'antd/es/menu/interface';
 import {
   DownOutlined,
@@ -18,6 +18,7 @@ import { logout } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { getRoleLabel } from '../lib/roles';
 import { useTheme } from '../contexts/ThemeContext';
+import { useLang } from '../contexts/LanguageContext';
 import './AppShell.css';
 
 const { Header, Content, Sider } = Layout;
@@ -97,6 +98,7 @@ export default function AppShell({
   const [collapsed, setCollapsed] = useState(false);
   const { profile, role } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { lang, setLang } = useLang();
   const navigationEntries = getNavigationEntries(menuItems);
   const normalizedPath = location.pathname.replace(/\/$/, '') || '/';
   const isResidentMapPage = role === 'resident' && normalizedPath === '/resident/map';
@@ -209,6 +211,15 @@ export default function AppShell({
             )}
           </div>
           <h1 className="app-shell-header__title">{pageTitle}</h1>
+          {['tanod', 'responder'].includes(role || '') && (
+            <Segmented
+              size="small"
+              aria-label="Language"
+              value={lang.toUpperCase()}
+              options={['EN', 'FIL']}
+              onChange={(value) => setLang(value === 'FIL' ? 'fil' : 'en')}
+            />
+          )}
           <Dropdown
             trigger={['click']}
             menu={{

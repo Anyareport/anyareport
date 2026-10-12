@@ -10,8 +10,10 @@ import { useQuery } from '@tanstack/react-query';
 import AppShell from './AppShell';
 import { api, type Report } from '../lib/api';
 import { useNotificationFeed } from '../lib/notificationFeed';
+import { useLang } from '../contexts/LanguageContext';
 
 export default function ResponderShell() {
+  const { t } = useLang();
   const { data: reports = [] } = useQuery({
     queryKey: ['responder-reports'],
     queryFn: () => api.get<Report[]>('/api/reports'),
@@ -27,21 +29,21 @@ export default function ResponderShell() {
 
   const menuItems = useMemo(
     () => [
-      { key: '/responder', icon: <DashboardOutlined />, label: 'Dashboard' },
+      { key: '/responder', icon: <DashboardOutlined />, label: t('dashboard') },
       {
         key: '/responder/alerts',
         icon: <AlertOutlined />,
-        label: 'Alerts',
+        label: t('alerts'),
       },
-      { key: '/responder/history', icon: <HistoryOutlined />, label: 'History' },
+      { key: '/responder/history', icon: <HistoryOutlined />, label: t('history') },
       {
         key: '/responder/notifications',
         icon: <BellOutlined />,
-        label: 'Notifications',
+        label: t('notifications'),
       },
-      { key: '/responder/profile', icon: <UserOutlined />, label: 'Profile' },
+      { key: '/responder/profile', icon: <UserOutlined />, label: t('profile') },
     ],
-    []
+    [t]
   );
 
   return (

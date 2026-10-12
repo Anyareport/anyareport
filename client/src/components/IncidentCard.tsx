@@ -11,6 +11,9 @@ import {
 import SeverityTag, { getSeverityStyle } from './SeverityTag';
 import StatusTag from './StatusTag';
 import FeedCard from './FeedCard';
+import { useAuth } from '../contexts/AuthContext';
+import { useLang } from '../contexts/LanguageContext';
+import { getLocalizedCategory } from '../i18n/labels';
 
 const { Text } = Typography;
 
@@ -49,7 +52,25 @@ export default function IncidentCard({
   actions,
   className,
 }: IncidentCardProps) {
-  const title = titleOverride || getIncidentLabel(report);
+  const { role } = useAuth();
+  const { lang, t } = useLang();
+  const translate = lang === 'fil' && ['tanod', 'responder'].includes(role || '');
+  const categoryLabels = getLocalizedCategory(report.category, report.subcategory, t);
+  const title =
+    titleOverride ||
+    (translate && !report.aiTitle?.trim() && !report.description.trim()
+      ? categoryLabels.subcategory || categoryLabels.category
+      : getIncidentLabel(report));
+  const meta = translate
+    ? [
+        report.referenceNumber,
+        report.subcategory
+          ? `${categoryLabels.category} · ${categoryLabels.subcategory}`
+          : categoryLabels.category,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : getIncidentMeta(report);
   const description = report.description.trim();
   const displayedDescription =
     descriptionMaxLength && description.length > descriptionMaxLength
@@ -82,7 +103,7 @@ export default function IncidentCard({
         {title}
       </Text>
       <Text type="secondary" style={{ fontSize: 12 }}>
-        {getIncidentMeta(report)}
+        {meta}
       </Text>
       {showDescription && displayedDescription && (
         <Text

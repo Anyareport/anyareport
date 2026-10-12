@@ -8,19 +8,22 @@ import { AntdThemeProvider } from './theme/AntdThemeProvider';
 import { queryClient } from './lib/queryClient';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider>
-      <AntdThemeProvider>
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <BrowserRouter>
-              <App />
-            </BrowserRouter>
-          </AuthProvider>
-        </QueryClientProvider>
-      </AntdThemeProvider>
-    </ThemeProvider>
+    <LanguageProvider>
+      <ThemeProvider>
+        <AntdThemeProvider>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+              <BrowserRouter>
+                <App />
+              </BrowserRouter>
+            </AuthProvider>
+          </QueryClientProvider>
+        </AntdThemeProvider>
+      </ThemeProvider>
+    </LanguageProvider>
   </StrictMode>
 );
