@@ -1,4 +1,4 @@
-import { Table, Grid, Typography, Space } from 'antd';
+import { Empty, Table, Grid, Spin, Typography, Space } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
 import type { Report } from '../lib/api';
@@ -68,14 +68,22 @@ export default function IncidentList({
   if (layout === 'cards' || (layout === 'responsive' && isMobile)) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {reports.map((r) => (
-          <IncidentCard
-            key={r._id}
-            report={r}
-            onClick={() => handleClick(r._id)}
-            showSubmitter={showSubmitter}
-          />
-        ))}
+        {loading ? (
+          <div style={{ minHeight: 96, display: 'grid', placeItems: 'center' }}>
+            <Spin />
+          </div>
+        ) : reports.length === 0 ? (
+          <Empty description={translate ? t('noIncidentsInList') : 'No data'} />
+        ) : (
+          reports.map((r) => (
+            <IncidentCard
+              key={r._id}
+              report={r}
+              onClick={() => handleClick(r._id)}
+              showSubmitter={showSubmitter}
+            />
+          ))
+        )}
       </div>
     );
   }

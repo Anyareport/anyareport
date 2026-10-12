@@ -47,6 +47,7 @@ export const labels = {
     fil: 'Walang report na naghihintay ng aksyon',
   },
   noAlertsInCategory: { en: 'No alerts in this category', fil: 'Walang alert sa kategoryang ito' },
+  noIncidentsInList: { en: 'No data', fil: 'Walang incident' },
   pending: { en: 'Pending', fil: 'Naghihintay' },
   coordinating: { en: 'Coordinating', fil: 'Tinanggap' },
   inProgress: { en: 'In Progress', fil: 'Kumikilos' },
