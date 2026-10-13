@@ -48,8 +48,9 @@ const SUBCATEGORY_MAP: Record<string, string[]> = {
 
 interface SubmitReportFormProps {
   selectedLocation: [number, number] | null;
+  selectedLocationMethod: 'map' | 'gps' | null;
   onPickLocation: () => void;
-  onLocationChange: (position: [number, number]) => void;
+  onLocationChange: (position: [number, number], method: 'map' | 'gps') => void;
 }
 
 interface ClassificationResult {
@@ -69,6 +70,7 @@ interface ReportFormValues {
 
 export default function SubmitReportForm({
   selectedLocation,
+  selectedLocationMethod,
   onPickLocation,
   onLocationChange,
 }: SubmitReportFormProps) {
@@ -305,7 +307,7 @@ export default function SubmitReportForm({
           return;
         }
 
-        onLocationChange(point);
+        onLocationChange(point, 'gps');
         message.success('Location detected via GPS.');
       },
       () => message.error('Could not get your location. Please tap the map instead.')
@@ -363,10 +365,28 @@ export default function SubmitReportForm({
                   width: '100%',
                 }}
               >
-                <Button icon={<EnvironmentOutlined />} onClick={onPickLocation}>
+                <Button
+                  aria-pressed={selectedLocationMethod === 'map'}
+                  style={
+                    selectedLocationMethod === 'map'
+                      ? { outline: '2px solid var(--brand-primary)', outlineOffset: 1 }
+                      : undefined
+                  }
+                  icon={<EnvironmentOutlined />}
+                  onClick={onPickLocation}
+                >
                   Pick on map
                 </Button>
-                <Button icon={<SendOutlined />} onClick={handleUseGPS}>
+                <Button
+                  aria-pressed={selectedLocationMethod === 'gps'}
+                  style={
+                    selectedLocationMethod === 'gps'
+                      ? { outline: '2px solid var(--brand-primary)', outlineOffset: 1 }
+                      : undefined
+                  }
+                  icon={<SendOutlined />}
+                  onClick={handleUseGPS}
+                >
                   Use my location
                 </Button>
               </div>

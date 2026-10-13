@@ -39,6 +39,7 @@ export default function MapPage() {
 
   const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<[number, number] | null>(null);
+  const [selectedLocationMethod, setSelectedLocationMethod] = useState<'map' | 'gps' | null>(null);
   const [isPickingLocation, setIsPickingLocation] = useState(false);
   const selectedReport = reports.find((report) => report._id === selectedPointId);
   const touchStartY = useRef<number | null>(null);
@@ -53,18 +54,19 @@ export default function MapPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedPointId]);
 
-  const handleLocationChange = (position: [number, number]) => {
+  const handleLocationChange = (position: [number, number], method: 'map' | 'gps') => {
     if (!isInsideBarangayBoundary(position, barangayData as FeatureCollection)) {
       message.error('Choose a location inside the barangay boundary.');
       return false;
     }
 
     setSelectedLocation(position);
+    setSelectedLocationMethod(method);
     return true;
   };
 
   const handleLocationPick = (position: [number, number]) => {
-    if (!handleLocationChange(position)) return;
+    if (!handleLocationChange(position, 'map')) return;
 
     setIsPickingLocation(false);
     navigate('/resident/report');
@@ -161,6 +163,7 @@ export default function MapPage() {
       >
         <SubmitReportForm
           selectedLocation={selectedLocation}
+          selectedLocationMethod={selectedLocationMethod}
           onPickLocation={() => {
             navigate('/resident/map', { replace: true });
             setIsPickingLocation(true);
