@@ -14,7 +14,7 @@ import FeedCard from './FeedCard';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LanguageContext';
 import { useTranslatedTexts } from '../lib/translation';
-import TranslationNote from './TranslationNote';
+
 import { getLocalizedCategory } from '../i18n/labels';
 
 const { Text } = Typography;
