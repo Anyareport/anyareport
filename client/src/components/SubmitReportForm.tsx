@@ -30,6 +30,7 @@ import { api, type Category } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import type { FeatureCollection } from 'geojson';
 import { findContainingPurok, isInsideBarangayBoundary } from '../components/map/MapPicker';
+import SeverityTag from './SeverityTag';
 import barangayData from '../data/DMM.json';
 import { compressImage } from '../lib/imageCompressor';
 
@@ -589,34 +590,25 @@ export default function SubmitReportForm({
               {form.getFieldValue('description') || <Text type="secondary">None provided</Text>}
             </Descriptions.Item>
             <Descriptions.Item label="Location">
-              {selectedLocation
-                ? `${selectedLocation[0].toFixed(6)}, ${selectedLocation[1].toFixed(6)}`
-                : 'Not set'}
-            </Descriptions.Item>
-            <Descriptions.Item label="Address">
-              {form.getFieldValue('address') || <Text type="secondary">Not provided</Text>}
+              {form.getFieldValue('address')?.replace(barangaySuffixPattern, '') || (
+                <Text type="secondary">Not provided</Text>
+              )}
             </Descriptions.Item>
             <Descriptions.Item label="Category">
-              <Tag color="var(--brand-navy)">{form.getFieldValue('category')}</Tag>
-              <Tag color="var(--neutral-100)" style={{ color: 'var(--text-primary)' }}>
-                {form.getFieldValue('subcategory')}
-              </Tag>
+              {[form.getFieldValue('category'), form.getFieldValue('subcategory')]
+                .filter(Boolean)
+                .join(' · ')}
             </Descriptions.Item>
             <Descriptions.Item label="Severity">
-              <Tag
-                color="var(--severity-critical-tag)"
-                style={{ color: 'var(--shared-color-white)' }}
-              >
-                {form.getFieldValue('severity')}
-              </Tag>
+              <SeverityTag severity={form.getFieldValue('severity')} />
             </Descriptions.Item>
           </Descriptions>
         </div>
 
         {/* Navigation */}
-        <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+        <div style={{ display: 'flex', gap: 8, width: '100%', marginTop: 12 }}>
           {currentStep > 0 && (
-            <Button style={{ flex: 1, minWidth: 0 }} onClick={goBack}>
+            <Button size="large" style={{ flex: 1, minWidth: 0 }} onClick={goBack}>
               Previous
             </Button>
           )}
@@ -624,6 +616,7 @@ export default function SubmitReportForm({
           {currentStep < 2 && (
             <Button
               type="primary"
+              size="large"
               style={{ flex: 1, minWidth: 0 }}
               onClick={goNext}
               disabled={classifyMutation.isPending}
@@ -635,7 +628,6 @@ export default function SubmitReportForm({
           {currentStep === 2 && (
             <Button
               type="primary"
-              danger
               size="large"
               style={{ flex: 1, minWidth: 0 }}
               loading={submitMutation.isPending}
