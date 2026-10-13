@@ -389,9 +389,9 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       <Card
         className="soft-card incident-side-section incident-mobile-hide-panel"
         role="region"
-        aria-labelledby="incident-response-heading"
+        aria-label={text('responseHeading', 'Response')}
+        title={text('responseHeading', 'Response')}
       >
-        <h2 id="incident-response-heading">{text('responseHeading', 'Response')}</h2>
         {hotlineAction}
       </Card>
     ) : null;
@@ -524,9 +524,9 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     <Card
       className="soft-card incident-side-section incident-mobile-hide-panel"
       role="region"
-      aria-labelledby="incident-dispatch-heading"
+      aria-label="Dispatch response team"
+      title="Dispatch response team"
     >
-      <h2 id="incident-dispatch-heading">Dispatch response team</h2>
       <Text type="secondary">
         {status === 'in_progress'
           ? 'Select available tanods or responders to assist'
@@ -587,9 +587,9 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     <Card
       className="soft-card incident-side-section incident-mobile-hide-panel"
       role="region"
-      aria-labelledby="incident-actions-heading"
+      aria-label={text('actionsHeading', 'Actions')}
+      title={text('actionsHeading', 'Actions')}
     >
-      <h2 id="incident-actions-heading">{text('actionsHeading', 'Actions')}</h2>
       {oversightAction || (
         <Text type="secondary">
           {status === 'resolved'
@@ -616,9 +616,9 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     <Card
       className="soft-card incident-side-section incident-mobile-hide-panel"
       role="region"
-      aria-labelledby="incident-actions-heading"
+      aria-label={text('responseHeading', 'Response')}
+      title={text('responseHeading', 'Response')}
     >
-      <h2 id="incident-actions-heading">{text('responseHeading', 'Response')}</h2>
       {responderAction || (
         <Text type="secondary">
           {status === 'resolved'
@@ -657,9 +657,9 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     <Card
       className="soft-card incident-side-section incident-mobile-hide-panel"
       role="region"
-      aria-labelledby="incident-access-heading"
+      aria-label="Access"
+      title="Access"
     >
-      <h2 id="incident-access-heading">Access</h2>
       <Text type="secondary">
         Read-only. Admins manage accounts and system logs, not incident status.
       </Text>
@@ -681,9 +681,9 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     <Card
       className="soft-card incident-side-section incident-mobile-hide-panel"
       role="region"
-      aria-labelledby="incident-actions-heading"
+      aria-label="Actions"
+      title="Actions"
     >
-      <h2 id="incident-actions-heading">Actions</h2>
       {oversightAction || (
         <Text type="secondary">
           {role === 'captain'
@@ -714,9 +714,9 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     <Card
       className="soft-card incident-side-section incident-mobile-hide-panel"
       role="region"
-      aria-labelledby="incident-actions-heading"
+      aria-label={text('monitoringHeading', 'Monitoring')}
+      title={text('monitoringHeading', 'Monitoring')}
     >
-      <h2 id="incident-actions-heading">{text('monitoringHeading', 'Monitoring')}</h2>
       <Text type="secondary">Field status changes are handled by tanods and responders.</Text>
     </Card>
   );
@@ -853,10 +853,12 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         <div className="incident-hero-map">
           {variant === 'responder' ? (
             <section className="incident-route-section" aria-labelledby="incident-route-heading">
-              <h2 id="incident-route-heading">{text('routeToIncident', 'Route to incident')}</h2>
+              {/* <h2 id="incident-route-heading">{text('routeToIncident', 'Route to incident')}</h2> */}
               <RouteMap incidentLat={latitude} incidentLng={longitude} />
               <Button
                 block
+                color="primary"
+                variant="solid"
                 icon={<CompassOutlined />}
                 href={`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`}
                 target="_blank"
@@ -878,11 +880,9 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       <Card
         className="soft-card incident-side-section"
         role="region"
-        aria-labelledby="resolution-details-heading"
+        aria-label={text('resolutionDetails', 'Resolution Details')}
+        title={text('resolutionDetails', 'Resolution Details')}
       >
-        <div className="incident-panel-heading">
-          <h2 id="resolution-details-heading">{text('resolutionDetails', 'Resolution Details')}</h2>
-        </div>
         <Button
           type="primary"
           onClick={() => setResolutionViewOpen(true)}
@@ -1121,9 +1121,9 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
             <Card
               className="soft-card incident-side-section"
               role="region"
-              aria-labelledby="incident-timeline-heading"
+              aria-label={text('timeline', 'Timeline')}
+              title={text('timeline', 'Timeline')}
             >
-              <h2 id="incident-timeline-heading">{text('timeline', 'Timeline')}</h2>
               {reportHistory.length ? (
                 historyTimeline
               ) : (
@@ -1136,13 +1136,10 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
             <Card
               className="soft-card incident-side-section"
               role="region"
-              aria-labelledby="incident-audit-heading"
-            >
-              <div className="incident-panel-heading">
-                <h2 id="incident-audit-heading">
-                  {role === 'admin' ? 'Audit trail' : 'Case activity'}
-                </h2>
-                {role === 'admin' && (
+              aria-label={role === 'admin' ? 'Audit trail' : 'Case activity'}
+              title={role === 'admin' ? 'Audit trail' : 'Case activity'}
+              extra={
+                role === 'admin' && (
                   <Button
                     size="small"
                     icon={<DownloadOutlined />}
@@ -1152,8 +1149,9 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                   >
                     Export system log
                   </Button>
-                )}
-              </div>
+                )
+              }
+            >
               {auditEntries.length ? (
                 auditTimeline
               ) : (

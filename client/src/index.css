@@ -101,8 +101,8 @@ h3,
 h4,
 h5,
 .ant-typography:is(h1, h2, h3, h4, h5) {
-  font-family: 'Roboto Slab', var(--app-font-family);
-  letter-spacing: 0.06em;
+  /* font-family: 'Roboto Slab', var(--app-font-family); */
+  /* letter-spacing: 0.06em; */
   /* text-transform: uppercase; */
 }
 

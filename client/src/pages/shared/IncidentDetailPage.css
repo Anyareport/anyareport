@@ -380,8 +380,7 @@
   padding: 12px;
 }
 
-.incident-location-section h2,
-.incident-side-section h2 {
+.incident-location-section h2 {
   margin: 0 0 12px;
   color: var(--text-primary);
   font-size: 16px;
@@ -406,30 +405,6 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-
-.incident-side-section > .ant-card-body > h2,
-.incident-side-section > .ant-card-body > .incident-panel-heading {
-  margin-inline: -24px;
-  padding-inline: 24px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border-default);
-}
-
-.incident-side-section > .ant-card-body > h2 {
-  margin-bottom: 10px;
-}
-
-.incident-panel-heading {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.incident-panel-heading h2 {
-  margin-bottom: 0;
 }
 
 .incident-timeline-entry {
