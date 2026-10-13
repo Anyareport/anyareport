@@ -46,6 +46,9 @@ const SUBCATEGORY_MAP: Record<string, string[]> = {
   'Emergency Situations': ['Public', 'Private'],
 };
 
+const barangaySuffix = 'Don Mariano Marcos';
+const barangaySuffixPattern = /,?\s*Don Mariano Marcos\s*$/i;
+
 interface SubmitReportFormProps {
   selectedLocation: [number, number] | null;
   selectedLocationMethod: 'map' | 'gps' | null;
@@ -472,7 +475,18 @@ export default function SubmitReportForm({
             />
           </Form.Item>
 
-          <Form.Item name="address" label="Address (optional)">
+          <Form.Item
+            name="address"
+            label="Address (optional)"
+            getValueProps={(address: string | undefined) => ({
+              value: address?.replace(barangaySuffixPattern, '') ?? '',
+            })}
+            getValueFromEvent={(event: React.ChangeEvent<HTMLInputElement>) => {
+              const address = event.target.value;
+              if (!address.trim() || barangaySuffixPattern.test(address)) return address;
+              return `${address}, ${barangaySuffix}`;
+            }}
+          >
             <Input placeholder="Purok, street name..." />
           </Form.Item>
         </div>
