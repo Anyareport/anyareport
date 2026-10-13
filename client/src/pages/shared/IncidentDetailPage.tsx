@@ -40,6 +40,8 @@ import SeverityTag from '../../components/SeverityTag';
 import EmergencyHotline from '../../components/EmergencyHotline';
 import { StaticMap, RouteMap } from '../../components/map/MapPicker';
 import { useAuth } from '../../contexts/AuthContext';
+import TranslationNote from '../../components/TranslationNote';
+import { useTranslatedTexts } from '../../lib/translation';
 import { useLang } from '../../contexts/LanguageContext';
 import { getLocalizedCategory, getLocalizedStatus, type LabelKey } from '../../i18n/labels';
 import { notificationFeedQueryKey } from '../../lib/notificationFeed';
@@ -308,6 +310,27 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     onError: (error: Error) => message.error(error.message),
   });
 
+  // One batched request translates every free-text field on this page.
+  const translation = useTranslatedTexts([
+    report?.description,
+    report?.aiSummary,
+    report?.aiTitle,
+    report?.resolution?.summary,
+    report?.resolution?.actionsTaken,
+    report?.resolution?.outcome,
+    report?.resolution?.furtherActionRecommendation,
+  ]);
+  const [
+    descriptionText,
+    aiSummaryText,
+    aiTitleText,
+    resolutionSummaryText,
+    actionsTakenText,
+    outcomeText,
+    recommendationText,
+  ] = translation.texts;
+  const translationNote = <TranslationNote translation={translation} />;
+
   if (isLoading) {
     return (
       <div className="incident-loading">
@@ -349,10 +372,10 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const activePhoto = photos[activePhotoIndex];
   const activePhotoUrl = activePhoto ? getPhotoUrl(activePhoto) : undefined;
   const [longitude, latitude] = report.location?.coordinates || [0, 0];
-  const description = report.description.trim();
+  const description = descriptionText.trim();
   const categoryLabels = getLocalizedCategory(report.category, report.subcategory, t);
   const title =
-    report.aiTitle?.trim() ||
+    aiTitleText.trim() ||
     (useFilipinoLabels
       ? categoryLabels.subcategory || categoryLabels.category
       : report.subcategory || report.category);
@@ -897,11 +920,12 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       >
         <Space direction="vertical" size={8} style={{ width: '100%' }}>
           <Text strong>{text('resolutionSummary', 'Resolution Summary')}</Text>
-          <Paragraph>{report.resolution.summary}</Paragraph>
+          {translationNote}
+          <Paragraph>{resolutionSummaryText}</Paragraph>
           <Text strong>{text('actionsTaken', 'Actions Taken')}</Text>
-          <Paragraph>{report.resolution.actionsTaken}</Paragraph>
+          <Paragraph>{actionsTakenText}</Paragraph>
           <Text strong>{text('outcome', 'Outcome')}</Text>
-          <Paragraph>{report.resolution.outcome}</Paragraph>
+          <Paragraph>{outcomeText}</Paragraph>
           <Text strong>{text('furtherActionRequired', 'Further Action Required')}</Text>
           <Text>
             {report.resolution.furtherActionRequired ? text('yes', 'Yes') : text('no', 'No')}
@@ -911,7 +935,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
               <Text strong>
                 {text('furtherActionRecommendation', 'Further Action / Recommendation')}
               </Text>
-              <Paragraph>{report.resolution.furtherActionRecommendation}</Paragraph>
+              <Paragraph>{recommendationText}</Paragraph>
             </>
           )}
           <Text strong>{text('assistanceRequested', 'Assistance Requested')}</Text>
@@ -991,6 +1015,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
               <section className="incident-description-section">
                 <h2>{text('reportDescription', 'Report description')}</h2>
                 <Paragraph className="incident-description">{description}</Paragraph>
+                {translationNote}
               </section>
             )}
 
@@ -999,7 +1024,8 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                 <div className="incident-section-label">
                   <RobotOutlined /> <Text strong>{text('aiSummaryLabel', 'AI summary')}</Text>
                 </div>
-                <Paragraph>{report.aiSummary}</Paragraph>
+                <Paragraph>{aiSummaryText}</Paragraph>
+                {!description && translationNote}
                 {report.aiSuggestedCategory && report.aiSuggestedCategory !== report.category && (
                   <Text type="secondary">
                     {text('suggestedCategory', 'Suggested category')}:{' '}

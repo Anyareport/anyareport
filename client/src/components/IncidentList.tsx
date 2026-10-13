@@ -15,9 +15,30 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LanguageContext';
 import { getLocalizedCategory } from '../i18n/labels';
+import { useTranslatedTexts } from '../lib/translation';
 
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
+
+// Table cell for the incident title. Free-text titles are translated
+// automatically when Filipino is selected; localized category fallbacks are not.
+function IncidentTitleCell({
+  title,
+  translatable,
+  description,
+}: {
+  title: string;
+  translatable: boolean;
+  description: string;
+}) {
+  const translation = useTranslatedTexts([translatable ? title : null]);
+  const shown = translatable ? translation.texts[0] || title : title;
+  return (
+    <Text strong ellipsis={{ tooltip: translatable && shown !== title ? title : description }}>
+      {shown}
+    </Text>
+  );
+}
 
 interface IncidentListProps {
   reports: Report[];
@@ -94,9 +115,11 @@ export default function IncidentList({
       key: 'aiTitle',
       render: (_: unknown, report: Report) => (
         <Space direction="vertical" size={0}>
-          <Text strong ellipsis={{ tooltip: report.description }}>
-            {getListTitle(report)}
-          </Text>
+          <IncidentTitleCell
+            title={getListTitle(report)}
+            translatable={!!report.aiTitle?.trim() || !!report.description.trim()}
+            description={report.description}
+          />
           <Text type="secondary" style={{ fontSize: 11 }}>
             {getListMeta(report)}
           </Text>
