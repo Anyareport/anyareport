@@ -197,7 +197,7 @@
    ======================================== */
 [data-theme='dark'] {
   /* ===== Brand Colors (Dark) ===== */
-  --brand-primary: #6b93ff;
+  --brand-primary: var(--shared-color-brandPrimaryLight);
   /* ===== Neutral Colors (Dark) ===== */
   --neutral-white: var(--shared-color-gray800);
   --neutral-50: var(--shared-color-gray900);

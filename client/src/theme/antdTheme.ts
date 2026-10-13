@@ -72,7 +72,7 @@ export const darkComponentOverrides: ThemeConfig['components'] = {
     colorBgElevated: sharedColors.darkCanvas,
   },
   Segmented: {
-    itemSelectedBg: sharedColors.brandPrimary,
+    itemSelectedBg: sharedColors.brandPrimaryLight,
     itemSelectedColor: sharedColors.white,
   },
   Select: {
