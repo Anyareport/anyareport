@@ -634,22 +634,16 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       {isOwner && canUseResponderBackup && !isTerminalStatus && (
         <Button
           block
-          disabled={actionBusy || !!openBackupRequest}
-          loading={backupMutation.isPending}
-          onClick={() => backupMutation.mutate()}
-        >
-          {openBackupRequest ? t('requestBackupSuccess') : t('requestBackup')}
-        </Button>
-      )}
-      {isOwner && canUseResponderBackup && !isTerminalStatus && openBackupRequest && (
-        <Button
-          block
-          icon={<CheckOutlined />}
+          size="large"
+          icon={openBackupRequest ? <CheckOutlined /> : undefined}
           disabled={actionBusy}
-          loading={closeBackupMutation.isPending}
-          onClick={() => closeBackupMutation.mutate()}
+          loading={openBackupRequest ? closeBackupMutation.isPending : backupMutation.isPending}
+          onClick={() => {
+            if (openBackupRequest) closeBackupMutation.mutate();
+            else backupMutation.mutate();
+          }}
         >
-          {t('closeBackup')}
+          {openBackupRequest ? t('closeBackup') : t('requestBackup')}
         </Button>
       )}
     </Card>

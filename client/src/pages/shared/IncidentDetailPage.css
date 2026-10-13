@@ -550,6 +550,10 @@
     padding: 0;
   }
 
+  .incident-mobile-actions .incident-mobile-hide-panel .ant-card-head {
+    display: none;
+  }
+
   .incident-mobile-actions .incident-mobile-hide-panel .ant-card-body > h2 {
     display: none;
   }

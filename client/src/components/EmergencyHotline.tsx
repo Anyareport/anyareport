@@ -158,7 +158,13 @@ export default function EmergencyHotline({
   );
 
   const trigger = (
-    <Button block size="large" icon={<PhoneOutlined />} onClick={() => setOpen(true)}>
+    <Button
+      color="primary"
+      variant="outlined"
+      size="large"
+      icon={<PhoneOutlined />}
+      onClick={() => setOpen(true)}
+    >
       {text('hotlines', 'Hotlines')}
     </Button>
   );
