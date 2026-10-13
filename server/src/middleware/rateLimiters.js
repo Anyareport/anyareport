@@ -15,3 +15,11 @@ export const reportSubmitLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+export const translateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  message: { error: 'Too many translation requests. Please wait a moment.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});

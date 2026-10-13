@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { verifyToken } from '../middleware/verifyToken.js';
 import { requireRole } from '../middleware/rbac.js';
-import { reportSubmitLimiter } from '../middleware/rateLimiters.js';
+import { reportSubmitLimiter, translateLimiter } from '../middleware/rateLimiters.js';
 import upload from '../middleware/upload.js';
 import {
   createReport,
@@ -28,7 +28,7 @@ import {
   submitResolution,
   verifyResolution,
 } from '../controllers/reportController.js';
-
+import { translateHandler } from '../controllers/translateController.js';
 const router = Router();
 
 router.get('/categories', getCategories);
@@ -37,6 +37,12 @@ router.use(verifyToken);
 
 router.post('/', reportSubmitLimiter, upload.array('photos', 3), createReport);
 router.post('/classify', upload.array('photos', 3), classifyReportHandler);
+router.post(
+  '/translate',
+  translateLimiter,
+  requireRole('admin', 'captain', 'secretary', 'tanod', 'responder'),
+  translateHandler
+);
 router.get('/mine', getMyReports);
 router.get('/analytics', requireRole('admin', 'captain', 'secretary'), getAnalytics);
 router.get('/heatmap', requireRole('admin', 'captain', 'secretary'), getHeatmapData);

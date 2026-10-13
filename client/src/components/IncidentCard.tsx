@@ -13,6 +13,8 @@ import StatusTag from './StatusTag';
 import FeedCard from './FeedCard';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LanguageContext';
+import { useTranslatedTexts } from '../lib/translation';
+import TranslationNote from './TranslationNote';
 import { getLocalizedCategory } from '../i18n/labels';
 
 const { Text } = Typography;
@@ -56,11 +58,28 @@ export default function IncidentCard({
   const { lang, t } = useLang();
   const translate = lang === 'fil' && ['tanod', 'responder'].includes(role || '');
   const categoryLabels = getLocalizedCategory(report.category, report.subcategory, t);
-  const title =
-    titleOverride ||
-    (translate && !report.aiTitle?.trim() && !report.description.trim()
+  const hasFreeTitle = !!report.aiTitle?.trim() || !!report.description.trim();
+  const originalTitle = getIncidentLabel(report);
+  const originalDescription = report.description.trim();
+  // Pages may pass the AI title as an override; it is still reporter/AI free
+  // text, so it gets translated. Category labels passed in are already localized.
+  const overrideIsFreeText = !!titleOverride && titleOverride === report.aiTitle?.trim();
+  const titleSource = titleOverride
+    ? overrideIsFreeText
+      ? titleOverride
+      : null
+    : hasFreeTitle
+      ? originalTitle
+      : null;
+  const translation = useTranslatedTexts([
+    titleSource,
+    showDescription ? originalDescription : null,
+  ]);
+  const title = titleOverride
+    ? translation.texts[0] || titleOverride
+    : translate && !hasFreeTitle
       ? categoryLabels.subcategory || categoryLabels.category
-      : getIncidentLabel(report));
+      : translation.texts[0] || originalTitle;
   const meta = translate
     ? [
         report.referenceNumber,
@@ -71,7 +90,7 @@ export default function IncidentCard({
         .filter(Boolean)
         .join(' · ')
     : getIncidentMeta(report);
-  const description = report.description.trim();
+  const description = (showDescription ? translation.texts[1] : originalDescription).trim();
   const displayedDescription =
     descriptionMaxLength && description.length > descriptionMaxLength
       ? `${description.slice(0, descriptionMaxLength).trimEnd()}…`
@@ -99,7 +118,11 @@ export default function IncidentCard({
           )}
         </Space>
       </div>
-      <Text strong style={{ overflowWrap: 'anywhere' }}>
+      <Text
+        strong
+        style={{ overflowWrap: 'anywhere' }}
+        title={translation.hasTranslation && title !== (titleSource ?? originalTitle) ? (titleSource ?? originalTitle) : undefined}
+      >
         {title}
       </Text>
       <Text type="secondary" style={{ fontSize: 12 }}>
@@ -123,6 +146,7 @@ export default function IncidentCard({
           {displayedDescription}
         </Text>
       )}
+      
       {children}
       <Text type="secondary" style={{ overflowWrap: 'anywhere' }}>
         <EnvironmentOutlined /> {getLocationLabel(report)}

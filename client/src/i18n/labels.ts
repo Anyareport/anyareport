@@ -275,6 +275,15 @@ export const labels = {
   },
   submitResolution: { en: 'Submit Resolution', fil: 'Ipasa ang resulta' },
   imageEvidence: { en: 'Supporting evidence', fil: 'Kalakip na patunay' },
+    translating: { en: 'Translating…', fil: 'Isinasalin…' },
+  translationFailed: {
+    en: 'Could not translate. Showing the original.',
+    fil: 'Hindi naisalin. Ipinapakita ang orihinal.',
+  },
+  machineTranslated: { en: 'Machine-translated', fil: 'Isinalin ng makina' },
+  originalText: { en: "Reporter's original text", fil: 'Orihinal na isinulat ng nag-report' },
+  showOriginal: { en: 'Show original', fil: 'Ipakita ang orihinal' },
+  showTranslation: { en: 'Show translation', fil: 'Ipakita ang salin' },
 } as const;
 
 export type LabelKey = keyof typeof labels;
