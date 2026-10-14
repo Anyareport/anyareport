@@ -6,14 +6,18 @@ import {
   Avatar,
   Button,
   Card,
+  Col,
+  Divider,
   Empty,
   Form,
   Image,
   Input,
   Modal,
   Radio,
+  Row,
   Space,
   Spin,
+  Tag,
   Timeline,
   Typography,
   Select,
@@ -33,6 +37,7 @@ import {
   RobotOutlined,
   UserAddOutlined,
   UserOutlined,
+  UploadOutlined,
 } from '@ant-design/icons';
 import { api, type AuditLog, type DispatchResponder, type Report } from '../../lib/api';
 import StatusTag from '../../components/StatusTag';
@@ -426,6 +431,25 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const canUseResponderBackup = !isBlotter || isCriminalBlotter;
   const canReviewResolution =
     variant === 'admin' && ['captain', 'secretary'].includes((role || '').toLowerCase());
+  const resolutionRoleLabel =
+    role === 'tanod'
+      ? 'Tanod'
+      : role === 'responder'
+        ? text('responder', 'Responder')
+        : role === 'captain'
+          ? text('captain', 'Captain')
+          : text('secretary', 'Secretary');
+  const resolutionSubmitter = profile?.name || resolutionRoleLabel;
+  const resolutionSubmitterLine = `${text('submittingAs', 'Submitting as')} ${resolutionSubmitter} (${resolutionRoleLabel}${canResolveFieldWork ? `, ${text('assignedResponder', 'assigned responder')}` : ''})`;
+  const resolutionSubmissionNote = canResolveBlotter
+    ? text(
+        'officialResolutionNote',
+        'This will be recorded under your account and must be verified before the case is closed.'
+      )
+    : text(
+        'resolutionVerificationNote',
+        'A captain or secretary must verify this submission before the case is closed.'
+      );
   const actionBusy =
     updateStatus.isPending ||
     acknowledgeMutation.isPending ||
@@ -918,68 +942,117 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         footer={null}
         onCancel={() => setResolutionViewOpen(false)}
       >
-        <Space direction="vertical" size={8} style={{ width: '100%' }}>
-          <Text strong>{text('resolutionSummary', 'Resolution Summary')}</Text>
-          {translationNote}
-          <Paragraph>{resolutionSummaryText}</Paragraph>
-          <Text strong>{text('actionsTaken', 'Actions Taken')}</Text>
-          <Paragraph>{actionsTakenText}</Paragraph>
-          <Text strong>{text('outcome', 'Outcome')}</Text>
-          <Paragraph>{outcomeText}</Paragraph>
-          <Text strong>{text('furtherActionRequired', 'Further Action Required')}</Text>
-          <Text>
-            {report.resolution.furtherActionRequired ? text('yes', 'Yes') : text('no', 'No')}
-          </Text>
+        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+          <div
+            style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}
+          >
+            <Space direction="vertical" size={2}>
+              <Text strong>{report.referenceNumber || referenceLabel}</Text>
+              <Text type="secondary">
+                {categoryLabels.category}
+                {categoryLabels.subcategory ? ` · ${categoryLabels.subcategory}` : ''}
+              </Text>
+            </Space>
+            <Tag
+              color={report.resolution.verificationStatus === 'verified' ? 'success' : 'warning'}
+            >
+              {report.resolution.verificationStatus === 'verified'
+                ? text('verified', 'Verified')
+                : text('pendingVerification', 'Pending verification')}
+            </Tag>
+          </div>
+          <Divider style={{ margin: 0 }} />
+          <section>
+            <Text strong>{text('summary', 'Summary')}</Text>
+            {translationNote}
+            <Paragraph style={{ marginBottom: 0 }}>{resolutionSummaryText}</Paragraph>
+          </section>
+          <section>
+            <Text strong>{text('actionsTaken', 'Actions Taken')}</Text>
+            <Paragraph style={{ marginBottom: 0 }}>{actionsTakenText}</Paragraph>
+          </section>
+          <section>
+            <Text strong>{text('outcome', 'Outcome')}</Text>
+            <Paragraph style={{ marginBottom: 0 }}>{outcomeText}</Paragraph>
+          </section>
+          <Row gutter={[16, 12]}>
+            <Col xs={12}>
+              <Text strong>{text('furtherActionRequired', 'Further Action Required')}</Text>
+              <div>
+                <Tag bordered={false}>
+                  {report.resolution.furtherActionRequired ? text('yes', 'Yes') : text('no', 'No')}
+                </Tag>
+              </div>
+            </Col>
+            <Col xs={12}>
+              <Text strong>{text('assistanceRequested', 'Assistance Requested')}</Text>
+              <div>
+                <Tag bordered={false}>
+                  {report.resolution.assistanceRequested ? text('yes', 'Yes') : text('no', 'No')}
+                </Tag>
+              </div>
+            </Col>
+          </Row>
           {report.resolution.furtherActionRequired && (
-            <>
+            <section>
               <Text strong>
                 {text('furtherActionRecommendation', 'Further Action / Recommendation')}
               </Text>
-              <Paragraph>{recommendationText}</Paragraph>
-            </>
+              <Paragraph style={{ marginBottom: 0 }}>{recommendationText}</Paragraph>
+            </section>
           )}
-          <Text strong>{text('assistanceRequested', 'Assistance Requested')}</Text>
-          <Text>
-            {report.resolution.assistanceRequested ? text('yes', 'Yes') : text('no', 'No')}
-          </Text>
           {!!report.resolution.supportingEvidence.length && (
-            <>
+            <section>
               <Text strong>{text('supportingEvidence', 'Supporting Evidence')}</Text>
-              <Space wrap>
-                {report.resolution.supportingEvidence.map((evidence) => (
-                  <Image
-                    key={evidence}
-                    width={96}
-                    src={getPhotoUrl(evidence)}
-                    alt={text('imageEvidence', 'Supporting evidence')}
-                  />
-                ))}
-              </Space>
-            </>
+              <Image.PreviewGroup>
+                <Space wrap>
+                  {report.resolution.supportingEvidence.map((evidence) => (
+                    <Image
+                      key={evidence}
+                      width={96}
+                      height={96}
+                      style={{ objectFit: 'cover', borderRadius: 6 }}
+                      src={getPhotoUrl(evidence)}
+                      alt={text('imageEvidence', 'Supporting evidence')}
+                    />
+                  ))}
+                </Space>
+              </Image.PreviewGroup>
+            </section>
           )}
-          <Text>
-            {text('resolvedBy', 'Resolved By')}:{' '}
-            {report.resolution.resolvedByName || report.resolution.resolvedBy}
-          </Text>
-          <Text>
-            {text('resolvedDateTime', 'Resolved Date & Time')}:{' '}
-            {new Date(report.resolution.resolvedAt).toLocaleString()}
-          </Text>
-          <Text>
-            {text('verification', 'Verification')}:{' '}
-            {report.resolution.verificationStatus === 'verified'
-              ? `${text('verifiedBy', 'Verified by')} ${report.resolution.verifiedByName || report.resolution.verifiedBy} · ${new Date(report.resolution.verifiedAt || '').toLocaleString()}`
-              : text('pendingReview', 'Pending review')}
-          </Text>
-          {canReviewResolution && report.resolution.verificationStatus !== 'verified' && (
-            <Button
-              type="primary"
-              loading={verifyResolutionMutation.isPending}
-              onClick={() => verifyResolutionMutation.mutate()}
-            >
-              {text('verifyResolution', 'Verify resolution')}
-            </Button>
-          )}
+          <Divider style={{ margin: 0 }} />
+          <Row gutter={[16, 8]}>
+            <Col xs={24} sm={12}>
+              <Text strong>{text('resolvedBy', 'Resolved By')}</Text>
+              <div>{report.resolution.resolvedByName || report.resolution.resolvedBy}</div>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Text strong>{text('resolvedDateTime', 'Resolved Date & Time')}</Text>
+              <div>{new Date(report.resolution.resolvedAt).toLocaleString()}</div>
+            </Col>
+            {report.resolution.verificationStatus === 'verified' && (
+              <Col xs={24}>
+                <Text strong>{text('verifiedBy', 'Verified by')}</Text>
+                <div>
+                  {report.resolution.verifiedByName || report.resolution.verifiedBy}
+                  {report.resolution.verifiedAt &&
+                    ` · ${new Date(report.resolution.verifiedAt).toLocaleString()}`}
+                </div>
+              </Col>
+            )}
+          </Row>
+          <Space style={{ width: '100%', justifyContent: 'flex-end' }} wrap>
+            <Button onClick={() => setResolutionViewOpen(false)}>{text('close', 'Close')}</Button>
+            {canReviewResolution && report.resolution.verificationStatus !== 'verified' && (
+              <Button
+                type="primary"
+                loading={verifyResolutionMutation.isPending}
+                onClick={() => verifyResolutionMutation.mutate()}
+              >
+                {text('verifyResolution', 'Verify resolution')}
+              </Button>
+            )}
+          </Space>
         </Space>
       </Modal>
     </>
@@ -1183,7 +1256,8 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       </div>
 
       <Modal
-        title={text('resolutionDetails', 'Resolution Details')}
+        title={text('resolveIncident', 'Resolve incident')}
+        width="min(720px, calc(100vw - 24px))"
         open={resolutionOpen}
         zIndex={1200}
         destroyOnClose
@@ -1193,125 +1267,202 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           setEvidenceFiles([]);
         }}
       >
-        <Form
-          layout="vertical"
-          initialValues={{ furtherActionRequired: false, assistanceRequested: false }}
-          onFinish={(values: ResolutionFormValues) => resolutionMutation.mutate(values)}
-        >
-          <Form.Item
-            name="summary"
-            label={text('resolutionSummary', 'Resolution Summary')}
-            rules={[{ required: true, whitespace: true }]}
-          >
-            <Input.TextArea
-              rows={3}
-              placeholder={text('describeWhatHappened', 'Briefly describe what happened')}
-            />
-          </Form.Item>
-          <Form.Item
-            name="actionsTaken"
-            label={text('actionsTaken', 'Actions Taken')}
-            rules={[{ required: true, whitespace: true }]}
-          >
-            <Input.TextArea
-              rows={3}
-              placeholder={text(
-                'describeActions',
-                'Describe the actions or interventions performed.'
-              )}
-            />
-          </Form.Item>
-          <Form.Item
-            name="outcome"
-            label={text('outcome', 'Outcome')}
-            rules={[
-              {
-                required: true,
-                whitespace: true,
-                message: text('describeFinalResult', 'Describe the final result.'),
-              },
-            ]}
-          >
-            <Input.TextArea rows={3} />
-          </Form.Item>
-          <Form.Item
-            name="furtherActionRequired"
-            label={text('furtherActionRequired', 'Further Action Required')}
-            rules={[{ required: true, message: text('selectYesNo', 'Select Yes or No.') }]}
-          >
-            <Radio.Group
-              options={[
-                { label: text('yes', 'Yes'), value: true },
-                { label: text('no', 'No'), value: false },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item
-            noStyle
-            shouldUpdate={(previous, current) =>
-              previous.furtherActionRequired !== current.furtherActionRequired
-            }
-          >
-            {({ getFieldValue }) =>
-              getFieldValue('furtherActionRequired') ? (
-                <Form.Item
-                  name="furtherActionRecommendation"
-                  label={text('furtherActionRecommendation', 'Further Action / Recommendation')}
-                  rules={[
-                    {
-                      required: true,
-                      whitespace: true,
-                      message: text(
-                        'provideRecommendation',
-                        'Provide the further action or recommendation.'
-                      ),
-                    },
-                  ]}
-                >
-                  <Input.TextArea
-                    rows={2}
-                    placeholder={text(
-                      'exampleRecommendation',
-                      'Example: Conduct a follow-up visit or refer the matter to the appropriate office.'
-                    )}
-                  />
-                </Form.Item>
-              ) : null
-            }
-          </Form.Item>
-          <Form.Item
-            name="assistanceRequested"
-            label={text('assistanceRequested', 'Assistance Requested')}
-            rules={[{ required: true, message: text('selectYesNo', 'Select Yes or No.') }]}
-          >
-            <Radio.Group
-              options={[
-                { label: text('yes', 'Yes'), value: true },
-                { label: text('no', 'No'), value: false },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item label={text('supportingEvidence', 'Supporting Evidence')}>
-            <Upload
-              beforeUpload={() => false}
-              accept="image/*"
-              maxCount={3}
-              fileList={evidenceFiles}
-              onChange={({ fileList }) => setEvidenceFiles(fileList)}
-              onRemove={(file) => {
-                setEvidenceFiles((current) => current.filter((entry) => entry.uid !== file.uid));
-              }}
-            >
-              <Button>{text('uploadPhotos', 'Upload photos')}</Button>
-            </Upload>
+        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+          <Space wrap size={8}>
+            <Text strong>{report.referenceNumber || referenceLabel}</Text>
             <Text type="secondary">
-              {text('evidenceLimit', 'Images only, up to 3 files and 5 MB each.')}
+              {categoryLabels.category}
+              {categoryLabels.subcategory ? ` · ${categoryLabels.subcategory}` : ''}
             </Text>
-          </Form.Item>
-          <Button type="primary" htmlType="submit" loading={resolutionMutation.isPending} block>
-            {text('submitResolution', 'Submit Resolution')}
-          </Button>
-        </Form>
+            {report.severity && <SeverityTag severity={report.severity} />}
+          </Space>
+          <Alert
+            type="info"
+            showIcon
+            message={resolutionSubmitterLine}
+            description={resolutionSubmissionNote}
+          />
+          <Form
+            layout="vertical"
+            initialValues={{ furtherActionRequired: false, assistanceRequested: false }}
+            onFinish={(values: ResolutionFormValues) => resolutionMutation.mutate(values)}
+          >
+            <Title level={5} style={{ margin: '0 0 12px' }}>
+              {text('whatHappened', 'What happened')}
+            </Title>
+            <Form.Item
+              name="summary"
+              label={text('resolutionSummary', 'Resolution Summary')}
+              rules={[{ required: true, whitespace: true }]}
+            >
+              <Input.TextArea
+                rows={3}
+                placeholder={text('describeWhatHappened', 'Briefly describe what happened')}
+              />
+            </Form.Item>
+            <Form.Item
+              name="actionsTaken"
+              label={text('actionsTaken', 'Actions Taken')}
+              rules={[{ required: true, whitespace: true }]}
+            >
+              <Input.TextArea
+                rows={3}
+                placeholder={text(
+                  'describeActions',
+                  'Describe the actions or interventions performed.'
+                )}
+              />
+            </Form.Item>
+            <Form.Item
+              name="outcome"
+              label={text('outcome', 'Outcome')}
+              rules={[
+                {
+                  required: true,
+                  whitespace: true,
+                  message: text('describeFinalResult', 'Describe the final result.'),
+                },
+              ]}
+            >
+              <Input.TextArea
+                rows={3}
+                placeholder={text('describeOutcome', 'Describe the final result.')}
+              />
+            </Form.Item>
+
+            <Title level={5} style={{ margin: '0 0 12px' }}>
+              {text('followUp', 'Follow-up')}
+            </Title>
+            <Row gutter={16}>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="furtherActionRequired"
+                  label={text('furtherActionRequired', 'Further Action Required')}
+                  rules={[{ required: true, message: text('selectYesNo', 'Select Yes or No.') }]}
+                >
+                  <Radio.Group
+                    buttonStyle="solid"
+                    optionType="button"
+                    style={{ display: 'flex', width: '100%' }}
+                  >
+                    <Radio.Button value={true} style={{ flex: 1, textAlign: 'center' }}>
+                      {text('yes', 'Yes')}
+                    </Radio.Button>
+                    <Radio.Button value={false} style={{ flex: 1, textAlign: 'center' }}>
+                      {text('no', 'No')}
+                    </Radio.Button>
+                  </Radio.Group>
+                </Form.Item>
+                <Form.Item
+                  noStyle
+                  shouldUpdate={(previous, current) =>
+                    previous.furtherActionRequired !== current.furtherActionRequired
+                  }
+                >
+                  {({ getFieldValue }) =>
+                    getFieldValue('furtherActionRequired') ? (
+                      <Form.Item
+                        name="furtherActionRecommendation"
+                        label={text(
+                          'furtherActionRecommendation',
+                          'Further Action / Recommendation'
+                        )}
+                        rules={[
+                          {
+                            required: true,
+                            whitespace: true,
+                            message: text(
+                              'provideRecommendation',
+                              'Provide the further action or recommendation.'
+                            ),
+                          },
+                        ]}
+                      >
+                        <Input.TextArea
+                          rows={2}
+                          placeholder={text(
+                            'exampleRecommendation',
+                            'Example: Conduct a follow-up visit or refer the matter to the appropriate office.'
+                          )}
+                        />
+                      </Form.Item>
+                    ) : null
+                  }
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="assistanceRequested"
+                  label={text('assistanceRequested', 'Assistance Requested')}
+                  rules={[{ required: true, message: text('selectYesNo', 'Select Yes or No.') }]}
+                >
+                  <Radio.Group
+                    buttonStyle="solid"
+                    optionType="button"
+                    style={{ display: 'flex', width: '100%' }}
+                  >
+                    <Radio.Button value={true} style={{ flex: 1, textAlign: 'center' }}>
+                      {text('yes', 'Yes')}
+                    </Radio.Button>
+                    <Radio.Button value={false} style={{ flex: 1, textAlign: 'center' }}>
+                      {text('no', 'No')}
+                    </Radio.Button>
+                  </Radio.Group>
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Title level={5} style={{ margin: '0 0 12px' }}>
+              {text('evidence', 'Evidence')}
+            </Title>
+            <Form.Item>
+              <Upload
+                listType="picture-card"
+                beforeUpload={() => false}
+                accept="image/*"
+                maxCount={3}
+                fileList={evidenceFiles}
+                onChange={({ fileList }) => setEvidenceFiles(fileList)}
+                onRemove={(file) => {
+                  setEvidenceFiles((current) => current.filter((entry) => entry.uid !== file.uid));
+                }}
+              >
+                {evidenceFiles.length < 3 && (
+                  <div>
+                    <UploadOutlined />
+                    <div style={{ marginTop: 8 }}>{text('uploadPhotos', 'Upload photos')}</div>
+                  </div>
+                )}
+              </Upload>
+              <Text type="secondary">
+                {text('evidenceLimit', 'Images only, up to 3 files and 5 MB each.')}
+              </Text>
+            </Form.Item>
+            <Divider />
+            <Row gutter={[16, 12]} align="middle">
+              <Col xs={24} sm={12}>
+                <Text type="secondary">
+                  {text('resolvedBy', 'Resolved By')}: {resolutionSubmitter}
+                  <br />
+                  {text(
+                    'submissionTimeAutomatic',
+                    'Submission date and time are recorded automatically.'
+                  )}
+                </Text>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={resolutionMutation.isPending}
+                  block
+                >
+                  {text('submitForVerification', 'Submit for verification')}
+                </Button>
+              </Col>
+            </Row>
+          </Form>
+        </Space>
       </Modal>
 
       {showMobileResponderActions && (

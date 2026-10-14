@@ -235,6 +235,34 @@ export const labels = {
   timeline: { en: 'Timeline', fil: 'Kasaysayan' },
   noActivity: { en: 'No activity recorded', fil: 'Wala pang aktibidad' },
   resolutionDetails: { en: 'Resolution Details', fil: 'Detalye ng resulta' },
+  resolveIncident: { en: 'Resolve incident', fil: 'Lutasin ang insidente' },
+  responder: { en: 'Responder', fil: 'Tagatugon' },
+  captain: { en: 'Captain', fil: 'Kapitan' },
+  secretary: { en: 'Secretary', fil: 'Kalihim' },
+  whatHappened: { en: 'What happened', fil: 'Ano ang nangyari' },
+  followUp: { en: 'Follow-up', fil: 'Karagdagang aksyon' },
+  evidence: { en: 'Evidence', fil: 'Katibayan' },
+  assignedResponder: { en: 'assigned responder', fil: 'nakatalagang responder' },
+  submittingAs: { en: 'Submitting as', fil: 'Ipapasa ni' },
+  resolutionVerificationNote: {
+    en: 'A captain or secretary must verify this submission before the case is closed.',
+    fil: 'Dapat itong beripikahin ng kapitan o kalihim bago isara ang kaso.',
+  },
+  officialResolutionNote: {
+    en: 'This will be recorded under your account and must be verified before the case is closed.',
+    fil: 'Itatala ito sa iyong account at dapat beripikahin bago isara ang kaso.',
+  },
+  submissionTimeAutomatic: {
+    en: 'Submission date and time are recorded automatically.',
+    fil: 'Awtomatikong itatala ang petsa at oras ng pagpasa.',
+  },
+  summary: { en: 'Summary', fil: 'Buod' },
+  pendingVerification: { en: 'Pending verification', fil: 'Naghihintay ng beripikasyon' },
+  submitForVerification: { en: 'Submit for verification', fil: 'Ipasa para beripikahin' },
+  describeOutcome: {
+    en: 'Describe the final result.',
+    fil: 'Ilarawan ang naging resulta.',
+  },
   viewDetails: { en: 'View details', fil: 'Tingnan' },
   resolutionAvailable: {
     en: 'Resolution details are available for review.',
@@ -275,7 +303,7 @@ export const labels = {
   },
   submitResolution: { en: 'Submit Resolution', fil: 'Ipasa ang resulta' },
   imageEvidence: { en: 'Supporting evidence', fil: 'Kalakip na patunay' },
-    translating: { en: 'Translating…', fil: 'Isinasalin…' },
+  translating: { en: 'Translating…', fil: 'Isinasalin…' },
   translationFailed: {
     en: 'Could not translate. Showing the original.',
     fil: 'Hindi naisalin. Ipinapakita ang orihinal.',
