@@ -1,5 +1,6 @@
 import { Empty, Table, Grid, Spin, Typography, Space } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
+import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Report } from '../lib/api';
 import StatusTag from './StatusTag';
@@ -47,6 +48,15 @@ interface IncidentListProps {
   basePath?: string;
   showSubmitter?: boolean;
   layout?: 'responsive' | 'cards' | 'table';
+  compact?: boolean;
+  pagination?: false | TablePaginationConfig;
+  extraColumns?: {
+    title: string;
+    key: string;
+    width?: number;
+    align?: 'left' | 'center' | 'right';
+    render: (report: Report) => ReactNode;
+  }[];
 }
 
 export default function IncidentList({
@@ -56,6 +66,9 @@ export default function IncidentList({
   basePath = '/admin/incidents',
   showSubmitter = true,
   layout = 'responsive',
+  compact = false,
+  pagination = { pageSize: 10 },
+  extraColumns,
 }: IncidentListProps) {
   const screens = useBreakpoint();
   const navigate = useNavigate();
@@ -130,6 +143,7 @@ export default function IncidentList({
       title: translate ? t('severity') : 'Severity',
       dataIndex: 'severity',
       key: 'severity',
+      width: undefined,
       sorter: compareSeverity,
       sortDirections: ['ascend', 'descend'],
       render: (severity: string | null) => (severity ? <SeverityTag severity={severity} /> : '—'),
@@ -138,27 +152,43 @@ export default function IncidentList({
       title: translate ? t('status') : 'Status',
       dataIndex: 'status',
       key: 'status',
+      width: undefined,
       sorter: compareStatus,
       sortDirections: ['ascend', 'descend'],
       render: (s: string) => <StatusTag status={s} />,
     },
-    {
-      title: translate ? t('location') : 'Location',
-      key: 'location',
-      render: (_: unknown, r: Report) => getLocationLabel(r),
-    },
-    {
-      title: translate ? t('submitted') : 'Submitted',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      sorter: compareCreatedAt,
-      sortDirections: ['descend', 'ascend'],
-      render: (createdAt: string) => (
-        <Text title={new Date(createdAt).toLocaleString()}>
-          {new Date(createdAt).toLocaleString()}
-        </Text>
-      ),
-    },
+    ...(!compact
+      ? [
+          {
+            title: translate ? t('location') : 'Location',
+            key: 'location',
+            render: (_: unknown, r: Report) => getLocationLabel(r),
+          },
+        ]
+      : []),
+    ...(extraColumns ?? []).map((column) => ({
+      title: column.title,
+      key: column.key,
+      width: column.width,
+      align: column.align,
+      render: (_: unknown, report: Report) => column.render(report),
+    })),
+    ...(!compact
+      ? [
+          {
+            title: translate ? t('submitted') : 'Submitted',
+            dataIndex: 'createdAt',
+            key: 'createdAt',
+            sorter: compareCreatedAt,
+            sortDirections: ['descend', 'ascend'] as ('ascend' | 'descend')[],
+            render: (createdAt: string) => (
+              <Text title={new Date(createdAt).toLocaleString()}>
+                {new Date(createdAt).toLocaleString()}
+              </Text>
+            ),
+          },
+        ]
+      : []),
     ...(showSubmitter
       ? [
           {
@@ -187,7 +217,7 @@ export default function IncidentList({
         onClick: () => handleClick(record._id),
         style: { cursor: 'pointer' },
       })}
-      pagination={{ pageSize: 10 }}
+      pagination={pagination}
     />
   );
 }

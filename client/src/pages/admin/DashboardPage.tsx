@@ -13,8 +13,10 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { api, type Analytics, type Report } from '../../lib/api';
 import IncidentCard from '../../components/IncidentCard';
+import IncidentList from '../../components/IncidentList';
 import KpiCard from '../../components/KpiCard';
-import StatusTag from '../../components/StatusTag';
+import PurokBreakdownCard from '../../components/PurokBreakdownCard';
+import RecentActivityPanel from '../../components/RecentActivityPanel';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotificationFeed } from '../../lib/notificationFeed';
 
@@ -49,12 +51,13 @@ export default function AdminDashboardPage() {
     refetchInterval: 30000,
   });
 
-  const openReports = reports.filter((report) => report.status !== 'resolved').length;
+  const isOpenReport = (report: Report) => !['resolved', 'flagged'].includes(report.status);
+  const openReports = reports.filter(isOpenReport).length;
   const openCriticalReports = reports.filter(
-    (report) => report.status !== 'resolved' && report.severity === 'Critical'
+    (report) => isOpenReport(report) && report.severity === 'Critical'
   ).length;
   const openHighReports = reports.filter(
-    (report) => report.status !== 'resolved' && report.severity === 'High'
+    (report) => isOpenReport(report) && report.severity === 'High'
   ).length;
   const pendingResolutionReviews = reports.filter(
     (report) => report.status === 'resolved' && report.resolution?.verificationStatus === 'pending'
@@ -80,12 +83,48 @@ export default function AdminDashboardPage() {
     [reports]
   );
 
-  const recentActivity = useMemo(
-    () =>
-      [...reports]
-        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-        .slice(0, 4),
-    [reports]
+  const captainAttention = useMemo(() => {
+    const items = [
+      ...(inactivityMonitor?.reports ?? []).map((report) => ({
+        report,
+        kind: 'inactive' as const,
+        sortAt: Date.now() - report.inactiveHours * 60 * 60 * 1000,
+        priority: report.severity === 'Critical' ? 0 : 2,
+      })),
+      ...pendingResolutionReviews.map((report) => ({
+        report,
+        kind: 'review' as const,
+        sortAt: new Date(report.resolution?.resolvedAt ?? report.updatedAt).getTime(),
+        priority: report.severity === 'Critical' ? 0 : 1,
+      })),
+    ];
+    const sortByUrgency = (left: (typeof items)[number], right: (typeof items)[number]) => {
+      if (left.priority !== right.priority) return left.priority - right.priority;
+      if (left.kind === 'inactive' && right.kind === 'inactive') {
+        return right.report.inactiveHours - left.report.inactiveHours;
+      }
+      return left.sortAt - right.sortAt;
+    };
+    const sortedItems = items.sort(sortByUrgency);
+    const reviewItems = sortedItems.filter((item) => item.kind === 'review');
+    const inactiveItems = sortedItems.filter((item) => item.kind === 'inactive');
+    const selected = [
+      ...inactiveItems.slice(0, reviewItems.length > 0 ? 4 : 6),
+      ...reviewItems.slice(0, 2),
+    ];
+    const selectedIds = new Set(selected.map((item) => item.report._id));
+
+    return [
+      ...selected,
+      ...sortedItems
+        .filter((item) => !selectedIds.has(item.report._id))
+        .slice(0, 6 - selected.length),
+    ].sort(sortByUrgency);
+  }, [inactivityMonitor?.reports, pendingResolutionReviews]);
+
+  const recentNotifications = (notificationFeed?.pages.flatMap((page) => page.items) ?? []).slice(
+    0,
+    4
   );
 
   const categoryCounts = useMemo(() => {
@@ -252,44 +291,182 @@ export default function AdminDashboardPage() {
               ))}
             </Card>
 
-            <Card
-              className="soft-card"
-              title="Recently Updated Reports"
-              style={{ marginTop: 16 }}
-              // extra={
-              //   <Button
-              //     variant="outlined"
-              //     color="primary"
-              //     onClick={() => navigate('/admin/incidents')}
-              //   >
-              //     View All
-              //   </Button>
-              // }
-            >
-              <List
-                dataSource={recentActivity}
-                split={false}
-                renderItem={(report) => (
-                  <List.Item
-                    style={{ paddingLeft: 0, paddingRight: 0, cursor: 'pointer' }}
-                    onClick={() => navigate(`/admin/incidents/${report._id}`)}
-                  >
-                    <div
-                      style={{ display: 'flex', alignItems: 'flex-start', width: '100%', gap: 8 }}
-                    >
-                      <div style={{ flex: 1 }}>
-                        <Text strong>{report.category}</Text>
-                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
-                          {report.referenceNumber || report._id.slice(-6).toUpperCase()} ·{' '}
-                          {new Date(report.updatedAt).toLocaleDateString()}
-                        </div>
-                      </div>
-                      <StatusTag status={report.status} />
-                    </div>
-                  </List.Item>
-                )}
+            <div style={{ marginTop: 16 }}>
+              <RecentActivityPanel
+                items={recentNotifications}
+                role={role}
+                onOpenReport={(reportId) => navigate(`/admin/incidents/${reportId}`)}
+                onViewAll={() => navigate('/admin/notifications')}
               />
-            </Card>
+            </div>
+          </Col>
+        </Row>
+      </Space>
+    );
+  }
+
+  if (role === 'captain') {
+    const captainPuroks = [...(analytics?.byPurok ?? [])]
+      .sort((left, right) => right.count - left.count)
+      .slice(0, 4);
+    const inactiveCriticalCount = (inactivityMonitor?.reports ?? []).filter(
+      (report) => report.severity === 'Critical'
+    ).length;
+    const weekStart = new Date();
+    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+    const resolvedThisWeek = reports.filter(
+      (report) =>
+        report.resolution?.verificationStatus === 'verified' &&
+        report.resolution.verifiedAt &&
+        new Date(report.resolution.verifiedAt).getTime() >= weekStart.getTime()
+    ).length;
+
+    return (
+      <Space direction="vertical" size={16} style={{ width: '100%' }}>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} xl={6}>
+            <KpiCard
+              label="Open incidents"
+              value={openReports}
+              icon={<AlertOutlined />}
+              tone={
+                openCriticalReports > 0 ? 'danger' : openHighReports > 0 ? 'warning' : 'neutral'
+              }
+              badges={[
+                ...(openCriticalReports > 0
+                  ? [{ text: `${openCriticalReports} critical`, tone: 'danger' as const }]
+                  : []),
+                ...(openHighReports > 0
+                  ? [{ text: `${openHighReports} high`, tone: 'warning' as const }]
+                  : []),
+              ]}
+              link={{ text: 'View incidents', href: '/admin/incidents?scope=open' }}
+            />
+          </Col>
+          <Col xs={24} sm={12} xl={6}>
+            <KpiCard
+              label="Awaiting your review"
+              value={pendingResolutionReviews.length}
+              icon={<CheckCircleOutlined />}
+              tone={pendingResolutionReviews.length > 0 ? 'warning' : 'neutral'}
+              helper="Pending resolution verification"
+              link={{
+                text: 'Review resolutions',
+                href: '/admin/incidents?status=resolved&verification=pending',
+              }}
+            />
+          </Col>
+          <Col xs={24} sm={12} xl={6}>
+            <KpiCard
+              label={`Inactive ${inactivityMonitor?.thresholdHours ?? 4}+ hours`}
+              value={inactivityMonitor?.reports.length ?? 0}
+              icon={<ClockCircleOutlined />}
+              tone={(inactivityMonitor?.reports.length ?? 0) > 0 ? 'medium' : 'neutral'}
+              helper={
+                inactiveCriticalCount > 0
+                  ? `${inactiveCriticalCount} are critical`
+                  : 'No critical inactive cases'
+              }
+              link={{ text: 'Check inactive cases', href: '/admin/incidents?scope=inactive' }}
+            />
+          </Col>
+          <Col xs={24} sm={12} xl={6}>
+            <KpiCard
+              label="Verified resolutions this week"
+              value={resolvedThisWeek}
+              icon={<CheckCircleOutlined />}
+              tone="success"
+              helper="Since Monday"
+              link={{
+                text: 'View verified',
+                href: '/admin/incidents?status=resolved&verification=verified&verifiedPeriod=week',
+              }}
+            />
+          </Col>
+        </Row>
+
+        <Card
+          className="soft-card"
+          title="Needs your attention"
+          extra={
+            <Button variant="outlined" color="primary" onClick={() => navigate('/admin/incidents')}>
+              View incidents
+            </Button>
+          }
+        >
+          <IncidentList
+            reports={captainAttention.map(({ report }) => report)}
+            layout="responsive"
+            compact
+            showSubmitter={false}
+            pagination={false}
+            onRowClick={(id) => navigate(`/admin/incidents/${id}`)}
+            extraColumns={[
+              {
+                title: 'Waiting',
+                key: 'captainWaiting',
+                width: 140,
+                render: (report) => {
+                  const attention = captainAttention.find((item) => item.report._id === report._id);
+                  if (!attention) return null;
+
+                  return (
+                    <Text type="secondary" style={{ whiteSpace: 'nowrap' }}>
+                      {attention.kind === 'inactive'
+                        ? `${attention.report.inactiveHours}h inactive`
+                        : `Since ${new Date(
+                            report.resolution?.resolvedAt ?? report.updatedAt
+                          ).toLocaleDateString()}`}
+                    </Text>
+                  );
+                },
+              },
+              {
+                title: 'Action',
+                key: 'captainAction',
+                width: 110,
+                align: 'right',
+                render: (report) => {
+                  const attention = captainAttention.find((item) => item.report._id === report._id);
+                  if (!attention) return null;
+
+                  return (
+                    <Button
+                      color="primary"
+                      variant="solid"
+                      type="link"
+                      size="small"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        navigate(`/admin/incidents/${report._id}`);
+                      }}
+                    >
+                      {attention.kind === 'review' ? 'Verify' : 'Open'}
+                    </Button>
+                  );
+                },
+              },
+            ]}
+          />
+        </Card>
+
+        <Row gutter={[16, 16]} align="top">
+          <Col xs={24} lg={12}>
+            <PurokBreakdownCard
+              data={captainPuroks}
+              title="Reports by purok"
+              actionLabel="Open heatmap"
+              onViewHeatmap={() => navigate('/admin/heatmap')}
+            />
+          </Col>
+          <Col xs={24} lg={12}>
+            <RecentActivityPanel
+              items={recentNotifications}
+              role={role}
+              onOpenReport={(reportId) => navigate(`/admin/incidents/${reportId}`)}
+              onViewAll={() => navigate('/admin/notifications')}
+            />
           </Col>
         </Row>
       </Space>

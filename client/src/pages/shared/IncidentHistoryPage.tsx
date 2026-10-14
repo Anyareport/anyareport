@@ -25,10 +25,13 @@ export default function IncidentHistoryPage({
   variant = 'admin',
   defaultStatus = 'all',
 }: IncidentHistoryPageProps) {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const paramStatus = searchParams.get('status') ?? defaultStatus;
   const paramSeverity = searchParams.get('severity') ?? '';
   const paramStale = searchParams.get('stale') === 'true';
+  const paramScope = searchParams.get('scope') ?? '';
+  const paramVerification = searchParams.get('verification') ?? '';
+  const paramVerifiedPeriod = searchParams.get('verifiedPeriod') ?? '';
 
   const [status, setStatus] = useState<string | 'all'>(paramStatus);
   const [search, setSearch] = useState('');
@@ -44,20 +47,36 @@ export default function IncidentHistoryPage({
     variant === 'responder' && lang === 'fil' && ['tanod', 'responder'].includes(role || '');
 
   const { data: reports = [] } = useQuery({
-    queryKey: variant === 'responder' ? ['responder-history'] : ['admin-reports', status],
-    queryFn: () =>
-      api.get<Report[]>(
-        variant === 'responder'
-          ? '/api/reports?handledByMe=true'
-          : `/api/reports${status === 'all' ? '' : `?status=${status}`}`
-      ),
+    queryKey:
+      variant === 'responder' ? ['responder-history'] : ['admin-reports', status, paramScope, role],
+    queryFn: async () => {
+      if (variant === 'responder') return api.get<Report[]>('/api/reports?handledByMe=true');
+      if (paramScope === 'inactive') {
+        const result = await api.get<{ thresholdHours: number; reports: Report[] }>(
+          '/api/reports/captain/inactive'
+        );
+        return result.reports;
+      }
+
+      return api.get<Report[]>(`/api/reports${status === 'all' ? '' : `?status=${status}`}`);
+    },
     refetchInterval: 30000,
   });
 
   const filtered = useMemo(() => {
     const sorted = [...reports].sort(compareIncidentPriority);
+    const weekStart = new Date();
+    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
     const matchesFilters = (report: Report) =>
       matchesIncidentSearch(report, search) &&
+      (status === 'all' || report.status === status) &&
+      (paramScope !== 'open' || !['resolved', 'flagged'].includes(report.status)) &&
+      (!paramVerification || report.resolution?.verificationStatus === paramVerification) &&
+      (paramVerifiedPeriod !== 'week' ||
+        (report.resolution?.verificationStatus === 'verified' &&
+          report.resolution.verifiedAt &&
+          new Date(report.resolution.verifiedAt).getTime() >= weekStart.getTime())) &&
       isIncidentInPeriod(report, datePeriod, date) &&
       (!category || report.category === category) &&
       (!subcategory || report.subcategory === subcategory) &&
@@ -77,7 +96,22 @@ export default function IncidentHistoryPage({
     }
 
     return sorted.filter(matchesFilters);
-  }, [category, date, datePeriod, location, reports, search, subcategory, variant]);
+  }, [
+    category,
+    date,
+    datePeriod,
+    location,
+    paramScope,
+    paramStale,
+    paramVerification,
+    paramVerifiedPeriod,
+    reports,
+    search,
+    severity,
+    status,
+    subcategory,
+    variant,
+  ]);
 
   const categoryOptions = useMemo(
     () =>
@@ -185,13 +219,51 @@ export default function IncidentHistoryPage({
     setSubcategory('');
     setLocation('');
     setSeverity('');
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      ['status', 'severity', 'stale', 'scope', 'verification', 'verifiedPeriod'].forEach((key) =>
+        next.delete(key)
+      );
+      return next;
+    });
+  };
+
+  const removeSearchParams = (...keys: string[]) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      keys.forEach((key) => next.delete(key));
+      return next;
+    });
   };
 
   const activeFilterTags = [
+    paramScope === 'open' && {
+      key: 'scope',
+      label: 'Open incidents',
+      onClose: () => removeSearchParams('scope'),
+    },
+    paramScope === 'inactive' && {
+      key: 'scope',
+      label: 'Inactive incidents',
+      onClose: () => removeSearchParams('scope'),
+    },
+    paramVerification && {
+      key: 'verification',
+      label: `Verification: ${paramVerification}`,
+      onClose: () => removeSearchParams('verification'),
+    },
+    paramVerifiedPeriod === 'week' && {
+      key: 'verifiedPeriod',
+      label: 'Verified this week',
+      onClose: () => removeSearchParams('verifiedPeriod'),
+    },
     status !== 'all' && {
       key: 'status',
       label: `Status: ${status}`,
-      onClose: () => setStatus('all'),
+      onClose: () => {
+        setStatus('all');
+        removeSearchParams('status');
+      },
     },
     severity && {
       key: 'severity',
@@ -201,7 +273,7 @@ export default function IncidentHistoryPage({
     paramStale && {
       key: 'stale',
       label: 'No update in 7+ days',
-      onClose: () => {},
+      onClose: () => removeSearchParams('stale'),
     },
     date && {
       key: 'date',

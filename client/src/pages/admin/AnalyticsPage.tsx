@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Card, Col, Empty, Progress, Row, Select, Space, Spin, theme, Button } from 'antd';
+import { Alert, Card, Col, Empty, Progress, Row, Select, Space, Spin, theme } from 'antd';
 import {
   FileTextOutlined,
   CheckCircleOutlined,
@@ -13,6 +13,7 @@ import { api, type Analytics } from '../../lib/api';
 import { sharedColors } from '../../theme/colorTokens';
 import { getStatusLabel, normalizeReportStatus } from '../../lib/reportWorkflow';
 import KpiCard from '../../components/KpiCard';
+import PurokBreakdownCard from '../../components/PurokBreakdownCard';
 
 type AnalyticsPeriod = 'all' | 'week' | 'month' | 'year';
 
@@ -406,40 +407,11 @@ export default function AdminAnalyticsPage() {
           </Card>
         </Col>
         <Col xs={24} md={8}>
-          <Card
-            className="soft-card"
-            title="Top Puroks"
+          <PurokBreakdownCard
+            data={purokData}
+            onViewHeatmap={() => navigate('/admin/heatmap')}
             style={{ height: '100%' }}
-            extra={
-              <Button variant="outlined" color="primary" onClick={() => navigate('/admin/heatmap')}>
-                View Heatmap
-              </Button>
-            }
-          >
-            <Space direction="vertical" size={10} style={{ width: '100%' }}>
-              {purokData.length ? (
-                purokData.map((entry) => (
-                  <div key={entry._id}>
-                    <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                      <span>{entry._id}</span>
-                      <span>{entry.count}</span>
-                    </Space>
-                    <Progress
-                      percent={
-                        purokData[0].count
-                          ? Math.round((entry.count / purokData[0].count) * 100)
-                          : 0
-                      }
-                      showInfo={false}
-                      strokeColor={token.colorPrimary}
-                    />
-                  </div>
-                ))
-              ) : (
-                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No Purok data" />
-              )}
-            </Space>
-          </Card>
+          />
         </Col>
       </Row>
     </Space>
