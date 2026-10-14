@@ -24,7 +24,6 @@ import AdminHeatmapPage from './pages/admin/HeatmapPage';
 import AdminAnalyticsPage from './pages/admin/AnalyticsPage';
 import AdminAuditLogPage from './pages/admin/AuditLogPage';
 import AdminUsersPage from './pages/admin/UsersPage';
-import AdminExportPage from './pages/admin/ExportPage';
 import SecretaryIntakePage from './pages/admin/IntakeQueuePage';
 
 function HomeRedirect() {
@@ -99,7 +98,6 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
             <Route path="/admin/audit" element={<AdminAuditLogPage />} />
           </Route>
-          <Route path="/admin/export" element={<AdminExportPage />} />
           <Route path="/admin/intake" element={<SecretaryIntakePage />} />
           <Route path="/admin/users" element={<AdminUsersPage />} />
           <Route path="/admin/notifications" element={<NotificationsPage />} />

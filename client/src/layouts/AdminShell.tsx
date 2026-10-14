@@ -5,7 +5,6 @@ import {
   BarChartOutlined,
   AuditOutlined,
   TeamOutlined,
-  ExportOutlined,
   InboxOutlined,
   BellOutlined,
   UserOutlined,
@@ -40,7 +39,6 @@ export default function AdminShell() {
     const insightItems: ItemType[] = [
       { key: '/admin/heatmap', icon: <HeatMapOutlined />, label: 'Safety Heatmap' },
       { key: '/admin/analytics', icon: <BarChartOutlined />, label: 'Analytics' },
-      { key: '/admin/export', icon: <ExportOutlined />, label: 'Export' },
     ];
     const accountItems: ItemType[] = [
       { key: '/admin/notifications', icon: <BellOutlined />, label: 'Notifications' },

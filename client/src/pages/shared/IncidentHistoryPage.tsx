@@ -1,7 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Input, Popover, Select, Space, Tag } from 'antd';
-import { FilterOutlined, SearchOutlined } from '@ant-design/icons';
+import { Alert, Button, Grid, Input, message, Popover, Select, Space, Tag } from 'antd';
+import {
+  DownloadOutlined,
+  FilePdfOutlined,
+  FilterOutlined,
+  SearchOutlined,
+} from '@ant-design/icons';
 import { useSearchParams } from 'react-router-dom';
 import { api, type Report } from '../../lib/api';
 import IncidentList from '../../components/IncidentList';
@@ -25,6 +30,7 @@ export default function IncidentHistoryPage({
   variant = 'admin',
   defaultStatus = 'all',
 }: IncidentHistoryPageProps) {
+  const screens = Grid.useBreakpoint();
   const [searchParams, setSearchParams] = useSearchParams();
   const paramStatus = searchParams.get('status') ?? defaultStatus;
   const paramSeverity = searchParams.get('severity') ?? '';
@@ -41,6 +47,7 @@ export default function IncidentHistoryPage({
   const [subcategory, setSubcategory] = useState('');
   const [location, setLocation] = useState('');
   const [severity, setSeverity] = useState(paramSeverity);
+  const [exporting, setExporting] = useState<'csv' | 'pdf' | null>(null);
   const { role } = useAuth();
   const { lang, t } = useLang();
   const translate =
@@ -236,6 +243,75 @@ export default function IncidentHistoryPage({
     });
   };
 
+  const exportReports = async (format: 'csv' | 'pdf') => {
+    const params = new URLSearchParams({ format });
+    if (status !== 'all') params.set('status', status);
+    if (category) params.set('category', category);
+    if (subcategory) params.set('subcategory', subcategory);
+    if (location) params.set('location', location);
+    if (severity) params.set('severity', severity);
+    if (search.trim()) params.set('search', search.trim());
+    if (paramScope) params.set('scope', paramScope);
+    if (paramVerification) params.set('verification', paramVerification);
+    if (paramVerifiedPeriod) params.set('verifiedPeriod', paramVerifiedPeriod);
+    if (paramStale) params.set('stale', 'true');
+
+    if (date) {
+      let start: Date;
+      let end: Date;
+      if (datePeriod === 'year') {
+        const year = Number(date);
+        start = new Date(year, 0, 1);
+        end = new Date(year + 1, 0, 1);
+      } else if (datePeriod === 'month') {
+        const [year, month] = date.split('-').map(Number);
+        start = new Date(year, month - 1, 1);
+        end = new Date(year, month, 1);
+      } else {
+        start = new Date(`${date}T00:00:00`);
+        end = new Date(start);
+        end.setDate(end.getDate() + 1);
+      }
+      if (
+        !Number.isFinite(start.getTime()) ||
+        !Number.isFinite(end.getTime()) ||
+        (datePeriod === 'year' && (!Number.isInteger(Number(date)) || Number(date) < 1900 || Number(date) > 2100))
+      ) {
+        message.error('Enter a valid date filter before exporting');
+        return;
+      }
+      params.set('dateFrom', start.toISOString());
+      params.set('dateTo', end.toISOString());
+    }
+
+    if (paramVerifiedPeriod === 'week') {
+      const weekStart = new Date();
+      weekStart.setHours(0, 0, 0, 0);
+      weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+      params.set('verifiedAfter', weekStart.toISOString());
+    }
+
+    if (paramStale) {
+      params.set('staleBefore', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+    }
+
+    setExporting(format);
+    try {
+      const blob = await api.download(`/api/export?${params.toString()}`);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `anyareport-${format}.${format}`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      message.success(`${format.toUpperCase()} export downloaded`);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : 'Export failed');
+    } finally {
+      setExporting(null);
+    }
+  };
+
   const activeFilterTags = [
     paramScope === 'open' && {
       key: 'scope',
@@ -368,34 +444,72 @@ export default function IncidentHistoryPage({
             : 'Reports are prioritized by emergency or critical severity, then by status and submission date. Desktop table columns can also be sorted.'
         }
       />
-      <Space.Compact style={{ display: 'flex', width: '100%' }}>
-        <Input
-          aria-label="Search incidents"
-          allowClear
-          prefix={<SearchOutlined />}
-          suffix={filterTags}
-          placeholder="Search submitter, incident name, or ID"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          style={{ flex: 1 }}
-        />
-        <Popover
-          trigger="click"
-          placement="bottomLeft"
-          content={
-            <Space direction="vertical" size={16} style={{ width: 320, maxWidth: '100%' }}>
-              <StatusFilter value={status} onChange={setStatus} layout="select" />
-              {dateFilter}
-              {incidentFilters}
-              <Button type="link" danger onClick={clearFilters} disabled={!activeFilterTags.length}>
-                Clear all filters
-              </Button>
-            </Space>
-          }
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: screens.md ? 'row' : 'column-reverse',
+          alignItems: 'stretch',
+          gap: 12,
+        }}
+      >
+        <Space.Compact style={{ display: 'flex', flex: 1, minWidth: 0 }}>
+          <Input
+            aria-label="Search incidents"
+            allowClear
+            prefix={<SearchOutlined />}
+            suffix={filterTags}
+            placeholder="Search submitter, incident name, or ID"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            style={{ flex: 1, minWidth: 0 }}
+          />
+          <Popover
+            trigger="click"
+            placement="bottomLeft"
+            content={
+              <Space direction="vertical" size={16} style={{ width: 320, maxWidth: '100%' }}>
+                <StatusFilter value={status} onChange={setStatus} layout="select" />
+                {dateFilter}
+                {incidentFilters}
+                <Button type="link" danger onClick={clearFilters} disabled={!activeFilterTags.length}>
+                  Clear all filters
+                </Button>
+              </Space>
+            }
+          >
+            <Button icon={<FilterOutlined />}>Filters</Button>
+          </Popover>
+        </Space.Compact>
+
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 8,
+            width: screens.md ? 'auto' : '100%',
+            flexShrink: 0,
+          }}
         >
-          <Button icon={<FilterOutlined />}>Filters</Button>
-        </Popover>
-      </Space.Compact>
+          <Button
+            icon={<DownloadOutlined />}
+            loading={exporting === 'csv'}
+            disabled={exporting !== null && exporting !== 'csv'}
+            onClick={() => void exportReports('csv')}
+            style={{ flex: screens.md ? '0 0 auto' : '1 1 0', minWidth: 0 }}
+          >
+            Export filtered CSV
+          </Button>
+          <Button
+            icon={<FilePdfOutlined />}
+            loading={exporting === 'pdf'}
+            disabled={exporting !== null && exporting !== 'pdf'}
+            onClick={() => void exportReports('pdf')}
+            style={{ flex: screens.md ? '0 0 auto' : '1 1 0', minWidth: 0 }}
+          >
+            Export filtered PDF
+          </Button>
+        </div>
+      </div>
 
       <IncidentList
         reports={filtered}
