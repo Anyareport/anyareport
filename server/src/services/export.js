@@ -23,6 +23,7 @@ export async function exportToCSV(reports) {
     category: report.category ?? '',
     subcategory: report.subcategory ?? '',
     status: report.status ?? '',
+    title: report.aiTitle ?? '',
     description: report.description ?? '',
     address: report.location?.address ?? '',
     submittedAt: report.createdAt ? new Date(report.createdAt).toISOString() : '',
@@ -35,6 +36,7 @@ export async function exportToCSV(reports) {
       'category',
       'subcategory',
       'status',
+      'title',
       'description',
       'address',
       'submittedAt',
@@ -66,7 +68,8 @@ export function exportToPDF(reports) {
               `${index + 1}.${reference} [${report.status}] ${report.category} (Submitted by: ${report.submittedByName})`
             );
           if (report.subcategory) doc.fontSize(9).text(`   Subcategory: ${report.subcategory}`);
-          if (report.description) doc.fontSize(9).text(`   ${report.description}`);
+            if (report.aiTitle) doc.fontSize(9).text(`   Title: ${report.aiTitle}`);
+            if (report.description) doc.fontSize(9).text(`   Description: ${report.description}`);
           if (report.location?.address) {
             doc.fontSize(8).text(`   Location: ${report.location.address}`);
           }
