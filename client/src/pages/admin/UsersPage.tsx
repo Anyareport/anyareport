@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Drawer, Form, Input, Select, Space, Table, Tag, message } from 'antd';
+import { Button, Drawer, Form, Input, Select, Space, Table, Tabs, Tag, message } from 'antd';
+import { SearchOutlined } from '@ant-design/icons';
 import { api, type UserProfile } from '../../lib/api';
 
 const roleOptions = [
@@ -16,12 +17,35 @@ export default function AdminUsersPage() {
   const queryClient = useQueryClient();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [form] = Form.useForm();
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string | undefined>();
+  const [group, setGroup] = useState<'officials' | 'residents'>('officials');
 
   const { data: users = [] } = useQuery({
     queryKey: ['admin-users'],
     queryFn: () => api.get<UserProfile[]>('/api/admin/users'),
     refetchInterval: 30000,
   });
+
+  // Search matches name, email, phone and address. Officials and residents are
+  // listed separately; the role filter only applies to officials.
+  const { officials, residents } = useMemo(() => {
+    const terms = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    const matchesSearch = (user: UserProfile) => {
+      const haystack = [user.name, user.email, user.phone, user.address]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return terms.every((term) => haystack.includes(term));
+    };
+    const matching = users.filter(matchesSearch);
+    return {
+      officials: matching.filter(
+        (user) => user.role !== 'resident' && (!roleFilter || user.role === roleFilter)
+      ),
+      residents: matching.filter((user) => user.role === 'resident'),
+    };
+  }, [users, search, roleFilter]);
 
   const createUser = useMutation({
     mutationFn: (values: Record<string, unknown>) => api.post('/api/admin/users', values),
@@ -78,12 +102,44 @@ export default function AdminUsersPage() {
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Button type="primary" onClick={() => setDrawerOpen(true)}>
-        Create official
-      </Button>
+      <Space wrap style={{ width: '100%', justifyContent: 'space-between' }}>
+        <Space wrap>
+          <Input
+            aria-label="Search users"
+            allowClear
+            prefix={<SearchOutlined />}
+            placeholder="Search name, email, phone or address"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            style={{ width: 300, maxWidth: '100%' }}
+          />
+          {group === 'officials' && (
+            <Select
+              aria-label="Filter officials by role"
+              allowClear
+              placeholder="All roles"
+              value={roleFilter}
+              options={roleOptions.filter((option) => option.value !== 'resident')}
+              onChange={(value) => setRoleFilter(value)}
+              style={{ width: 160 }}
+            />
+          )}
+        </Space>
+        <Button type="primary" onClick={() => setDrawerOpen(true)}>
+          Create official
+        </Button>
+      </Space>
+      <Tabs
+        activeKey={group}
+        onChange={(key) => setGroup(key as 'officials' | 'residents')}
+        items={[
+          { key: 'officials', label: `Officials (${officials.length})` },
+          { key: 'residents', label: `Residents (${residents.length})` },
+        ]}
+      />
       <Table
         rowKey="_id"
-        dataSource={users}
+        dataSource={group === 'officials' ? officials : residents}
         columns={columns}
         pagination={{ pageSize: 8 }}
         scroll={{ x: true }}
