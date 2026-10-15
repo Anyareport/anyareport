@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Drawer, Form, Input, Select, Space, Table, Tabs, Tag, message } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
+import { useSearchParams } from 'react-router-dom';
 import { api, type UserProfile } from '../../lib/api';
 
 const roleOptions = [
@@ -20,6 +21,10 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string | undefined>();
   const [group, setGroup] = useState<'officials' | 'residents'>('officials');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const statusParam = searchParams.get('status');
+  const statusFilter =
+    statusParam === 'active' || statusParam === 'suspended' ? statusParam : undefined;
 
   const { data: users = [] } = useQuery({
     queryKey: ['admin-users'],
@@ -38,14 +43,16 @@ export default function AdminUsersPage() {
         .toLowerCase();
       return terms.every((term) => haystack.includes(term));
     };
-    const matching = users.filter(matchesSearch);
+    const matching = users.filter(
+      (user) => matchesSearch(user) && (!statusFilter || user.status === statusFilter)
+    );
     return {
       officials: matching.filter(
         (user) => user.role !== 'resident' && (!roleFilter || user.role === roleFilter)
       ),
       residents: matching.filter((user) => user.role === 'resident'),
     };
-  }, [users, search, roleFilter]);
+  }, [users, search, roleFilter, statusFilter]);
 
   const createUser = useMutation({
     mutationFn: (values: Record<string, unknown>) => api.post('/api/admin/users', values),
@@ -112,6 +119,18 @@ export default function AdminUsersPage() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             style={{ width: 300, maxWidth: '100%' }}
+          />
+          <Select
+            aria-label="Filter by account status"
+            allowClear
+            placeholder="All statuses"
+            value={statusFilter}
+            options={[
+              { label: 'Active', value: 'active' },
+              { label: 'Suspended', value: 'suspended' },
+            ]}
+            onChange={(value) => setSearchParams(value ? { status: value } : {}, { replace: true })}
+            style={{ width: 150 }}
           />
           {group === 'officials' && (
             <Select

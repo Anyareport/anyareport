@@ -2,13 +2,15 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, Col, Row, Space, Typography, Button } from 'antd';
 
-import {
+import Icon, {
   AlertOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
   InboxOutlined,
-  BellOutlined,
+  StopOutlined,
+  TeamOutlined,
   FileSearchOutlined,
+
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { api, type Analytics, type Report } from '../../lib/api';
@@ -21,6 +23,34 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNotificationFeed } from '../../lib/notificationFeed';
 
 const { Text } = Typography;
+
+interface UserSummary {
+  total: number;
+  active: number;
+  suspended: number;
+}
+
+// @ant-design/icons has no "user-check" glyph, so this is a small inline SVG
+// (Lucide "user-check", ISC) wrapped in antd's <Icon> so it matches the other icons.
+const UserCheckSvg = () => (
+  <svg
+    viewBox="0 0 24 24"
+    width="1em"
+    height="1em"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="m16 11 2 2 4-4" />
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+  </svg>
+);
+
+const UserCheckIcon = () => <Icon component={UserCheckSvg} />;
 
 const isOpenReport = (report: Report) => !['resolved', 'flagged'].includes(report.status);
 
@@ -50,6 +80,14 @@ export default function AdminDashboardPage() {
         '/api/reports/captain/inactive'
       ),
     enabled: role === 'captain',
+    refetchInterval: 30000,
+  });
+
+  const isAdmin = role === 'admin';
+  const { data: userSummary, isLoading: userSummaryLoading } = useQuery({
+    queryKey: ['admin-dashboard-user-summary'],
+    queryFn: () => api.get<UserSummary>('/api/admin/users/summary'),
+    enabled: isAdmin,
     refetchInterval: 30000,
   });
 
@@ -488,44 +526,56 @@ export default function AdminDashboardPage() {
     );
   }
 
+  const totalUsers = userSummary?.total ?? 0;
+  const activeUsers = userSummary?.active ?? 0;
+  const suspendedUsers = userSummary?.suspended ?? 0;
+
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Row gutter={[16, 16]}>
         <Col xs={24} md={6}>
-          <KpiCard
-            label="Open incidents"
-            value={openReports}
-            icon={<AlertOutlined />}
-            tone={openTone}
-            badges={severityBadges}
-            link={{ text: 'View incidents', href: '/admin/incidents' }}
-          />
-        </Col>
-        <Col xs={24} md={6}>
-          <KpiCard
+        <KpiCard
             label="Total reports"
             value={analytics?.total ?? reports.length}
             icon={<FileSearchOutlined />}
             tone="accent"
             link={{ text: 'View analytics', href: '/admin/analytics' }}
+            helper="Total reports filed in the system"
           />
         </Col>
         <Col xs={24} md={6}>
           <KpiCard
-            label="Unread notifications"
-            value={notificationFeed?.pages[0]?.unreadCount ?? 0}
-            icon={<BellOutlined />}
-            tone={(notificationFeed?.pages[0]?.unreadCount ?? 0) > 0 ? 'accent' : 'neutral'}
-            link={{ text: 'View notifications', href: '/admin/notifications' }}
+            label="Total users"
+            value={totalUsers}
+            icon={<TeamOutlined />}
+            tone="accent"
+            loading={userSummaryLoading}
+            helper="All registered accounts"
+            link={{ text: 'Manage users', href: '/admin/users' }}
           />
         </Col>
         <Col xs={24} md={6}>
           <KpiCard
-            label="Pending resolution review"
-            value={pendingResolutionReviews.length}
-            icon={<CheckCircleOutlined />}
-            tone={pendingResolutionReviews.length > 0 ? 'warning' : 'neutral'}
-            link={{ text: 'Review resolutions', href: '/admin/incidents?status=resolved' }}
+            label="Active accounts"
+            value={activeUsers}
+            icon={<UserCheckIcon />}
+            tone="success"
+            loading={userSummaryLoading}
+            helper="Enabled accounts, not currently online users"
+            link={{ text: 'Manage users', href: '/admin/users' }}
+          />
+        </Col>
+        <Col xs={24} md={6}>
+          {/* Account approval isn't implemented (status is only 'active' | 'suspended'),
+              so there is no "Pending accounts" card; suspended accounts is shown instead. */}
+          <KpiCard
+            label="Suspended accounts"
+            value={suspendedUsers}
+            icon={<StopOutlined />}
+            tone={suspendedUsers > 0 ? 'warning' : 'neutral'}
+            loading={userSummaryLoading}
+            helper="Cannot submit reports or receive alerts"
+            link={{ text: 'Review suspended', href: '/admin/users?status=suspended' }}
           />
         </Col>
       </Row>

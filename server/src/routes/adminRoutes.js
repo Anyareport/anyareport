@@ -3,6 +3,7 @@ import { verifyToken } from '../middleware/verifyToken.js';
 import { requireRole } from '../middleware/rbac.js';
 import {
   listUsers,
+  getUserSummary,
   createOfficial,
   updateUserStatus,
   updateUserRole,
@@ -13,6 +14,7 @@ const router = Router();
 router.use(verifyToken);
 router.use(requireRole('admin'));
 
+router.get('/users/summary', getUserSummary);
 router.get('/users', listUsers);
 router.post('/users', createOfficial);
 router.patch('/users/:id/status', updateUserStatus);

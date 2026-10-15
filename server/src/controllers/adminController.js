@@ -11,6 +11,22 @@ export async function listUsers(req, res) {
   }
 }
 
+export async function getUserSummary(req, res) {
+  try {
+    // One document per account (unique firebaseUid/email), so countDocuments
+    // cannot double-count a user regardless of role.
+    // "Active" mirrors the enforcement in index.js and notifications.js: status === 'active'.
+    const [total, active, suspended] = await Promise.all([
+      User.countDocuments({}),
+      User.countDocuments({ status: 'active' }),
+      User.countDocuments({ status: 'suspended' }),
+    ]);
+    res.json({ total, active, suspended });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
 export async function createOfficial(req, res) {
   try {
     const { email, password, name, phone, address, role } = req.body;
