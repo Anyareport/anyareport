@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Col, Row, Space, Typography, List, Button } from 'antd';
+import { Card, Col, Row, Space, Typography, Button } from 'antd';
 
 import {
   AlertOutlined,
@@ -21,6 +21,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNotificationFeed } from '../../lib/notificationFeed';
 
 const { Text } = Typography;
+
+const isOpenReport = (report: Report) => !['resolved', 'flagged'].includes(report.status);
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
@@ -51,7 +53,6 @@ export default function AdminDashboardPage() {
     refetchInterval: 30000,
   });
 
-  const isOpenReport = (report: Report) => !['resolved', 'flagged'].includes(report.status);
   const openReports = reports.filter(isOpenReport).length;
   const openCriticalReports = reports.filter(
     (report) => isOpenReport(report) && report.severity === 'Critical'
@@ -59,21 +60,32 @@ export default function AdminDashboardPage() {
   const openHighReports = reports.filter(
     (report) => isOpenReport(report) && report.severity === 'High'
   ).length;
-  const pendingResolutionReviews = reports.filter(
-    (report) => report.status === 'resolved' && report.resolution?.verificationStatus === 'pending'
-  );
-  const currentMonthStart = new Date();
-  currentMonthStart.setHours(0, 0, 0, 0);
-  currentMonthStart.setDate(1);
 
-  const reportsThisMonth = reports.filter(
-    (report) => new Date(report.createdAt).getTime() >= currentMonthStart.getTime()
+  const pendingResolutionReviews = useMemo(
+    () =>
+      reports.filter(
+        (report) =>
+          report.status === 'resolved' && report.resolution?.verificationStatus === 'pending'
+      ),
+    [reports]
   );
-  const resolvedThisMonth = reports.filter(
-    (report) =>
-      report.resolution?.resolvedAt &&
-      new Date(report.resolution.resolvedAt).getTime() >= currentMonthStart.getTime()
-  ).length;
+
+
+  const reportsThisMonth = useMemo(() => {
+    const monthStart = new Date();
+    monthStart.setHours(0, 0, 0, 0);
+    monthStart.setDate(1);
+    return reports.filter((report) => new Date(report.createdAt).getTime() >= monthStart.getTime());
+  }, [reports]);
+
+  
+  const resolvedThisMonth = useMemo(
+    () =>
+      reportsThisMonth.filter(
+        (report) => report.status === 'resolved' && report.resolution?.resolvedAt
+      ).length,
+    [reportsThisMonth]
+  );
 
   const secretaryQueue = useMemo(
     () =>
@@ -83,44 +95,32 @@ export default function AdminDashboardPage() {
     [reports]
   );
 
-  const captainAttention = useMemo(() => {
-    const items = [
-      ...(inactivityMonitor?.reports ?? []).map((report) => ({
-        report,
-        kind: 'inactive' as const,
-        sortAt: Date.now() - report.inactiveHours * 60 * 60 * 1000,
-        priority: report.severity === 'Critical' ? 0 : 2,
-      })),
-      ...pendingResolutionReviews.map((report) => ({
-        report,
-        kind: 'review' as const,
-        sortAt: new Date(report.resolution?.resolvedAt ?? report.updatedAt).getTime(),
-        priority: report.severity === 'Critical' ? 0 : 1,
-      })),
-    ];
-    const sortByUrgency = (left: (typeof items)[number], right: (typeof items)[number]) => {
-      if (left.priority !== right.priority) return left.priority - right.priority;
-      if (left.kind === 'inactive' && right.kind === 'inactive') {
-        return right.report.inactiveHours - left.report.inactiveHours;
-      }
-      return left.sortAt - right.sortAt;
-    };
-    const sortedItems = items.sort(sortByUrgency);
-    const reviewItems = sortedItems.filter((item) => item.kind === 'review');
-    const inactiveItems = sortedItems.filter((item) => item.kind === 'inactive');
-    const selected = [
-      ...inactiveItems.slice(0, reviewItems.length > 0 ? 4 : 6),
-      ...reviewItems.slice(0, 2),
-    ];
-    const selectedIds = new Set(selected.map((item) => item.report._id));
+  const captainAttention = useMemo(
+    () =>
+      [...(inactivityMonitor?.reports ?? [])]
+        .sort((left, right) => {
+          const leftCritical = left.severity === 'Critical' ? 0 : 1;
+          const rightCritical = right.severity === 'Critical' ? 0 : 1;
+          if (leftCritical !== rightCritical) return leftCritical - rightCritical;
+          return right.inactiveHours - left.inactiveHours;
+        })
+        .slice(0, 6),
+    [inactivityMonitor?.reports]
+  );
 
-    return [
-      ...selected,
-      ...sortedItems
-        .filter((item) => !selectedIds.has(item.report._id))
-        .slice(0, 6 - selected.length),
-    ].sort(sortByUrgency);
-  }, [inactivityMonitor?.reports, pendingResolutionReviews]);
+  const sortedPendingReviews = useMemo(
+    () =>
+      [...pendingResolutionReviews].sort((left, right) => {
+        const leftCritical = left.severity === 'Critical' ? 0 : 1;
+        const rightCritical = right.severity === 'Critical' ? 0 : 1;
+        if (leftCritical !== rightCritical) return leftCritical - rightCritical;
+        return (
+          new Date(left.resolution?.resolvedAt ?? left.updatedAt).getTime() -
+          new Date(right.resolution?.resolvedAt ?? right.updatedAt).getTime()
+        );
+      }),
+    [pendingResolutionReviews]
+  );
 
   const recentNotifications = (notificationFeed?.pages.flatMap((page) => page.items) ?? []).slice(
     0,
@@ -145,13 +145,21 @@ export default function AdminDashboardPage() {
 
   const staleCount = reports.filter((report) => {
     const ageDays = (Date.now() - new Date(report.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
-    return report.status !== 'resolved' && ageDays >= 7;
+    return isOpenReport(report) && ageDays >= 7;
   }).length;
 
   const resolvedPercent =
     reportsThisMonth.length > 0
       ? Math.round((resolvedThisMonth / reportsThisMonth.length) * 100)
       : 0;
+
+  const severityBadges = [
+    ...(openCriticalReports > 0
+      ? [{ text: `${openCriticalReports} critical`, tone: 'danger' as const }]
+      : []),
+    ...(openHighReports > 0 ? [{ text: `${openHighReports} high`, tone: 'warning' as const }] : []),
+  ];
+  const openTone = openCriticalReports > 0 ? 'danger' : openHighReports > 0 ? 'warning' : 'neutral';
 
   if (isSecretary) {
     return (
@@ -172,27 +180,8 @@ export default function AdminDashboardPage() {
               label="Open incidents"
               value={openReports}
               icon={<AlertOutlined />}
-              tone={
-                openCriticalReports > 0 ? 'danger' : openHighReports > 0 ? 'warning' : 'neutral'
-              }
-              badges={[
-                ...(openCriticalReports > 0
-                  ? [
-                      {
-                        text: `${openCriticalReports} critical`,
-                        tone: 'danger' as const,
-                      },
-                    ]
-                  : []),
-                ...(openHighReports > 0
-                  ? [
-                      {
-                        text: `${openHighReports} high`,
-                        tone: 'warning' as const,
-                      },
-                    ]
-                  : []),
-              ]}
+              tone={openTone}
+              badges={severityBadges}
               link={{ text: 'View by severity', href: '/admin/incidents?severity=Critical' }}
             />
           </Col>
@@ -225,7 +214,7 @@ export default function AdminDashboardPage() {
               className="soft-card"
               title="Pending Intake"
               extra={
-                <Button type="primary" variant="outlined" onClick={() => navigate('/admin/intake')}>
+                <Button color="primary" variant="outlined" onClick={() => navigate('/admin/intake')}>
                   Open Intake Queue
                 </Button>
               }
@@ -261,34 +250,39 @@ export default function AdminDashboardPage() {
                 </Button>
               }
             >
-              {categoryCounts.map(({ category, count }) => (
-                <div key={category} style={{ marginBottom: 14 }}>
-                  <div
-                    style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}
-                  >
-                    <Text strong>{category}</Text>
-                    <Text type="secondary">{count}</Text>
-                  </div>
-                  <div
-                    style={{
-                      width: '100%',
-                      height: 8,
-                      borderRadius: 999,
-                      background: 'var(--bg-secondary)',
-                      overflow: 'hidden',
-                    }}
-                  >
+              {/* FIX: empty state (card used to render blank) */}
+              {categoryCounts.length === 0 ? (
+                <Text type="secondary">No reports filed this month.</Text>
+              ) : (
+                categoryCounts.map(({ category, count }) => (
+                  <div key={category} style={{ marginBottom: 14 }}>
+                    <div
+                      style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}
+                    >
+                      <Text strong>{category}</Text>
+                      <Text type="secondary">{count}</Text>
+                    </div>
                     <div
                       style={{
-                        width: `${(count / maxCategoryCount) * 100}%`,
-                        height: '100%',
+                        width: '100%',
+                        height: 8,
                         borderRadius: 999,
-                        background: 'var(--brand-primary)',
+                        background: 'var(--bg-secondary)',
+                        overflow: 'hidden',
                       }}
-                    />
+                    >
+                      <div
+                        style={{
+                          width: `${(count / maxCategoryCount) * 100}%`,
+                          height: '100%',
+                          borderRadius: 999,
+                          background: 'var(--brand-primary)',
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </Card>
 
             <div style={{ marginTop: 16 }}>
@@ -330,17 +324,8 @@ export default function AdminDashboardPage() {
               label="Open incidents"
               value={openReports}
               icon={<AlertOutlined />}
-              tone={
-                openCriticalReports > 0 ? 'danger' : openHighReports > 0 ? 'warning' : 'neutral'
-              }
-              badges={[
-                ...(openCriticalReports > 0
-                  ? [{ text: `${openCriticalReports} critical`, tone: 'danger' as const }]
-                  : []),
-                ...(openHighReports > 0
-                  ? [{ text: `${openHighReports} high`, tone: 'warning' as const }]
-                  : []),
-              ]}
+              tone={openTone}
+              badges={severityBadges}
               link={{ text: 'View incidents', href: '/admin/incidents?scope=open' }}
             />
           </Col>
@@ -386,6 +371,8 @@ export default function AdminDashboardPage() {
           </Col>
         </Row>
 
+        {/* FIX: Cards were direct children of <Row>, so they shrank to content width.
+            They're full-width blocks, so they now sit directly in the Space. */}
         <Card
           className="soft-card"
           title="Needs your attention"
@@ -396,11 +383,11 @@ export default function AdminDashboardPage() {
           }
         >
           <IncidentList
-            reports={captainAttention.map(({ report }) => report)}
+            reports={captainAttention}
             layout="responsive"
             compact
             showSubmitter={false}
-            pagination={false}
+            pagination={{pageSize: 3}}
             onRowClick={(id) => navigate(`/admin/incidents/${id}`)}
             extraColumns={[
               {
@@ -408,44 +395,72 @@ export default function AdminDashboardPage() {
                 key: 'captainWaiting',
                 width: 140,
                 render: (report) => {
-                  const attention = captainAttention.find((item) => item.report._id === report._id);
-                  if (!attention) return null;
+                  const item = captainAttention.find((entry) => entry._id === report._id);
+                  if (!item) return null;
 
                   return (
                     <Text type="secondary" style={{ whiteSpace: 'nowrap' }}>
-                      {attention.kind === 'inactive'
-                        ? `${attention.report.inactiveHours}h inactive`
-                        : `Since ${new Date(
-                            report.resolution?.resolvedAt ?? report.updatedAt
-                          ).toLocaleDateString()}`}
+                      {`${item.inactiveHours}h inactive`}
                     </Text>
                   );
                 },
+              }
+              
+            ]}
+          />
+        </Card>
+
+        <Card
+          className="soft-card"
+          title="Pending resolution review"
+          extra={
+            <Button
+              color="primary"
+              variant="outlined"
+              onClick={() => navigate('/admin/incidents?status=resolved&verification=pending')}
+            >
+              View all
+            </Button>
+          }
+        >
+          <IncidentList
+            reports={sortedPendingReviews}
+            layout="responsive"
+            pagination={{pageSize: 3}}
+            compact
+            showSubmitter={false}
+            onRowClick={(id) => navigate(`/admin/incidents/${id}`)}
+            extraColumns={[
+              {
+                title: 'Waiting',
+                key: 'reviewWaiting',
+                width: 140,
+                render: (report) => (
+                  <Text type="secondary" style={{ whiteSpace: 'nowrap' }}>
+                    {`Since ${new Date(
+                      report.resolution?.resolvedAt ?? report.updatedAt
+                    ).toLocaleDateString()}`}
+                  </Text>
+                ),
               },
               {
                 title: 'Action',
-                key: 'captainAction',
+                key: 'reviewAction',
                 width: 110,
                 align: 'right',
-                render: (report) => {
-                  const attention = captainAttention.find((item) => item.report._id === report._id);
-                  if (!attention) return null;
-
-                  return (
-                    <Button
-                      color="primary"
-                      variant="solid"
-                      type="link"
-                      size="small"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        navigate(`/admin/incidents/${report._id}`);
-                      }}
-                    >
-                      {attention.kind === 'review' ? 'Verify' : 'Open'}
-                    </Button>
-                  );
-                },
+                render: (report) => (
+                  <Button
+                    color="primary"
+                    variant="solid"
+                    size="small"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      navigate(`/admin/incidents/${report._id}`);
+                    }}
+                  >
+                    Verify
+                  </Button>
+                ),
               },
             ]}
           />
@@ -481,25 +496,8 @@ export default function AdminDashboardPage() {
             label="Open incidents"
             value={openReports}
             icon={<AlertOutlined />}
-            tone={openCriticalReports > 0 ? 'danger' : openHighReports > 0 ? 'warning' : 'neutral'}
-            badges={[
-              ...(openCriticalReports > 0
-                ? [
-                    {
-                      text: `${openCriticalReports} critical`,
-                      tone: 'danger' as const,
-                    },
-                  ]
-                : []),
-              ...(openHighReports > 0
-                ? [
-                    {
-                      text: `${openHighReports} high`,
-                      tone: 'warning' as const,
-                    },
-                  ]
-                : []),
-            ]}
+            tone={openTone}
+            badges={severityBadges}
             link={{ text: 'View incidents', href: '/admin/incidents' }}
           />
         </Col>
@@ -532,55 +530,7 @@ export default function AdminDashboardPage() {
         </Col>
       </Row>
 
-      {role === 'captain' && (
-        <Card
-          className="soft-card"
-          title={`Open incidents inactive for ${inactivityMonitor?.thresholdHours ?? 4}+ hours`}
-        >
-          <List
-            dataSource={inactivityMonitor?.reports ?? []}
-            pagination={{ pageSize: 5, hideOnSinglePage: true }}
-            locale={{ emptyText: 'No open incidents have exceeded the inactivity threshold.' }}
-            renderItem={(report) => (
-              <IncidentCard
-                report={report}
-                onClick={() => navigate(`/admin/incidents/${report._id}`)}
-                extra={<Text type="secondary">{report.inactiveHours}h inactive</Text>}
-              />
-            )}
-          />
-        </Card>
-      )}
-
       <Row gutter={[24, 16]}>
-        <Col xs={24} lg={12}>
-          <Card
-            className="soft-card"
-            title="Pending resolution review"
-            extra={
-              <Button
-                color="primary"
-                variant="outlined"
-                onClick={() => navigate('/admin/incidents?status=resolved')}
-              >
-                View all
-              </Button>
-            }
-          >
-            <List
-              dataSource={pendingResolutionReviews.slice(0, 5)}
-              pagination={{ pageSize: 5, hideOnSinglePage: true }}
-              locale={{ emptyText: 'No resolutions are awaiting review.' }}
-              renderItem={(report) => (
-                <IncidentCard
-                  report={report}
-                  onClick={() => navigate(`/admin/incidents/${report._id}`)}
-                  extra={<Text type="warning">Pending verification</Text>}
-                />
-              )}
-            />
-          </Card>
-        </Col>
         <Col xs={24} lg={12}>
           <Card
             className="soft-card"
