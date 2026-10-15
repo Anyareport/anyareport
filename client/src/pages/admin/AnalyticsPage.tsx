@@ -1,7 +1,22 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Card, Col, Empty, Progress, Row, Select, Space, Spin, theme } from 'antd';
 import {
+  Alert,
+  Button,
+  Card,
+  Col,
+  Dropdown,
+  Empty,
+  Progress,
+  Row,
+  Select,
+  Space,
+  Spin,
+  message,
+  theme,
+} from 'antd';
+import {
+  DownloadOutlined,
   FileTextOutlined,
   CheckCircleOutlined,
   FolderOpenOutlined,
@@ -12,6 +27,8 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { api, type Analytics } from '../../lib/api';
 import { sharedColors } from '../../theme/colorTokens';
 import { getStatusLabel, normalizeReportStatus } from '../../lib/reportWorkflow';
+import { downloadCsv, toCsv } from '../../lib/csv';
+import { getIncidentLabel, getLocationLabel } from '../../lib/incidentUtils';
 import KpiCard from '../../components/KpiCard';
 import PurokBreakdownCard from '../../components/PurokBreakdownCard';
 
@@ -22,6 +39,12 @@ const periodLabels: Record<AnalyticsPeriod, string> = {
   week: 'Last 7 days',
   month: 'Last 30 days',
   year: 'Last 365 days',
+};
+
+const periodDays: Record<Exclude<AnalyticsPeriod, 'all'>, number> = {
+  week: 7,
+  month: 30,
+  year: 365,
 };
 
 const workflowOrder = ['pending', 'coordinating', 'in_progress', 'resolved'];
@@ -49,7 +72,7 @@ function formatDate(date: Date, period: AnalyticsPeriod) {
 function fillDailyData(data: Analytics['last30Days'], period: AnalyticsPeriod) {
   const counts = new Map(data.map((item) => [item._id, item.count]));
   const sourceDates = data.map((item) => new Date(`${item._id}T00:00:00`));
-  const end = startOfDay(sourceDates.length ? sourceDates[sourceDates.length - 1] : new Date());
+  const end = startOfDay(new Date());
   const dayCount = period === 'week' ? 7 : period === 'month' ? 30 : period === 'year' ? 365 : 0;
   const start = dayCount
     ? new Date(end.getTime() - (dayCount - 1) * 86400000)
@@ -78,14 +101,22 @@ export default function AdminAnalyticsPage() {
     refetchInterval: 30000,
   });
 
-  const { data: reports = [] } = useQuery({
+  const { data: reports = [], dataUpdatedAt } = useQuery({
     queryKey: ['admin-analytics-reports', period],
     queryFn: () => api.get<import('../../lib/api').Report[]>(`/api/reports?period=${period}`),
     refetchInterval: 30000,
   });
 
+  // The reports endpoint ignores `period`, so apply the same cutoff the analytics
+  // endpoint uses. Keeps the KPIs and both exports aligned with the selected period.
+  const periodReports = useMemo(() => {
+    if (period === 'all') return reports;
+    const cutoff = dataUpdatedAt - periodDays[period] * 86400000;
+    return reports.filter((report) => new Date(report.createdAt).getTime() >= cutoff);
+  }, [reports, period, dataUpdatedAt]);
+
   const avgResolutionDays = useMemo(() => {
-    const resolved = reports.filter((r) => r.resolution?.resolvedAt);
+    const resolved = periodReports.filter((r) => r.resolution?.resolvedAt);
     if (!resolved.length) return null;
     const totalMs = resolved.reduce((sum, r) => {
       const ms = new Date(r.resolution!.resolvedAt).getTime() - new Date(r.createdAt).getTime();
@@ -93,7 +124,7 @@ export default function AdminAnalyticsPage() {
     }, 0);
     const days = totalMs / resolved.length / (1000 * 60 * 60 * 24);
     return days < 1 ? `${Math.round(days * 24)}h` : `${days.toFixed(1)}d`;
-  }, [reports]);
+  }, [periodReports]);
 
   const { token } = theme.useToken();
 
@@ -142,6 +173,82 @@ export default function AdminAnalyticsPage() {
   const inProgressCount = statusData.find((e) => e.name === 'In Progress')?.count ?? 0;
   const pendingCount = statusData.find((e) => e.name === 'Pending')?.count ?? 0;
 
+  // Exports follow the selected period, exactly as shown on this page.
+  const getExportDates = () => {
+    const now = Date.now();
+    const today = new Date(now).toISOString().slice(0, 10);
+    const from =
+      period === 'all'
+        ? dailyData[0]?.date || today
+        : new Date(now - periodDays[period] * 86400000).toISOString().slice(0, 10);
+    return { today, from, fileSuffix: `${period}-${today}` };
+  };
+  const percentOfTotal = (count: number) =>
+    analytics?.total ? Math.round((count / analytics.total) * 1000) / 10 : 0;
+
+  const exportSummary = () => {
+    const { today, from, fileSuffix } = getExportDates();
+    const rows: (string | number | null)[][] = [
+      ['Overview', 'Period', periodLabels[period], null],
+      ['Overview', 'From', from, null],
+      ['Overview', 'To', today, null],
+      ['Overview', 'Total reports', analytics?.total || 0, null],
+      ['Overview', 'Resolved', analytics?.resolved || 0, analytics?.resolutionRate || 0],
+      ['Overview', 'Still open', openCount, percentOfTotal(openCount)],
+      ['Overview', 'Avg. time to resolve', avgResolutionDays ?? 'n/a', null],
+      ...categoryData.map((e) => ['By category', e.name, e.count, percentOfTotal(e.count)]),
+      ...statusData.map((e) => ['By status', e.name, e.count, percentOfTotal(e.count)]),
+      ...severityData.map((e) => ['By severity', e._id, e.count, percentOfTotal(e.count)]),
+      ...hourData.map((e) => ['Time of day', e._id, e.count, percentOfTotal(e.count)]),
+      ...purokData.map((e) => ['Top puroks', e._id, e.count, percentOfTotal(e.count)]),
+      ...dailyData.map((e) => ['Reports per day', e.date, e.count, null]),
+    ];
+    downloadCsv(
+      `analytics-summary-${fileSuffix}.csv`,
+      toCsv(['Section', 'Item', 'Count', 'Share (%)'], rows)
+    );
+  };
+
+  const exportReportDetails = () => {
+    const { fileSuffix } = getExportDates();
+    // The reports endpoint returns at most the newest 200 reports.
+    if (reports.length >= 200) {
+      message.warning('Only the 200 most recent reports are available, so this file may be incomplete.');
+    }
+    const rows = periodReports.map((report) => [
+      report.referenceNumber,
+      getIncidentLabel(report),
+      report.category,
+      report.subcategory,
+      report.severity,
+      report.status,
+      getLocationLabel(report),
+      report.description,
+      report.submitterName,
+      new Date(report.createdAt).toLocaleString(),
+      report.resolution?.resolvedAt ? new Date(report.resolution.resolvedAt).toLocaleString() : '',
+    ]);
+    downloadCsv(
+      `analytics-reports-${fileSuffix}.csv`,
+      toCsv(
+        [
+          'Reference Number',
+          'Incident',
+          'Category',
+          'Subcategory',
+          'Severity',
+          'Status',
+          'Location',
+          'Description',
+          'Submitted By',
+          'Submitted At',
+          'Resolved At',
+        ],
+        rows
+      )
+    );
+  };
+
   if (isLoading) {
     return <Spin size="large" style={{ display: 'block', margin: '48px auto' }} />;
   }
@@ -167,18 +274,35 @@ export default function AdminAnalyticsPage() {
           </span>
         </Col>
         <Col>
-          <Select
-            aria-label="Analytics period"
-            value={period}
-            style={{ width: 180 }}
-            onChange={setPeriod}
-            options={[
-              { value: 'week', label: '7 days' },
-              { value: 'month', label: '30 days' },
-              { value: 'year', label: '12 months' },
-              { value: 'all', label: 'All time' },
-            ]}
-          />
+          <Space wrap>
+            <Select
+              aria-label="Analytics period"
+              value={period}
+              style={{ width: 180 }}
+              onChange={setPeriod}
+              options={[
+                { value: 'week', label: '7 days' },
+                { value: 'month', label: '30 days' },
+                { value: 'year', label: '12 months' },
+                { value: 'all', label: 'All time' },
+              ]}
+            />
+            <Dropdown
+              disabled={!hasData}
+              trigger={['click']}
+              menu={{
+                items: [
+                  { key: 'summary', label: 'Analytics summary (CSV)' },
+                  { key: 'details', label: 'Report details (CSV)' },
+                ],
+                onClick: ({ key }) => (key === 'summary' ? exportSummary() : exportReportDetails()),
+              }}
+            >
+              <Button icon={<DownloadOutlined />} disabled={!hasData}>
+                Export
+              </Button>
+            </Dropdown>
+          </Space>
         </Col>
       </Row>
 
@@ -229,7 +353,7 @@ export default function AdminAnalyticsPage() {
             tone="neutral"
             helper={
               avgResolutionDays
-                ? `Based on ${reports.filter((r) => r.resolution?.resolvedAt).length} resolved reports`
+                ? `Based on ${periodReports.filter((r) => r.resolution?.resolvedAt).length} resolved reports`
                 : 'No resolved reports in this period'
             }
           />
