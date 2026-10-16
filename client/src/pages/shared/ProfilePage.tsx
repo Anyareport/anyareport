@@ -1,18 +1,37 @@
 import { useEffect, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { Button, Card, Col, Form, Input, Row, Space, Tag, Typography, message } from 'antd';
+import {
+  Alert,
+  Avatar,
+  Button,
+  Card,
+  Col,
+  Form,
+  Input,
+  Row,
+  Space,
+  Tag,
+  Typography,
+  message,
+} from 'antd';
 import { api } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLang } from '../../contexts/LanguageContext';
 import { getRoleLabel } from '../../lib/roles';
 
-const { Text, Paragraph } = Typography;
+const { Text, Title } = Typography;
 
-interface ProfilePageProps {
-  title: string;
+function getInitials(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0))
+    .join('')
+    .toUpperCase();
 }
 
-export default function ProfilePage({ title }: ProfilePageProps) {
+export default function ProfilePage() {
   const { profile, refreshProfile, role } = useAuth();
   const { lang, t } = useLang();
   const translate = lang === 'fil' && ['tanod', 'responder'].includes(role || '');
@@ -48,95 +67,223 @@ export default function ProfilePage({ title }: ProfilePageProps) {
     );
   }
 
+  const addressMissing = !profile.address?.trim();
+  const cancelEditing = () => {
+    form.setFieldsValue({
+      name: profile.name,
+      phone: profile.phone,
+      address: profile.address,
+    });
+    setEditing(false);
+  };
+
   return (
     <Row gutter={[16, 16]}>
-      <Col xs={24} lg={16}>
-        <Card
-          className="soft-card"
-          title={translate ? t('profilePageHeading') : title}
-          extra={
-            <Tag color={profile.status === 'active' ? 'green' : 'red'}>
-              {translate && profile.status === 'active' ? t('active') : profile.status}
-            </Tag>
-          }
-        >
-          <Paragraph type="secondary" style={{ marginTop: -4 }}>
-            {translate
-              ? t('accountDetails')
-              : `Account details and contact information for ${getRoleLabel(profile.role)}.`}
-          </Paragraph>
-
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={(values) => {
-              if (!editing) return;
-              updateMutation.mutate(values);
-            }}
-          >
-            <Form.Item
-              name="name"
-              label={translate ? t('fullName') : 'Full name'}
-              rules={[{ required: true, message: translate ? t('nameRequired') : undefined }]}
-            >
-              <Input disabled={!editing} />
-            </Form.Item>
-            <Form.Item
-              name="phone"
-              label={translate ? t('phoneNumber') : 'Phone number'}
-              rules={[{ required: true, message: translate ? t('phoneRequired') : undefined }]}
-            >
-              <Input disabled={!editing} />
-            </Form.Item>
-            <Form.Item name="address" label={translate ? t('address') : 'Address'}>
-              <Input.TextArea disabled={!editing} rows={3} />
-            </Form.Item>
-            <Space>
-              {editing ? (
-                <>
-                  <Button type="primary" htmlType="submit" loading={updateMutation.isPending}>
-                    {translate ? t('saveChanges') : 'Save changes'}
-                  </Button>
-                  <Button htmlType="button" onClick={() => setEditing(false)}>
-                    {translate ? t('cancel') : 'Cancel'}
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  type="primary"
-                  htmlType="button"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    setEditing(true);
-                  }}
+      <Col span={24}>
+        <Card className="soft-card">
+          <Row align="middle" gutter={[16, 16]}>
+            <Col xs={24} md={16}>
+              <Space align="center" size={16}>
+                <Avatar
+                  size={64}
+                  style={{ backgroundColor: 'var(--brand-primary)', flexShrink: 0 }}
                 >
-                  {translate ? t('editProfile') : 'Edit profile'}
-                </Button>
-              )}
-            </Space>
-          </Form>
+                  {getInitials(profile.name)}
+                </Avatar>
+                <Space direction="vertical" size={4}>
+                  <Title level={4} style={{ margin: 0 }}>
+                    {profile.name}
+                  </Title>
+                  <Space size={[4, 4]} wrap>
+                    <Tag color="blue">{getRoleLabel(profile.role)}</Tag>
+                    <Tag color={profile.status === 'active' ? 'green' : 'red'}>
+                      {translate && profile.status === 'active' ? t('active') : profile.status}
+                    </Tag>
+                    <Text type="secondary">Barangay Don Mariano Marcos</Text>
+                  </Space>
+                </Space>
+              </Space>
+            </Col>
+            <Col xs={24} md={8}>
+              <Space direction="vertical" size={2} style={{ width: '100%', textAlign: 'right' }}>
+                <Text type="secondary">{translate ? t('email') : 'Email'}</Text>
+                <Text strong style={{ overflowWrap: 'anywhere' }}>
+                  {profile.email}
+                </Text>
+              </Space>
+            </Col>
+          </Row>
         </Card>
       </Col>
 
+      {addressMissing && !editing && (
+        <Col span={24}>
+          <Alert
+            type="warning"
+            showIcon
+            message={translate ? t('profileAddressPrompt') : 'Add your address'}
+            description={
+              translate
+                ? t('profileAddressPurpose')
+                : 'It helps responders find you faster during an emergency.'
+            }
+            action={
+              <Button type="primary" onClick={() => setEditing(true)}>
+                {translate ? t('addAddress') : 'Add address'}
+              </Button>
+            }
+          />
+        </Col>
+      )}
+
+      <Col xs={24} lg={16}>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={(values) => {
+            if (editing) updateMutation.mutate(values);
+          }}
+        >
+          <Card
+            className="soft-card"
+            title={translate ? t('personalInformation') : 'Personal information'}
+            extra={
+              editing ? (
+                <Space>
+                  <Button type="primary" htmlType="submit" loading={updateMutation.isPending}>
+                    {translate ? t('saveChanges') : 'Save changes'}
+                  </Button>
+                  <Button htmlType="button" onClick={cancelEditing}>
+                    {translate ? t('cancel') : 'Cancel'}
+                  </Button>
+                </Space>
+              ) : (
+                <Button htmlType="button" onClick={() => setEditing(true)}>
+                  {translate ? t('editProfile') : 'Edit profile'}
+                </Button>
+              )
+            }
+          >
+            {editing ? (
+              <Row gutter={[16, 0]}>
+                <Col xs={24} sm={12}>
+                  <Form.Item
+                    name="name"
+                    label={translate ? t('fullName') : 'Full name'}
+                    rules={[
+                      {
+                        required: true,
+                        message: translate ? t('nameRequired') : 'Please enter your full name.',
+                      },
+                    ]}
+                  >
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item
+                    name="phone"
+                    label={translate ? t('phoneNumber') : 'Phone number'}
+                    rules={[
+                      {
+                        required: true,
+                        message: translate ? t('phoneRequired') : 'Please enter your phone number.',
+                      },
+                    ]}
+                  >
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col span={24}>
+                  <Form.Item
+                    name="address"
+                    label={translate ? t('address') : 'Address'}
+                    extra={
+                      translate
+                        ? t('profileAddressHelper')
+                        : 'Include your purok, street, or a nearby landmark.'
+                    }
+                  >
+                    <Input.TextArea rows={3} />
+                  </Form.Item>
+                </Col>
+              </Row>
+            ) : (
+              <>
+                <Row gutter={[16, 20]}>
+                  <Col xs={24} sm={12}>
+                    <Space direction="vertical" size={2}>
+                      <Text type="secondary">{translate ? t('fullName') : 'Full name'}</Text>
+                      <Text strong>{profile.name}</Text>
+                    </Space>
+                  </Col>
+                  <Col xs={24} sm={12}>
+                    <Space direction="vertical" size={2}>
+                      <Text type="secondary">{translate ? t('phoneNumber') : 'Phone number'}</Text>
+                      <Text strong>{profile.phone}</Text>
+                    </Space>
+                  </Col>
+                  <Col span={24}>
+                    <Space direction="vertical" size={2}>
+                      <Text type="secondary">{translate ? t('address') : 'Address'}</Text>
+                      <Text strong type={addressMissing ? 'warning' : undefined}>
+                        {profile.address?.trim() || (translate ? t('notSet') : 'Not set')}
+                      </Text>
+                      <Text type="secondary">
+                        {translate
+                          ? t('profileAddressHelper')
+                          : 'Include your purok, street, or a nearby landmark.'}
+                      </Text>
+                    </Space>
+                  </Col>
+                </Row>
+                <div
+                  style={{
+                    marginTop: 20,
+                    paddingTop: 16,
+                    borderTop: '1px solid var(--border-light)',
+                  }}
+                >
+                  <Text type="secondary">
+                    {translate
+                      ? t('profilePrivacyNote')
+                      : 'Your name and contact details may be used with your reports to help verify them and coordinate a response.'}
+                  </Text>
+                </div>
+              </>
+            )}
+          </Card>
+        </Form>
+      </Col>
+
       <Col xs={24} lg={8}>
-        <Card className="soft-card" title={translate ? t('accountSummary') : 'Account summary'}>
-          <Space direction="vertical" size={8}>
-            <Text strong>{profile.email}</Text>
-            <Text type="secondary">
-              {translate ? t('role') : 'Role'}: {getRoleLabel(profile.role)}
-            </Text>
-            <Text type="secondary">
-              {translate ? t('emailVerified') : 'Email verified'}:{' '}
-              {translate
-                ? t(profile.emailVerified ? 'yes' : 'no')
-                : profile.emailVerified
-                  ? 'Yes'
-                  : 'No'}
-            </Text>
-            <Text type="secondary">
-              {translate ? t('flaggedReports') : 'Flagged reports'}: {profile.flaggedReportCount}
-            </Text>
+        <Card className="soft-card" title={translate ? t('accountStanding') : 'Account standing'}>
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Row align="middle" justify="space-between" gutter={[8, 8]}>
+              <Col>{translate ? t('emailVerified') : 'Email verified'}</Col>
+              <Col>
+                <Tag color={profile.emailVerified ? 'green' : 'default'}>
+                  {translate
+                    ? t(profile.emailVerified ? 'yes' : 'no')
+                    : profile.emailVerified
+                      ? 'Yes'
+                      : 'No'}
+                </Tag>
+              </Col>
+            </Row>
+            <div>
+              <Row align="middle" justify="space-between" gutter={[8, 8]}>
+                <Col>{translate ? t('flaggedReports') : 'Flagged reports'}</Col>
+                <Col>
+                  <Text strong>{profile.flaggedReportCount}</Text>
+                </Col>
+              </Row>
+              <Text type="secondary">
+                {translate
+                  ? t('flaggedReportExplanation')
+                  : 'This count increases when one of your reports is flagged for review by an official.'}
+              </Text>
+            </div>
           </Space>
         </Card>
       </Col>

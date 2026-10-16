@@ -69,7 +69,7 @@ function App() {
           <Route path="/resident/reports" element={<MyReportsPage />} />
           <Route path="/resident/reports/:id" element={<IncidentDetailPage variant="resident" />} />
           <Route path="/resident/notifications" element={<NotificationsPage />} />
-          <Route path="/resident/profile" element={<ProfilePage title="Resident Profile" />} />
+          <Route path="/resident/profile" element={<ProfilePage />} />
         </Route>
       </Route>
 
@@ -79,7 +79,7 @@ function App() {
           <Route path="/responder/alerts" element={<ResponderAlertsPage />} />
           <Route path="/responder/history" element={<ResponderHistoryPage />} />
           <Route path="/responder/notifications" element={<NotificationsPage />} />
-          <Route path="/responder/profile" element={<ProfilePage title="Responder Profile" />} />
+          <Route path="/responder/profile" element={<ProfilePage />} />
           <Route
             path="/responder/incidents/:id"
             element={<IncidentDetailPage variant="responder" />}
@@ -101,7 +101,7 @@ function App() {
           <Route path="/admin/intake" element={<SecretaryIntakePage />} />
           <Route path="/admin/users" element={<AdminUsersPage />} />
           <Route path="/admin/notifications" element={<NotificationsPage />} />
-          <Route path="/admin/profile" element={<ProfilePage title="Official Profile" />} />
+          <Route path="/admin/profile" element={<ProfilePage />} />
         </Route>
       </Route>
 
