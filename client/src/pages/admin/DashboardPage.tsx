@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Col, Row, Space, Typography, Button } from 'antd';
+import { Button, Card, Col, List, Row, Space, Tag, Typography } from 'antd';
 
 import Icon, {
   AlertOutlined,
@@ -13,7 +13,7 @@ import Icon, {
 
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { api, type Analytics, type Report } from '../../lib/api';
+import { api, type Analytics, type AuditLog, type Report } from '../../lib/api';
 import IncidentCard from '../../components/IncidentCard';
 import IncidentList from '../../components/IncidentList';
 import KpiCard from '../../components/KpiCard';
@@ -52,6 +52,52 @@ const UserCheckSvg = () => (
 
 const UserCheckIcon = () => <Icon component={UserCheckSvg} />;
 
+const ACTION_LABELS: Record<string, string> = {
+  official_created: 'Official created',
+  user_role_changed: 'Role changed',
+  user_status_changed: 'Account status changed',
+  report_submitted: 'Report submitted',
+  report_classified: 'Report classified',
+  report_flagged: 'Report flagged',
+  report_recipients_notified: 'Responders notified',
+  resolution_submitted: 'Resolution submitted',
+  hotline_opened: 'Hotline opened',
+};
+
+function getActionLabel(action: string) {
+  if (ACTION_LABELS[action]) return ACTION_LABELS[action];
+  const text = action.replace(/_/g, ' ');
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function getActionColor(action: string) {
+  if (['official_created', 'user_role_changed', 'user_status_changed'].includes(action)) {
+    return 'geekblue';
+  }
+  if (action === 'report_flagged') return 'red';
+  if (action === 'report_submitted') return 'green';
+  return undefined;
+}
+
+// What the entry was about: the affected account, or the report reference.
+function getAuditSubject(log: AuditLog) {
+  const meta = log.metadata || {};
+  const target = typeof meta.targetName === 'string' ? meta.targetName : '';
+  if (!target) return log.reportReferenceNumber || '';
+  const from = typeof meta.from === 'string' ? meta.from : '';
+  const to = typeof meta.to === 'string' ? meta.to : '';
+  return from && to ? `${target}: ${from} → ${to}` : target;
+}
+
+function formatAuditTime(timestamp: string, now: number) {
+  const elapsed = now - new Date(timestamp).getTime();
+  if (!Number.isFinite(elapsed) || elapsed < 60_000) return 'Just now';
+  if (elapsed < 3_600_000) return `${Math.floor(elapsed / 60_000)} min ago`;
+  if (elapsed < 86_400_000) return `${Math.floor(elapsed / 3_600_000)} h ago`;
+  if (elapsed < 7 * 86_400_000) return `${Math.floor(elapsed / 86_400_000)} d ago`;
+  return new Date(timestamp).toLocaleDateString();
+}
+
 const isOpenReport = (report: Report) => !['resolved', 'flagged'].includes(report.status);
 
 export default function AdminDashboardPage() {
@@ -87,6 +133,13 @@ export default function AdminDashboardPage() {
   const { data: userSummary, isLoading: userSummaryLoading } = useQuery({
     queryKey: ['admin-dashboard-user-summary'],
     queryFn: () => api.get<UserSummary>('/api/admin/users/summary'),
+    enabled: isAdmin,
+    refetchInterval: 30000,
+  });
+
+  const { data: auditLogs = [], dataUpdatedAt: auditUpdatedAt } = useQuery({
+    queryKey: ['admin-audit-logs'],
+    queryFn: () => api.get<AuditLog[]>('/api/audit-logs'),
     enabled: isAdmin,
     refetchInterval: 30000,
   });
@@ -580,40 +633,38 @@ export default function AdminDashboardPage() {
         </Col>
       </Row>
 
-      <Row gutter={[24, 16]}>
-        <Col xs={24} lg={12}>
-          <Card
-            className="soft-card"
-            title="Latest incidents"
-            extra={
-              <Button
-                color="primary"
-                variant="outlined"
-                onClick={() => navigate('/admin/incidents')}
-              >
-                View all
-              </Button>
-            }
-          >
-            {reports.length === 0 ? (
-              <Text type="secondary">No incidents yet</Text>
-            ) : (
-              <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                {reports.slice(0, 5).map((report) => (
-                  <IncidentCard
-                    key={report._id}
-                    report={report}
-                    onClick={() => navigate(`/admin/incidents/${report._id}`)}
-                    showSubmitter
-                    showDescription
-                    descriptionMaxLength={160}
-                  />
-                ))}
-              </Space>
-            )}
-          </Card>
-        </Col>
-      </Row>
+      <Card
+        className="soft-card"
+        title="Latest audit trail"
+        extra={
+          <Button color="primary" variant="outlined" onClick={() => navigate('/admin/audit')}>
+            View all
+          </Button>
+        }
+      >
+        <List
+          dataSource={auditLogs.slice(0, 6)}
+          locale={{ emptyText: 'No audit activity yet' }}
+          renderItem={(log) => (
+            <List.Item>
+              <List.Item.Meta
+                title={
+                  <Space size={8} wrap>
+                    <Tag color={getActionColor(log.action)} style={{ marginInlineEnd: 0 }}>
+                      {getActionLabel(log.action)}
+                    </Tag>
+                    <Text>{getAuditSubject(log)}</Text>
+                  </Space>
+                }
+                description={`By ${log.actorName || log.actorUid || 'system'}`}
+              />
+              <Text type="secondary" title={new Date(log.timestamp).toLocaleString()}>
+                {formatAuditTime(log.timestamp, auditUpdatedAt)}
+              </Text>
+            </List.Item>
+          )}
+        />
+      </Card>
     </Space>
   );
 }
