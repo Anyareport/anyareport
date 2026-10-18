@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { Spin } from 'antd';
 import { ProtectedRoute, PublicRoute } from './routes/ProtectedRoute';
 import { useAuth, getRedirectPath } from './contexts/AuthContext';
@@ -8,7 +8,7 @@ import AdminShell from './layouts/AdminShell';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
-// import LandingPage from './pages/resident/LandingPage';
+import LandingPage from './pages/resident/LandingPage';
 import MapPage from './pages/resident/MapPage';
 import MyReportsPage from './pages/resident/MyReportsPage';
 import NotificationsPage from './pages/shared/NotificationsPage';
@@ -28,7 +28,6 @@ import SecretaryIntakePage from './pages/admin/IntakeQueuePage';
 
 function HomeRedirect() {
   const { firebaseUser, loading, role } = useAuth();
-  const location = useLocation();
 
   if (loading) {
     return (
@@ -39,7 +38,7 @@ function HomeRedirect() {
   }
 
   if (!firebaseUser) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    return <LandingPage />;
   }
 
   if (!role) {
