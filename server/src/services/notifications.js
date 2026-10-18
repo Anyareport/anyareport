@@ -15,6 +15,7 @@ import {
   FIELD_REPORT_CATEGORIES,
   normalizeReportStatus,
 } from './reportWorkflow.js';
+import { writeAudit } from './auditLog.js';
 
 let ioInstance = null;
 const NOTIFICATION_ROLES_BY_CATEGORY = {
@@ -187,10 +188,90 @@ export async function notifyOnNewReport(report) {
     }
     await deliverPushNotifications(notif);
   }
+    // Admins only hear about urgent reports; the caller's recipient audit entry covers them.
+  if (isEmergency || isCriminalBlotter) {
+    notifications.push(
+      ...(await dispatchAdminNotifications({
+        type: 'incident_received',
+        message: `New urgent report${reference}: ${reportTitle}`,
+        urgent: true,
+        report,
+        actorRole: 'resident',
+      }))
+    );
+  }
 
   return notifications;
 }
 
+// Creates, pushes and returns one notification per active admin. Does not audit; callers that
+// are not already covered by another audit entry should use notifyAdmins instead.
+async function dispatchAdminNotifications({
+  type,
+  message,
+  urgent = false,
+  report = null,
+  actorUid = null,
+  actorName = null,
+  actorRole = null,
+  excludeUid = null,
+}) {
+  const admins = await User.find({
+    role: 'admin',
+    status: 'active',
+    ...(excludeUid ? { firebaseUid: { $ne: excludeUid } } : {}),
+  })
+    .select('firebaseUid role')
+    .lean();
+  if (!admins.length) return [];
+
+  const reportSnapshot = report ? getReportSnapshot(report) : undefined;
+  const notifications = await Promise.all(
+    admins.map((adminUser) =>
+      Notification.create({
+        recipientUid: adminUser.firebaseUid,
+        recipientRole: 'admin',
+        reportId: report?._id,
+        type,
+        message,
+        urgent,
+        reportSnapshot,
+        actorUid,
+        actorRole,
+        actorName,
+      })
+    )
+  );
+
+  if (ioInstance) {
+    notifications.forEach((notification) => {
+      ioInstance.to(`user:${notification.recipientUid}`).emit('notification', notification);
+    });
+  }
+  await deliverPushNotifications(notifications);
+  return notifications;
+}
+
+// Notifies every active admin (except `excludeUid`, normally the admin who caused the event)
+// and writes a system audit entry recording what was sent and to whom.
+export async function notifyAdmins({ auditMetadata = {}, ...event }) {
+  const notifications = await dispatchAdminNotifications(event);
+  if (!notifications.length) return [];
+
+  await writeAudit('admin_notification_sent', {
+    reportId: event.report?._id || null,
+    metadata: {
+      type: event.type,
+      urgent: Boolean(event.urgent),
+      triggeredBy: event.actorUid || null,
+      recipientCount: notifications.length,
+      recipientUids: notifications.map((notification) => notification.recipientUid),
+      notificationIds: notifications.map((notification) => String(notification._id)),
+      ...auditMetadata,
+    },
+  });
+  return notifications;
+}
 export async function notifyDispatchResponse(report, responder, accepted) {
   const officials = await User.find({
     role: { $in: ['captain', 'secretary'] },

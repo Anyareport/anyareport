@@ -25,6 +25,26 @@ const getRoleLabel = (role?: string | null) =>
   ROLE_OPTIONS.find((option) => option.value === role)?.label ?? role ?? '';
 
 const formatAction = (action: string) => action.replace(/_/g, ' ');
+// One-line summary of the details an admin-related entry carries.
+function summarizeMetadata(log: { action: string; metadata: Record<string, unknown> }) {
+  const m = log.metadata || {};
+  const target = (m.targetName as string) || (m.targetEmail as string) || (m.targetUid as string);
+  switch (log.action) {
+    case 'user_created':
+      return `Created ${m.role ?? 'user'} account for ${target ?? 'unknown user'}`;
+    case 'user_status_changed':
+    case 'user_role_changed':
+      return `${target ?? 'Unknown user'}: ${m.from ?? '?'} → ${m.to ?? '?'}`;
+    case 'admin_notification_sent':
+      return `${m.type ?? 'notification'} sent to ${m.recipientCount ?? 0} admin(s)${m.urgent ? ' (urgent)' : ''}`;
+    case 'admin_notification_read':
+      return `Read ${m.type ?? 'notification'}`;
+    case 'admin_notification_read_all':
+      return `Marked ${m.count ?? 0} notification(s) as read`;
+    default:
+      return null;
+  }
+}
 const getActor = (log: AuditLog) => log.actorName || log.actorUid || 'system';
 
 // The browser's local time decides where a day or month starts and ends, so
@@ -251,6 +271,8 @@ export default function AdminAuditLogPage() {
                   <Space direction="vertical" size={2}>
                     <Text type="secondary">{new Date(log.timestamp).toLocaleString()}</Text>
                     <Text type="secondary">{log.userAgent || 'No user agent'}</Text>
+                    <Text type="secondary">{new Date(log.timestamp).toLocaleString()}</Text>
+{summarizeMetadata(log) && <Text>{summarizeMetadata(log)}</Text>}
                   </Space>
                 }
               />

@@ -5,6 +5,7 @@ import {
   ClockCircleOutlined,
   DownOutlined,
   TeamOutlined,
+  SafetyOutlined,
   SyncOutlined,
   UserAddOutlined,
 } from '@ant-design/icons';
@@ -89,7 +90,13 @@ function getHeadline(item: NotificationFeedItem, role: string | null) {
   return item.message;
 }
 
+function isAdminEvent(item: NotificationFeedItem) {
+  return item.type.startsWith('admin_');
+}
+
 function getIconKind(item: NotificationFeedItem) {
+  if (item.type === 'admin_report_flagged') return 'flagged';
+  if (isAdminEvent(item)) return item.urgent ? 'emergency' : 'admin-event';
   if (item.type === 'backup_requested') return 'backup-requested';
   if (item.type === 'backup_joined') return 'backup-joined';
   if (item.kind === 'status_group') {
@@ -108,6 +115,8 @@ function getIcon(kind: string) {
       return <TeamOutlined />;
     case 'backup-joined':
       return <UserAddOutlined />;
+    case 'admin-event':
+      return <SafetyOutlined />;
     case 'resolved':
       return <CheckCircleOutlined />;
     case 'flagged':
@@ -124,6 +133,7 @@ function getIcon(kind: string) {
 
 function getContext(item: NotificationFeedItem, role: string | null) {
   const actor = getItemActorLabel(item, role);
+  if (isAdminEvent(item)) return item.urgent ? 'Needs your attention' : null;
   if (!actor || item.type === 'incident_received') return null;
   if (item.kind === 'status_group') return `Updated by ${actor}`;
   if (item.type === 'backup_requested') return `${actor} requested assistance`;

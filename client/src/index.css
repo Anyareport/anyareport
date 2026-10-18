@@ -261,6 +261,7 @@ a {
 }
 
 .notification-card__icon--backup-joined,
+.notification-card__icon--admin-event,
 .notification-card__icon--resolved {
   background: var(--severity-low-bg);
   color: var(--severity-low-text);

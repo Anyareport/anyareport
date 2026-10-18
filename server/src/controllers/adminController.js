@@ -1,6 +1,38 @@
 import User from '../models/User.js';
 import { getFirebaseAdmin } from '../config/firebase.js';
-import { disconnectUserSockets } from '../services/notifications.js';
+import { disconnectUserSockets, notifyAdmins } from '../services/notifications.js';
+import { writeAudit } from '../services/auditLog.js';
+import {
+  buildUserCreatedEvent,
+  buildUserRoleEvent,
+  buildUserStatusEvent,
+} from '../services/adminNotificationEvents.js';
+
+const USER_STATUSES = ['active', 'suspended'];
+
+// Audits an admin action on a user account, then tells the other admins about it.
+async function auditAndNotify(req, event) {
+  const actorUid = req.firebaseUser.uid;
+  await writeAudit(event.auditAction, { req, metadata: event.auditMetadata });
+  try {
+    await notifyAdmins({
+      type: event.type,
+      message: event.message,
+      urgent: event.urgent,
+      actorUid,
+      actorName: event.actorName,
+      actorRole: 'admin',
+      excludeUid: actorUid,
+      auditMetadata: { action: event.auditAction },
+    });
+  } catch (error) {
+    console.error('[Admin notification] Failed:', error.message);
+  }
+}
+
+function getActorName(req) {
+  return req.userProfile?.name || req.firebaseUser?.email || req.firebaseUser.uid;
+}
 
 export async function listUsers(req, res) {
   try {
@@ -64,6 +96,11 @@ export async function createOfficial(req, res) {
       emailVerified: true,
     });
 
+    await auditAndNotify(req, {
+      ...buildUserCreatedEvent({ actorName: getActorName(req), target: user }),
+      actorName: getActorName(req),
+    });
+
     res.status(201).json(user);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -73,9 +110,22 @@ export async function createOfficial(req, res) {
 export async function updateUserStatus(req, res) {
   try {
     const { status } = req.body;
-    const user = await User.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    if (!USER_STATUSES.includes(status)) {
+      return res.status(400).json({ error: 'Status must be active or suspended' });
+    }
+    const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
+    const previousStatus = user.status;
+    user.status = status;
+    await user.save();
     disconnectUserSockets(user.firebaseUid);
+
+    if (previousStatus !== status) {
+      await auditAndNotify(req, {
+        ...buildUserStatusEvent({ actorName: getActorName(req), target: user, previousStatus }),
+        actorName: getActorName(req),
+      });
+    }
     res.json(user);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -88,6 +138,7 @@ export async function updateUserRole(req, res) {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
+    const previousRole = user.role;
     user.role = role || user.role;
     await user.save();
     disconnectUserSockets(user.firebaseUid);
@@ -95,6 +146,13 @@ export async function updateUserRole(req, res) {
     const admin = getFirebaseAdmin();
     if (admin) {
       await admin.auth().setCustomUserClaims(user.firebaseUid, { role: user.role });
+    }
+
+    if (previousRole !== user.role) {
+      await auditAndNotify(req, {
+        ...buildUserRoleEvent({ actorName: getActorName(req), target: user, previousRole }),
+        actorName: getActorName(req),
+      });
     }
 
     res.json(user);

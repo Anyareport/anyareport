@@ -16,6 +16,7 @@ import {
   notifyRespondersDispatched,
   notifyDispatchResponse,
 } from '../services/notifications.js';
+import {buildReportFlaggedEvent} from '../services/adminNotificationEvents.js';
 import { antiAbuseConfig } from '../config/antiAbuse.js';
 import { workflowConfig } from '../config/workflow.js';
 import { uploadImage } from '../services/cloudinary.js';
@@ -39,6 +40,9 @@ import {
   supportsBackupRequests,
   validateResolutionDetails,
 } from '../services/reportWorkflow.js';
+
+
+
 
 const RESPONDER_CATEGORIES = FIELD_REPORT_CATEGORIES;
 const BLOTTER_CATEGORY = BLOTTER_REPORT_CATEGORY;
@@ -843,6 +847,16 @@ export async function flagReport(req, res) {
     await logAudit('report_flagged', req, report._id, {
       submitterUid: report.submittedBy,
     });
+        await notifyBestEffort(
+      notifyAdmins({
+        ...buildReportFlaggedEvent({ actorName: updatedBy, report }),
+        report,
+        actorUid: req.firebaseUser.uid,
+        actorName: updatedBy,
+        actorRole: req.userRole,
+      }),
+      'Admin report flagged'
+    );
     emitReportChanged(report, 'updated');
     if (submitter?.status === 'suspended') {
       disconnectUserSockets(submitter.firebaseUid);

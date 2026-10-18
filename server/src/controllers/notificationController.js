@@ -15,6 +15,7 @@ import {
   markNotificationGroupRead,
   markNotificationRead,
 } from '../services/notifications.js';
+import { writeAudit } from '../services/auditLog.js';
 
 const reportStatuses = [
   'pending',
@@ -256,15 +257,7 @@ export async function getNotifications(req, res) {
   }
 }
 
-export async function markRead(req, res) {
-  try {
-    const notif = await markNotificationRead(req.params.id, req.firebaseUser.uid);
-    if (!notif) return res.status(404).json({ error: 'Notification not found' });
-    res.json(notif);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-}
+
 
 export async function markGroupRead(req, res) {
   try {
@@ -279,9 +272,32 @@ export async function markGroupRead(req, res) {
   }
 }
 
+export async function markRead(req, res) {
+  try {
+    const notif = await markNotificationRead(req.params.id, req.firebaseUser.uid);
+    if (!notif) return res.status(404).json({ error: 'Notification not found' });
+    if (req.userRole === 'admin') {
+      await writeAudit('admin_notification_read', {
+        req,
+        reportId: notif.reportId || null,
+        metadata: { notificationId: String(notif._id), type: notif.type },
+      });
+    }
+    res.json(notif);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
 export async function markAllRead(req, res) {
   try {
     const result = await markAllNotificationsRead(req.firebaseUser.uid);
+    if (req.userRole === 'admin' && result.modifiedCount > 0) {
+      await writeAudit('admin_notification_read_all', {
+        req,
+        metadata: { count: result.modifiedCount },
+      });
+    }
     res.json({ modifiedCount: result.modifiedCount });
   } catch (err) {
     res.status(500).json({ error: err.message });

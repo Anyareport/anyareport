@@ -19,6 +19,7 @@ const notificationSchema = new mongoose.Schema(
     },
     statusSnapshot: String,
     actorRole: String,
+    actorUid: String,
     actorName: String,
     dispatchResponse: { type: String, enum: ['accepted', 'declined'], default: null },
   },
