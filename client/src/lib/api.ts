@@ -209,6 +209,7 @@ export interface NotificationFeedResponse {
 export interface AuditLog {
   _id: string;
   action: string;
+  actorRole?: string | null;
   actorUid: string | null;
   actorName: string | null;
   reportId: string | null;
