@@ -1,4 +1,4 @@
-import { AlertOutlined } from '@ant-design/icons';
+import logoMark from '../assets/logo.svg';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg';
@@ -13,7 +13,12 @@ export default function Logo({ size = 'md', showIcon = true }: LogoProps) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       {showIcon && (
-        <AlertOutlined style={{ fontSize: fontSize * 0.9, color: 'var(--brand-primary)' }} />
+        <img
+          src={logoMark}
+          alt=""
+          aria-hidden="true"
+          style={{ width: fontSize * 1.1, height: fontSize * 1.1, flexShrink: 0 }}
+        />
       )}
       <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize, letterSpacing: 1 }}>
         <span style={{ color: 'var(--text-primary)' }}>ANYA</span>
