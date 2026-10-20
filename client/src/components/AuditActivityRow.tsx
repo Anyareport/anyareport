@@ -19,6 +19,37 @@ const ICONS = {
   system: SettingOutlined,
 };
 
+type AuditDetail = {
+  label: string;
+  value: string;
+};
+
+function getAuditDetails(log: AuditLog): AuditDetail[] {
+  const metadata = log.metadata || {};
+  const details: AuditDetail[] = [];
+  const addText = (label: string, value: unknown) => {
+    if (typeof value === 'string' && value.trim()) details.push({ label, value: value.trim() });
+  };
+  const addCount = (label: string, value: unknown) => {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      details.push({ label, value: String(value) });
+    }
+  };
+
+  switch (log.action) {
+    case 'hotline_opened':
+      addText('Contacted agency', metadata.agency);
+      break;
+    case 'resolution_submitted':
+      addCount('Supporting evidence', metadata.evidenceCount);
+      break;
+    default:
+      break;
+  }
+
+  return details;
+}
+
 interface AuditActivityRowProps {
   log: AuditLog;
   timeLabel?: string;
@@ -35,6 +66,7 @@ export default function AuditActivityRow({
   const actor = log.actorName || log.actorUid || 'system';
   const timestamp = new Date(log.timestamp);
   const fullTimestamp = timestamp.toLocaleString();
+  const details = showDetails ? getAuditDetails(log) : [];
 
   return (
     <div className={`audit-activity audit-activity--${auditLabel.category}`}>
@@ -54,10 +86,17 @@ export default function AuditActivityRow({
             </>
           )}
         </div>
-        {showDetails && log.userAgent && (
+        {details.length > 0 && (
           <details className="audit-activity__details">
-            <summary>Details</summary>
-            <span>{log.userAgent}</span>
+            <summary>Event details</summary>
+            <dl className="audit-activity__detail-list">
+              {details.map(({ label, value }) => (
+                <div className="audit-activity__detail" key={label}>
+                  <dt>{label}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
           </details>
         )}
       </div>

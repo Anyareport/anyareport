@@ -77,8 +77,24 @@
   cursor: pointer;
 }
 
-.audit-activity__details span {
-  display: block;
+.audit-activity__detail-list {
+  display: grid;
+  gap: 2px;
+  margin: 4px 0 0;
+}
+
+.audit-activity__detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.audit-activity__detail dt {
+  font-weight: 600;
+}
+
+.audit-activity__detail dd {
+  margin: 0;
   overflow-wrap: anywhere;
 }
 
