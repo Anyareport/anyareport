@@ -17,7 +17,7 @@ import {
   Tag,
   message,
 } from 'antd';
-import { EllipsisOutlined, SearchOutlined } from '@ant-design/icons';
+import { EllipsisOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useSearchParams } from 'react-router-dom';
 import { api, type UserProfile } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -308,6 +308,7 @@ export default function AdminUsersPage() {
           <Button
             className="user-management-create-button"
             type="primary"
+            icon={<PlusOutlined />}
             onClick={() => setDrawerOpen(true)}
           >
             Create official
