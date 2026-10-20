@@ -23,6 +23,7 @@ import {
   NOTIFICATION_AUDIT_ACTIONS,
 } from '../../lib/auditLabels';
 import AuditActivityRow from '../../components/AuditActivityRow';
+import './AuditLogPage.css';
 
 const { Text } = Typography;
 
@@ -58,6 +59,30 @@ function getDateRange(period: DatePeriod, value: string) {
   const from = period === 'date' ? new Date(year, month - 1, day) : new Date(year, month - 1, 1);
   const to = period === 'date' ? new Date(year, month - 1, day + 1) : new Date(year, month, 1);
   return Number.isNaN(from.getTime()) ? null : { from, to };
+}
+
+function getLocalDateKey(date: Date) {
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+
+function formatDateHeading(timestamp: string) {
+  const date = new Date(timestamp);
+  const today = new Date();
+  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  const fullDate = date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
+  if (getLocalDateKey(date) === getLocalDateKey(today)) return `Today · ${fullDate}`;
+  if (getLocalDateKey(date) === getLocalDateKey(yesterday)) return `Yesterday · ${fullDate}`;
+  return date.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
 export default function AdminAuditLogPage() {
@@ -284,8 +309,8 @@ export default function AdminAuditLogPage() {
         </Space.Compact>
       </Space.Compact>
 
-      <Card className="soft-card">
-        <Space style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+      <Card className="soft-card audit-log-card">
+        <Space className="audit-log-card__toolbar" style={{ display: 'flex', justifyContent: 'space-between' }}>
           <Text type="secondary">
             {`Showing ${filteredLogs.length} of ${logs.length} loaded ${logs.length === 1 ? 'entry' : 'entries'}`}
           </Text>
@@ -304,11 +329,34 @@ export default function AdminAuditLogPage() {
           dataSource={filteredLogs}
           pagination={{ pageSize: 10, hideOnSinglePage: true, showSizeChanger: false }}
           locale={{ emptyText: 'No audit logs found' }}
-          renderItem={(log) => (
-            <List.Item key={log._id}>
-              <AuditActivityRow log={log} showDetails />
-            </List.Item>
-          )}
+          renderItem={(log, index) => {
+            const dateKey = getLocalDateKey(new Date(log.timestamp));
+            const previousLog = index > 0 ? filteredLogs[index - 1] : null;
+            const startsDateGroup =
+              !previousLog || getLocalDateKey(new Date(previousLog.timestamp)) !== dateKey;
+
+            return (
+              <React.Fragment key={log._id}>
+                {startsDateGroup && (
+                  <li className="audit-date-heading">
+                    <time dateTime={new Date(log.timestamp).toISOString()}>
+                      {formatDateHeading(log.timestamp)}
+                    </time>
+                  </li>
+                )}
+                <List.Item>
+                  <AuditActivityRow
+                    log={log}
+                    showDetails
+                    timeLabel={new Date(log.timestamp).toLocaleTimeString(undefined, {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    })}
+                  />
+                </List.Item>
+              </React.Fragment>
+            );
+          }}
         />
       </Card>
     </Space>

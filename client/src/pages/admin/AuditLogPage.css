@@ -1,0 +1,31 @@
+.audit-log-card .ant-card-body {
+  padding: 24px;
+}
+
+.audit-log-card__toolbar {
+  margin-bottom: 12px;
+}
+
+.audit-date-heading {
+  margin-inline: -24px;
+  padding: 8px 24px;
+  border-top: 1px solid var(--border-default);
+  background: color-mix(in srgb, var(--bg-secondary) 55%, var(--bg-primary));
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  list-style: none;
+  text-transform: uppercase;
+}
+
+@media (max-width: 575px) {
+  .audit-log-card .ant-card-body {
+    padding: 16px;
+  }
+
+  .audit-date-heading {
+    margin-inline: -16px;
+    padding-inline: 16px;
+  }
+}
