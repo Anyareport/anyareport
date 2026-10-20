@@ -73,9 +73,21 @@ export const NOTIFICATION_AUDIT_ACTIONS = [
   'admin_notification_sent',
 ];
 
+const NOTIFICATION_TYPE_LABELS: Record<string, string> = {
+  admin_user_created: 'new admin account',
+  admin_user_status_changed: 'admin account status change',
+  admin_user_role_changed: 'admin role change',
+  admin_report_flagged: 'flagged report',
+};
+
 function sentenceCase(value: string) {
   const text = value.replace(/_/g, ' ');
   return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function getNotificationSubject(type: unknown) {
+  if (typeof type !== 'string' || !type) return 'an admin notification';
+  return NOTIFICATION_TYPE_LABELS[type] || sentenceCase(type);
 }
 
 export function getAuditLabel(log: Pick<AuditLog, 'action' | 'metadata'>): AuditLabel {
@@ -106,11 +118,11 @@ export function getAuditSummary(log: AuditLog) {
     case 'user_role_changed':
       return `${target ?? 'Unknown user'}: ${metadata.from ?? '?'} → ${metadata.to ?? '?'}`;
     case 'admin_notification_sent':
-      return `${metadata.type ?? 'Notification'} sent to ${metadata.recipientCount ?? 0} admin(s)${metadata.urgent ? ' (urgent)' : ''}`;
+      return `${metadata.urgent ? 'Urgent ' : ''}${sentenceCase(getNotificationSubject(metadata.type))} notification sent to ${metadata.recipientCount ?? 0} admins`;
     case 'admin_notification_read':
-      return `Read ${metadata.type ?? 'notification'}`;
+      return `Read a notification about ${getNotificationSubject(metadata.type)}`;
     case 'admin_notification_read_all':
-      return `Marked ${metadata.count ?? 0} notification(s) as read`;
+      return `Marked ${metadata.count ?? 0} notifications as read`;
     case 'report_recipients_notified':
       return `${metadata.recipientCount ?? 0} responder(s) notified`;
     case 'status_updated':
