@@ -11,10 +11,13 @@ import {
 } from '@ant-design/icons';
 import { Button, Typography } from 'antd';
 import { useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { NotificationFeedItem } from '../lib/api';
+import { useLang } from '../contexts/LanguageContext';
+import type { LabelKey } from '../i18n/labels';
 import { getStatusLabel } from '../lib/reportWorkflow';
-import SeverityTag from './SeverityTag';
-import FeedCard from './FeedCard';
+import { getSeverityStyle } from './SeverityTag';
+import { Link } from 'react-router-dom';
 
 const { Text } = Typography;
 
@@ -25,17 +28,9 @@ interface NotificationCardProps {
   onOpen?: () => void;
 }
 
-function formatRelativeTime(value: string) {
+function formatTime(value: string) {
   const date = new Date(value);
-  const elapsed = Date.now() - date.getTime();
-  if (!Number.isFinite(elapsed) || elapsed < 0) return date.toLocaleDateString();
-  if (elapsed < 60_000) return 'Just now';
-  if (elapsed < 3_600_000) return `${Math.floor(elapsed / 60_000)} min ago`;
-  if (elapsed < 86_400_000) {
-    const hours = Math.floor(elapsed / 3_600_000);
-    return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
-  }
-  return `${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}, ${date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
+  return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
 const ACTOR_ROLE_LABELS: Record<string, string> = {
@@ -131,6 +126,24 @@ function getIcon(kind: string) {
   }
 }
 
+function getSeverityLabel(
+  severity: string,
+  role: string | null,
+  lang: string,
+  t: (key: LabelKey) => string
+) {
+  const severityKeys: Record<string, LabelKey> = {
+    critical: 'severityCritical',
+    high: 'severityHigh',
+    medium: 'severityMedium',
+    low: 'severityLow',
+  };
+  const key = severityKeys[severity.toLowerCase()];
+  return lang === 'fil' && ['tanod', 'responder'].includes(role || '') && key
+    ? t(key)
+    : severity;
+}
+
 function getContext(item: NotificationFeedItem, role: string | null) {
   const actor = getItemActorLabel(item, role);
   if (isAdminEvent(item)) return item.urgent ? 'Needs your attention' : null;
@@ -145,38 +158,62 @@ export default function NotificationCard({ item, role, to, onOpen }: Notificatio
   const [expanded, setExpanded] = useState(false);
   const context = getContext(item, role);
   const iconKind = getIconKind(item);
-  const severityClass = item.report.severity
-    ? ` notification-card--severity-${item.report.severity.toLowerCase()}`
-    : '';
-  const content = (
-    <div className="notification-card__row">
-      <div className={`notification-card__icon notification-card__icon--${iconKind}`}>
+  const severity = item.report.severity;
+  const severityStyle = severity ? getSeverityStyle(severity) : undefined;
+  const { lang, t } = useLang();
+  const detailItems: { label: string; className?: string; style?: CSSProperties }[] = [];
+  if (severity) {
+    detailItems.push({
+      label: getSeverityLabel(severity, role, lang, t),
+      className: 'notification-card__severity',
+      style: severityStyle,
+    });
+  }
+  if (item.report.referenceNumber) detailItems.push({ label: item.report.referenceNumber });
+  if (item.report.category) detailItems.push({ label: item.report.category });
+  if (item.report.location) detailItems.push({ label: item.report.location });
+  if (context) detailItems.push({ label: context });
+  const row = (
+    <>
+      <div
+        className={`notification-card__icon notification-card__icon--${iconKind}`}
+        style={
+          severityStyle
+            ? { background: severityStyle.background, color: severityStyle.color }
+            : undefined
+        }
+        aria-hidden="true"
+      >
         {getIcon(iconKind)}
       </div>
       <div className="notification-card__body">
-        <div className="notification-card__topline">
-          <div className="notification-card__headline-row">
-            <Text className="notification-card__headline">{getHeadline(item, role)}</Text>
-            <SeverityTag severity={item.report.severity} />
-          </div>
-          <Text
-            type="secondary"
-            className="notification-card__time"
-            title={new Date(item.createdAt).toLocaleString()}
-          >
-            {formatRelativeTime(item.createdAt)}
+        <Text className="notification-card__headline">{getHeadline(item, role)}</Text>
+        {detailItems.length > 0 && (
+          <Text type="secondary" className="notification-card__details">
+            {detailItems.map((detail, index) => (
+              <span
+                className={detail.className}
+                style={detail.style ? { color: detail.style.color } : undefined}
+                key={`${detail.label}-${index}`}
+              >
+                {index > 0 && <span aria-hidden="true"> · </span>}
+                {detail.label}
+              </span>
+            ))}
           </Text>
-        </div>
-
-        <Text type="secondary" className="notification-card__details">
-          {item.report.referenceNumber && <span>{item.report.referenceNumber}</span>}
-          {item.report.category && <span>{item.report.category}</span>}
-          {item.report.location && <span>{item.report.location}</span>}
-          {context && <span>{context}</span>}
-        </Text>
+        )}
       </div>
-      {!item.read && <span className="notification-card__unread-dot" aria-label="Unread" />}
-    </div>
+      <div className="notification-card__time-column">
+        <Text
+          type="secondary"
+          className="notification-card__time"
+          title={new Date(item.createdAt).toLocaleString()}
+        >
+          {formatTime(item.createdAt)}
+        </Text>
+        {!item.read && <span className="notification-card__unread-dot" aria-label="Unread" />}
+      </div>
+    </>
   );
   const earlierUpdates = item.kind === 'status_group' && item.earlierUpdates.length > 0 && (
     <>
@@ -201,7 +238,7 @@ export default function NotificationCard({ item, role, to, onOpen }: Notificatio
                 <span>{getStatusLabel(update.status || 'pending')}</span>
                 {actor && <span> by {actor}</span>}
                 <Text type="secondary" title={new Date(update.createdAt).toLocaleString()}>
-                  {formatRelativeTime(update.createdAt)}
+                  {formatTime(update.createdAt)}
                 </Text>
               </li>
             );
@@ -212,13 +249,28 @@ export default function NotificationCard({ item, role, to, onOpen }: Notificatio
   );
 
   return (
-    <FeedCard
-      to={to}
-      onClick={onOpen}
-      afterLink={earlierUpdates}
-      className={`notification-card${item.read ? '' : ' notification-card--unread'}${severityClass}`}
-    >
-      {content}
-    </FeedCard>
+    <article className={`notification-card${item.read ? '' : ' notification-card--unread'}`}>
+      {to ? (
+        <Link to={to} className="notification-card__row" onClick={onOpen}>
+          {row}
+        </Link>
+      ) : (
+        <div
+          className="notification-card__row notification-card__row--interactive"
+          onClick={onOpen}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              onOpen?.();
+            }
+          }}
+          role="button"
+          tabIndex={0}
+        >
+          {row}
+        </div>
+      )}
+      {earlierUpdates}
+    </article>
   );
 }

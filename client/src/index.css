@@ -210,32 +210,55 @@ a {
 }
 
 .notification-day__heading.ant-typography {
-  margin: 12px 0 8px;
+  margin: 0;
+  padding: 8px 18px;
+  border-top: 1px solid var(--border-default);
+  background: color-mix(in srgb, var(--bg-secondary) 55%, var(--bg-primary));
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
 }
 
-.notification-card.ant-card {
-  border: 1px solid var(--border-default);
-  border-inline-start: 3px solid var(--border-default);
-  box-shadow: none;
+.notification-feed-card.ant-card .ant-card-body {
+  padding: 0;
 }
 
-.notification-card--unread.ant-card {
-  border-inline-start-color: var(--brand-color-info);
+.notification-card {
+  border-top: 1px solid var(--border-light);
 }
 
-.notification-card .ant-card-body {
-  padding: 12px 14px;
+.notification-card--unread {
+  background: color-mix(in srgb, var(--brand-color-info) 5%, var(--bg-primary));
+  box-shadow: inset 3px 0 0 var(--brand-color-info);
 }
 
 .notification-card__row {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 8px;
-  align-items: start;
+  grid-template-columns: 32px minmax(0, 1fr) 112px;
+  align-items: center;
   gap: 12px;
+  padding: 12px 18px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.notification-card__row--interactive {
+  cursor: pointer;
+}
+
+.notification-card__row:hover {
+  background: color-mix(in srgb, var(--bg-secondary) 45%, transparent);
+}
+
+.notification-card__row:focus-visible {
+  outline: 2px solid var(--brand-color-info);
+  outline-offset: -2px;
+}
+
+.notification-card--unread .notification-card__row:hover {
+  background: color-mix(in srgb, var(--brand-color-info) 8%, var(--bg-primary));
 }
 
 .notification-card__icon {
@@ -243,7 +266,7 @@ a {
   width: 32px;
   aspect-ratio: 1;
   place-items: center;
-  border-radius: 50%;
+  border-radius: 8px;
   background: var(--bg-tertiary);
   color: var(--text-secondary);
 }
@@ -280,24 +303,8 @@ a {
   gap: 4px;
 }
 
-.notification-card__topline {
-  display: flex;
-  min-width: 0;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.notification-card__headline-row {
-  display: flex;
-  min-width: 0;
-  flex: 1 1 auto;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 8px;
-}
-
 .notification-card__headline.ant-typography {
+  display: block;
   color: var(--text-primary);
   font-size: 14px;
   font-weight: 500;
@@ -309,26 +316,35 @@ a {
   font-weight: 700;
 }
 
-.notification-card__time.ant-typography {
-  flex: 0 0 auto;
-  font-size: 12px;
+.notification-card__time-column {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
   white-space: nowrap;
 }
 
+.notification-card__time.ant-typography {
+  font-size: 12px;
+}
+
 .notification-card__details {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 10px;
+  display: block;
+  min-width: 0;
+  margin: 2px 0 0;
   color: var(--text-secondary);
   font-size: 12px;
   overflow-wrap: anywhere;
 }
 
+.notification-card__severity {
+  font-weight: 600;
+}
+
 .notification-card__expand.ant-btn {
   height: auto;
-  margin-top: 4px;
-  padding: 2px 0;
+  margin: 0 18px 8px 62px;
+  padding: 0;
   font-size: 12px;
 }
 
@@ -340,7 +356,7 @@ a {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin: 4px 0 0;
+  margin: 0 18px 10px 62px;
   border-inline-start: 1px solid var(--border-light);
   padding-inline-start: 12px;
   color: var(--text-secondary);
@@ -359,9 +375,11 @@ a {
 }
 
 .notification-card__unread-dot {
+  display: inline-block;
+  flex: 0 0 8px;
   width: 8px;
   aspect-ratio: 1;
-  margin-top: 7px;
+  margin-inline-start: 8px;
   border-radius: 50%;
   background: var(--brand-color-info);
 }
@@ -374,14 +392,21 @@ a {
 
 @media (max-width: 576px) {
   .notification-card__row {
-    grid-template-columns: 30px minmax(0, 1fr) 8px;
+    grid-template-columns: 30px minmax(0, 1fr) 92px;
     gap: 8px;
+    padding-inline: 12px;
   }
 
-  .notification-card__topline {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 1px;
+  .notification-day__heading.ant-typography {
+    padding-inline: 12px;
+  }
+
+  .notification-card__expand.ant-btn {
+    margin-inline-start: 50px;
+  }
+
+  .notification-card__history {
+    margin-inline-start: 50px;
   }
 }
 

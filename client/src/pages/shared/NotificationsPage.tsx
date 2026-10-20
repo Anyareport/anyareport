@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Alert, Button, Empty, Modal, Space, Spin, Typography, message } from 'antd';
+import { Alert, Button, Card, Empty, Modal, Space, Spin, Typography, message } from 'antd';
 import { BellOutlined, CheckOutlined } from '@ant-design/icons';
 import { api, type NotificationFeedItem } from '../../lib/api';
 import { notificationFeedQueryKey, useNotificationFeed } from '../../lib/notificationFeed';
@@ -18,7 +18,11 @@ import {
 const { Title, Text } = Typography;
 type NotificationFilter = 'all' | 'unread' | 'alerts' | 'updates';
 
-function getDayGroup(value: string) {
+function getLocalDateKey(date: Date) {
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+
+function formatDateHeading(value: string, translate: boolean, t: (key: 'today' | 'yesterday') => string) {
   const date = new Date(value);
   const today = new Date();
   const yesterday = new Date(today);
@@ -26,9 +30,23 @@ function getDayGroup(value: string) {
   yesterday.setDate(yesterday.getDate() - 1);
   yesterday.setHours(0, 0, 0, 0);
 
-  if (date >= today) return 'Today';
-  if (date >= yesterday) return 'Yesterday';
-  return 'Earlier';
+  const fullDate = date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  if (getLocalDateKey(date) === getLocalDateKey(today)) {
+    return `${translate ? t('today') : 'Today'} · ${fullDate}`;
+  }
+  if (getLocalDateKey(date) === getLocalDateKey(yesterday)) {
+    return `${translate ? t('yesterday') : 'Yesterday'} · ${fullDate}`;
+  }
+  return date.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
 export default function NotificationsPage() {
@@ -137,13 +155,21 @@ export default function NotificationsPage() {
     { label: `${translate ? t('updates') : 'Updates'} ${counts.updates}`, value: 'updates' },
   ];
 
-  const dayGroups = ['Today', 'Yesterday', 'Earlier'].map((day) => ({
-    day,
-    label: translate
-      ? t(day === 'Today' ? 'today' : day === 'Yesterday' ? 'yesterday' : 'earlier')
-      : day,
-    items: filteredItems.filter((item) => getDayGroup(item.createdAt) === day),
-  }));
+  const dateGroups: { key: string; label: string; items: NotificationFeedItem[] }[] = [];
+  filteredItems.forEach((item) => {
+    const date = new Date(item.createdAt);
+    const key = getLocalDateKey(date);
+    const previousGroup = dateGroups[dateGroups.length - 1];
+    if (previousGroup?.key === key) {
+      previousGroup.items.push(item);
+    } else {
+      dateGroups.push({
+        key,
+        label: formatDateHeading(item.createdAt, translate, t),
+        items: [item],
+      });
+    }
+  });
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
@@ -245,49 +271,44 @@ export default function NotificationsPage() {
           )}
         </div>
       ) : (
-        <div>
-          {dayGroups.map(
-            ({ day, label, items }) =>
-              items.length > 0 && (
-                <section key={day} aria-label={label}>
-                  <Title level={5} className="notification-day__heading">
-                    {label}
-                  </Title>
-                  <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                    {items.map((item) => (
-                      <NotificationCard
-                        key={item.id}
-                        item={item}
-                        role={role}
-                        to={
-                          item.reportId &&
-                          !(
-                            role &&
-                            ['tanod', 'responder'].includes(role) &&
-                            item.type === 'incident_dispatched' &&
-                            !item.dispatchResponse
-                          )
-                            ? getReportPath(item.reportId)
-                            : null
-                        }
-                        onOpen={() => {
-                          if (!item.read) markRead.mutate(item);
-                          if (
-                            item.reportId &&
-                            ['tanod', 'responder'].includes(role || '') &&
-                            item.type === 'incident_dispatched' &&
-                            !item.dispatchResponse
-                          ) {
-                            setDispatchInvite(item);
-                          }
-                        }}
-                      />
-                    ))}
-                  </Space>
-                </section>
-              )
-          )}
-        </div>
+        <Card className="notification-feed-card">
+          {dateGroups.map(({ key, label, items }) => (
+            <section key={key} aria-label={label}>
+              <Title level={5} className="notification-day__heading">
+                {label}
+              </Title>
+              {items.map((item) => (
+                <NotificationCard
+                  key={item.id}
+                  item={item}
+                  role={role}
+                  to={
+                    item.reportId &&
+                    !(
+                      role &&
+                      ['tanod', 'responder'].includes(role) &&
+                      item.type === 'incident_dispatched' &&
+                      !item.dispatchResponse
+                    )
+                      ? getReportPath(item.reportId)
+                      : null
+                  }
+                  onOpen={() => {
+                    if (!item.read) markRead.mutate(item);
+                    if (
+                      item.reportId &&
+                      ['tanod', 'responder'].includes(role || '') &&
+                      item.type === 'incident_dispatched' &&
+                      !item.dispatchResponse
+                    ) {
+                      setDispatchInvite(item);
+                    }
+                  }}
+                />
+              ))}
+            </section>
+          ))}
+        </Card>
       )}
 
       {feed.hasNextPage && (
