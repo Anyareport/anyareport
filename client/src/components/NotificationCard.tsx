@@ -2,12 +2,15 @@ import {
   AlertOutlined,
   BellOutlined,
   CheckCircleOutlined,
+  CloseCircleOutlined,
   ClockCircleOutlined,
   DownOutlined,
+  FileTextOutlined,
   TeamOutlined,
   SafetyOutlined,
   SyncOutlined,
   UserAddOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
 import { Button, Typography } from 'antd';
 import { useState } from 'react';
@@ -91,7 +94,18 @@ function isAdminEvent(item: NotificationFeedItem) {
 
 function getIconKind(item: NotificationFeedItem) {
   if (item.type === 'admin_report_flagged') return 'flagged';
+  if (
+    item.type === 'admin_user_created' ||
+    item.type === 'admin_user_status_changed' ||
+    item.type === 'admin_user_role_changed'
+  ) {
+    return 'admin-account';
+  }
   if (isAdminEvent(item)) return 'admin-event';
+  if (item.type === 'dispatch_response') {
+    if (item.dispatchResponse === 'accepted') return 'response-accepted';
+    if (item.dispatchResponse === 'declined') return 'response-declined';
+  }
   if (item.type === 'backup_requested') return 'backup-requested';
   if (item.type === 'backup_joined') return 'backup-joined';
   if (item.kind === 'status_group') {
@@ -106,12 +120,20 @@ function getIconKind(item: NotificationFeedItem) {
 
 function getIcon(kind: string) {
   switch (kind) {
+    case 'admin-account':
+      return <UserOutlined />;
     case 'backup-requested':
       return <TeamOutlined />;
     case 'backup-joined':
       return <UserAddOutlined />;
     case 'admin-event':
       return <SafetyOutlined />;
+    case 'response-accepted':
+      return <CheckCircleOutlined />;
+    case 'response-declined':
+      return <CloseCircleOutlined />;
+    case 'new-report':
+      return <FileTextOutlined />;
     case 'resolved':
       return <CheckCircleOutlined />;
     case 'flagged':

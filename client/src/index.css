@@ -284,15 +284,22 @@ a {
 }
 
 .notification-card__icon--backup-joined,
+.notification-card__icon--response-accepted,
 .notification-card__icon--resolved {
   background: color-mix(in srgb, var(--severity-low-tag) 14%, transparent);
   color: var(--severity-low-text);
 }
 
+.notification-card__icon--admin-account,
 .notification-card__icon--admin-event,
 .notification-card__icon--flagged {
   background: color-mix(in srgb, var(--severity-high-tag) 14%, transparent);
   color: var(--severity-high-text);
+}
+
+.notification-card__icon--response-declined {
+  background: color-mix(in srgb, var(--neutral-500) 14%, transparent);
+  color: var(--neutral-500);
 }
 
 .notification-card__icon--emergency {
