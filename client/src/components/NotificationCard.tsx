@@ -91,7 +91,7 @@ function isAdminEvent(item: NotificationFeedItem) {
 
 function getIconKind(item: NotificationFeedItem) {
   if (item.type === 'admin_report_flagged') return 'flagged';
-  if (isAdminEvent(item)) return item.urgent ? 'emergency' : 'admin-event';
+  if (isAdminEvent(item)) return 'admin-event';
   if (item.type === 'backup_requested') return 'backup-requested';
   if (item.type === 'backup_joined') return 'backup-joined';
   if (item.kind === 'status_group') {
@@ -160,6 +160,10 @@ export default function NotificationCard({ item, role, to, onOpen }: Notificatio
   const iconKind = getIconKind(item);
   const severity = item.report.severity;
   const severityStyle = severity ? getSeverityStyle(severity) : undefined;
+  const incidentSeverityClass =
+    item.type === 'incident_received' && severity
+      ? ` notification-card__icon--severity-${severity.toLowerCase()}`
+      : '';
   const { lang, t } = useLang();
   const detailItems: { label: string; className?: string; style?: CSSProperties }[] = [];
   if (severity) {
@@ -176,12 +180,7 @@ export default function NotificationCard({ item, role, to, onOpen }: Notificatio
   const row = (
     <>
       <div
-        className={`notification-card__icon notification-card__icon--${iconKind}`}
-        style={
-          severityStyle
-            ? { background: severityStyle.background, color: severityStyle.color }
-            : undefined
-        }
+        className={`notification-card__icon notification-card__icon--${iconKind}${incidentSeverityClass}`}
         aria-hidden="true"
       >
         {getIcon(iconKind)}

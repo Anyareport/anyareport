@@ -273,26 +273,50 @@ a {
 
 .notification-card__icon--new-report,
 .notification-card__icon--pending {
-  background: var(--status-pending-bg);
+  background: color-mix(in srgb, var(--status-pending-tag) 14%, transparent);
   color: var(--status-pending-text);
 }
 
 .notification-card__icon--backup-requested,
 .notification-card__icon--in-progress {
-  background: var(--status-coordinating-bg);
+  background: color-mix(in srgb, var(--status-coordinating-text) 14%, transparent);
   color: var(--status-coordinating-text);
 }
 
 .notification-card__icon--backup-joined,
-.notification-card__icon--admin-event,
 .notification-card__icon--resolved {
-  background: var(--severity-low-bg);
+  background: color-mix(in srgb, var(--severity-low-tag) 14%, transparent);
   color: var(--severity-low-text);
 }
 
-.notification-card__icon--emergency,
+.notification-card__icon--admin-event,
 .notification-card__icon--flagged {
-  background: var(--severity-critical-bg);
+  background: color-mix(in srgb, var(--severity-high-tag) 14%, transparent);
+  color: var(--severity-high-text);
+}
+
+.notification-card__icon--emergency {
+  background: color-mix(in srgb, var(--severity-critical-tag) 14%, transparent);
+  color: var(--severity-critical-text);
+}
+
+.notification-card__icon--severity-low {
+  background: color-mix(in srgb, var(--severity-low-tag) 14%, transparent);
+  color: var(--severity-low-text);
+}
+
+.notification-card__icon--severity-medium {
+  background: color-mix(in srgb, var(--severity-medium-tag) 14%, transparent);
+  color: var(--severity-medium-text);
+}
+
+.notification-card__icon--severity-high {
+  background: color-mix(in srgb, var(--severity-high-tag) 14%, transparent);
+  color: var(--severity-high-text);
+}
+
+.notification-card__icon--severity-critical {
+  background: color-mix(in srgb, var(--severity-critical-tag) 14%, transparent);
   color: var(--severity-critical-text);
 }
 
