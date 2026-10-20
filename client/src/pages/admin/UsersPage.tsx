@@ -21,6 +21,7 @@ import { EllipsisOutlined, SearchOutlined } from '@ant-design/icons';
 import { useSearchParams } from 'react-router-dom';
 import { api, type UserProfile } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { getStatusTagStyle } from '../../lib/statusTagStyles';
 import './UsersPage.css';
 
 const PAGE_SIZE = 8;
@@ -33,6 +34,23 @@ const roleOptions = [
   { label: 'Secretary', value: 'secretary' },
   { label: 'Admin', value: 'admin' },
 ];
+
+const roleTagStatuses: Record<string, string> = {
+  resident: 'pending',
+  tanod: 'coordinating',
+  responder: 'coordinating',
+  captain: 'in_progress',
+  secretary: 'in_progress',
+  admin: 'resolved',
+};
+
+function getRoleTagStyle(role: string) {
+  return { ...getStatusTagStyle(roleTagStatuses[role] ?? ''), marginInlineEnd: 0 };
+}
+
+function getAccountStatusTagStyle(status: string) {
+  return { ...getStatusTagStyle(status), marginInlineEnd: 0 };
+}
 
 export default function AdminUsersPage() {
   const { firebaseUser } = useAuth();
@@ -210,14 +228,14 @@ export default function AdminUsersPage() {
       title: 'Role',
       dataIndex: 'role',
       key: 'role',
-      render: (role: string) => <Tag>{getRoleLabel(role)}</Tag>,
+      render: (role: string) => <Tag style={getRoleTagStyle(role)}>{getRoleLabel(role)}</Tag>,
     },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => (
-        <Tag color={status === 'active' ? 'success' : 'error'}>{capitalize(status)}</Tag>
+        <Tag style={getAccountStatusTagStyle(status)}>{capitalize(status)}</Tag>
       ),
     },
     {
@@ -312,8 +330,8 @@ export default function AdminUsersPage() {
               </div>
               <div className="user-management-mobile-card__email">{user.email}</div>
               <Space size={6} wrap>
-                <Tag>{getRoleLabel(user.role)}</Tag>
-                <Tag color={user.status === 'active' ? 'success' : 'error'}>
+                <Tag style={getRoleTagStyle(user.role)}>{getRoleLabel(user.role)}</Tag>
+                <Tag style={getAccountStatusTagStyle(user.status)}>
                   {capitalize(user.status)}
                 </Tag>
               </Space>
