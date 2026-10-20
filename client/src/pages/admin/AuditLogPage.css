@@ -1,3 +1,24 @@
+.audit-log-toolbar {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+}
+
+.audit-log-toolbar__search {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.audit-log-toolbar__search .ant-input-affix-wrapper {
+  min-width: 0;
+}
+
+.audit-log-toolbar__export {
+  flex: 0 0 auto;
+}
+
 .audit-log-card .ant-card-body {
   padding: 24px;
 }
@@ -20,6 +41,15 @@
 }
 
 @media (max-width: 575px) {
+  .audit-log-toolbar {
+    flex-direction: column-reverse;
+  }
+
+  .audit-log-toolbar__search,
+  .audit-log-toolbar__export {
+    width: 100%;
+  }
+
   .audit-log-card .ant-card-body {
     padding: 16px;
   }

@@ -1,9 +1,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Badge,
   Button,
   Card,
+  Checkbox,
   Input,
   List,
   Popover,
@@ -13,7 +13,7 @@ import {
   Tooltip,
   Typography,
 } from 'antd';
-import { DownloadOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons';
+import { ExportOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons';
 import { api, type AuditLog } from '../../lib/api';
 import { downloadCsv, toCsv } from '../../lib/csv';
 import {
@@ -272,25 +272,28 @@ export default function AdminAuditLogPage() {
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Space.Compact style={{ display: 'flex', width: '100%' }}>
-        <Input
-          aria-label="Search audit logs"
-          allowClear
-          prefix={<SearchOutlined />}
-          suffix={filterTags}
-          placeholder="Search user, action, report no., or timestamp"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          style={{ flex: 1 }}
-        />
-        <Space.Compact>
+      <div className="audit-log-toolbar">
+        <Space.Compact className="audit-log-toolbar__search">
+          <Input
+            aria-label="Search audit logs"
+            allowClear
+            prefix={<SearchOutlined />}
+            suffix={filterTags}
+            placeholder="Search user, action, report no., or timestamp"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
           <Popover trigger="click" placement="bottomRight" content={filterContent}>
-            <Button icon={<FilterOutlined />}>
-              Filters <Badge count={activeFilters.length} size="small" />
-            </Button>
+            <Button icon={<FilterOutlined />}>Filters</Button>
           </Popover>
-          <Tooltip title="Exports all currently loaded results matching your filters">
-            <Button icon={<DownloadOutlined />} onClick={() => {
+        </Space.Compact>
+        <Tooltip title="Exports filtered results from the entries currently loaded">
+          <Button
+            className="audit-log-toolbar__export"
+            color="primary"
+            variant="solid"
+            icon={<ExportOutlined />}
+            onClick={() => {
               const rows = filteredLogs.map((log) => [
                 log.timestamp,
                 getAuditLabel(log).label,
@@ -298,29 +301,28 @@ export default function AdminAuditLogPage() {
                 getAuditActorRole(log.actorRole),
                 getAuditSummary(log),
               ]);
-              downloadCsv('anyareport-audit-loaded.csv', toCsv(
-                ['Timestamp', 'Action', 'Actor', 'Actor role', 'Summary'],
-                rows
-              ));
-            }}>
-              Export loaded results
-            </Button>
-          </Tooltip>
-        </Space.Compact>
-      </Space.Compact>
+              downloadCsv(
+                'anyareport-audit-loaded.csv',
+                toCsv(['Timestamp', 'Action', 'Actor', 'Actor role', 'Summary'], rows)
+              );
+            }}
+          >
+            Export
+          </Button>
+        </Tooltip>
+      </div>
 
       <Card className="soft-card audit-log-card">
         <Space className="audit-log-card__toolbar" style={{ display: 'flex', justifyContent: 'space-between' }}>
           <Text type="secondary">
             {`Showing ${filteredLogs.length} of ${logs.length} loaded ${logs.length === 1 ? 'entry' : 'entries'}`}
           </Text>
-          <Button
-            type="link"
-            size="small"
-            onClick={() => setHideNotificationEvents((hidden) => !hidden)}
+          <Checkbox
+            checked={hideNotificationEvents}
+            onChange={(event) => setHideNotificationEvents(event.target.checked)}
           >
-            {hideNotificationEvents ? 'Show notification events' : 'Hide notification events'}
-          </Button>
+            Hide notification events
+          </Checkbox>
         </Space>
         <List
           // A new key sends the list back to page 1 whenever a filter changes.

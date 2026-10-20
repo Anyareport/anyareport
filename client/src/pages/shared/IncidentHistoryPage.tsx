@@ -502,7 +502,12 @@ export default function IncidentHistoryPage({
                 <StatusFilter value={status} onChange={setStatus} layout="select" />
                 {dateFilter}
                 {incidentFilters}
-                <Button type="link" danger onClick={clearFilters} disabled={!activeFilterTags.length}>
+                <Button
+                  type="link"
+                  danger
+                  onClick={clearFilters}
+                  disabled={!activeFilterTags.length}
+                >
                   Clear all filters
                 </Button>
               </Space>
@@ -541,6 +546,8 @@ export default function IncidentHistoryPage({
             }}
           >
             <Button
+              color="primary"
+              variant="solid"
               block={!screens.md}
               icon={<ExportOutlined />}
               loading={exporting !== null}
