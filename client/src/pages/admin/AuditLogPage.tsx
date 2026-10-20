@@ -92,6 +92,16 @@ export default function AdminAuditLogPage() {
   const [datePeriod, setDatePeriod] = React.useState<DatePeriod>('date');
   const [dateValue, setDateValue] = React.useState('');
   const [hideNotificationEvents, setHideNotificationEvents] = React.useState(true);
+  const [pageState, setPageState] = React.useState({ filterKey: '', page: 1 });
+  const filterKey = JSON.stringify([
+    search,
+    roleFilter,
+    actionFilter,
+    datePeriod,
+    dateValue,
+    hideNotificationEvents,
+  ]);
+  const currentPage = pageState.filterKey === filterKey ? pageState.page : 1;
 
   const range = React.useMemo(() => getDateRange(datePeriod, dateValue), [datePeriod, dateValue]);
 
@@ -325,17 +335,25 @@ export default function AdminAuditLogPage() {
           </Checkbox>
         </Space>
         <List
-          // A new key sends the list back to page 1 whenever a filter changes.
-          key={`${search}|${roleFilter}|${actionFilter}|${datePeriod}|${dateValue}|${hideNotificationEvents}`}
+          key={filterKey}
           loading={isLoading}
           dataSource={filteredLogs}
-          pagination={{ pageSize: 10, hideOnSinglePage: true, showSizeChanger: false }}
+          pagination={{
+            current: currentPage,
+            pageSize: 10,
+            hideOnSinglePage: true,
+            showSizeChanger: false,
+            onChange: (page) => setPageState({ filterKey, page }),
+          }}
           locale={{ emptyText: 'No audit logs found' }}
           renderItem={(log, index) => {
+            const globalIndex = (currentPage - 1) * 10 + index;
+            const previousLog = globalIndex > 0 ? filteredLogs[globalIndex - 1] : null;
             const dateKey = getLocalDateKey(new Date(log.timestamp));
-            const previousLog = index > 0 ? filteredLogs[index - 1] : null;
             const startsDateGroup =
-              !previousLog || getLocalDateKey(new Date(previousLog.timestamp)) !== dateKey;
+              index === 0 ||
+              !previousLog ||
+              getLocalDateKey(new Date(previousLog.timestamp)) !== dateKey;
 
             return (
               <React.Fragment key={log._id}>
