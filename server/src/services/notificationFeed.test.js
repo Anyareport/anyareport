@@ -74,7 +74,11 @@ test('feed cursor constrains later pages after grouping', () => {
 });
 
 test('new-report notification recipients follow the three report categories', () => {
-  assert.deepEqual(getNotificationRecipientRoles('Public Concerns'), ['tanod', 'responder']);
+  assert.deepEqual(getNotificationRecipientRoles('Public Concerns'), [
+    'secretary',
+    'tanod',
+    'responder',
+  ]);
   assert.deepEqual(getNotificationRecipientRoles('Blotter Cases'), ['captain', 'secretary']);
   assert.deepEqual(getNotificationRecipientRoles('Blotter Cases', 'Criminal'), [
     'captain',
@@ -84,6 +88,7 @@ test('new-report notification recipients follow the three report categories', ()
   ]);
   assert.deepEqual(getNotificationRecipientRoles('Emergency Situations'), [
     'captain',
+    'secretary',
     'tanod',
     'responder',
   ]);
@@ -108,6 +113,7 @@ test('report change rooms follow report visibility and include the submitter onl
     [
       'role:admin',
       'role:captain',
+      'role:secretary',
       'role:tanod',
       'role:responder',
       'user:resident-2',

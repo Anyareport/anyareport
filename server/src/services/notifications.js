@@ -19,8 +19,8 @@ import { writeAudit } from './auditLog.js';
 
 let ioInstance = null;
 const NOTIFICATION_ROLES_BY_CATEGORY = {
-  'Public Concerns': ['tanod', 'responder'],
-  'Emergency Situations': ['captain', 'tanod', 'responder'],
+  'Public Concerns': ['secretary', 'tanod', 'responder'],
+  'Emergency Situations': ['captain', 'secretary', 'tanod', 'responder'],
 };
 
 export function getNotificationRecipientRoles(category, subcategory) {
@@ -81,8 +81,8 @@ export function setSocketIO(io) {
 
 export function getReportChangeRooms(report) {
   const rooms = ['role:admin', 'role:captain'];
+  rooms.push('role:secretary');
   if (report.category === BLOTTER_REPORT_CATEGORY) {
-    rooms.push('role:secretary');
     if (report.subcategory === CRIMINAL_BLOTTER_SUBCATEGORY) {
       rooms.push('role:tanod', 'role:responder');
     }
