@@ -1,0 +1,118 @@
+.user-management {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.user-management > .ant-tabs {
+  margin-bottom: -8px;
+}
+
+.user-management-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.user-management-filters {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.user-management-filters > .ant-input-affix-wrapper {
+  width: min(300px, 100%);
+}
+
+.user-management-filters > .ant-select {
+  width: 150px;
+}
+
+.user-management-filters > .user-management-role-filter {
+  width: 160px;
+}
+
+.user-management-create-button {
+  flex: none;
+}
+
+.user-management-table .ant-table-container {
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+}
+
+.user-management-table .ant-table-thead > tr > th {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.user-management-self-tag.ant-tag {
+  margin-inline-start: 8px;
+  color: var(--brand-color-info);
+}
+
+.user-management-mobile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.user-management-mobile-card.ant-card {
+  border-color: var(--border-default);
+  border-radius: 8px;
+  background: var(--bg-primary);
+}
+
+.user-management-mobile-card .ant-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+}
+
+.user-management-mobile-card__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-primary);
+}
+
+.user-management-mobile-card__heading > strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.user-management-mobile-card__email {
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.user-management-mobile-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+@media (max-width: 767px) {
+  .user-management-toolbar,
+  .user-management-filters {
+    flex-direction: column;
+  }
+
+  .user-management-filters > .ant-input-affix-wrapper,
+  .user-management-filters > .ant-select,
+  .user-management-create-button {
+    width: 100%;
+  }
+}

@@ -9,6 +9,7 @@ import {
 } from '../services/adminNotificationEvents.js';
 
 const USER_STATUSES = ['active', 'suspended'];
+const USER_ROLES = ['resident', 'tanod', 'responder', 'captain', 'secretary', 'admin'];
 
 // Audits an admin action on a user account, then tells the other admins about it.
 async function auditAndNotify(req, event) {
@@ -115,6 +116,9 @@ export async function updateUserStatus(req, res) {
     }
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.firebaseUid === req.firebaseUser.uid) {
+      return res.status(403).json({ error: 'You cannot change your own account status' });
+    }
     const previousStatus = user.status;
     user.status = status;
     await user.save();
@@ -135,11 +139,17 @@ export async function updateUserStatus(req, res) {
 export async function updateUserRole(req, res) {
   try {
     const { role } = req.body;
+    if (!USER_ROLES.includes(role)) {
+      return res.status(400).json({ error: 'Invalid user role' });
+    }
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.firebaseUid === req.firebaseUser.uid) {
+      return res.status(403).json({ error: 'You cannot change your own account role' });
+    }
 
     const previousRole = user.role;
-    user.role = role || user.role;
+    user.role = role;
     await user.save();
     disconnectUserSockets(user.firebaseUid);
 
