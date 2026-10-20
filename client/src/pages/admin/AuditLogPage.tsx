@@ -1,8 +1,28 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Badge, Button, Card, Input, List, Popover, Select, Space, Tag, Typography } from 'antd';
-import { FilterOutlined, SearchOutlined } from '@ant-design/icons';
+import {
+  Badge,
+  Button,
+  Card,
+  Input,
+  List,
+  Popover,
+  Select,
+  Space,
+  Tag,
+  Tooltip,
+  Typography,
+} from 'antd';
+import { DownloadOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons';
 import { api, type AuditLog } from '../../lib/api';
+import { downloadCsv, toCsv } from '../../lib/csv';
+import {
+  getAuditActorRole,
+  getAuditLabel,
+  getAuditSummary,
+  NOTIFICATION_AUDIT_ACTIONS,
+} from '../../lib/auditLabels';
+import AuditActivityRow from '../../components/AuditActivityRow';
 
 const { Text } = Typography;
 
@@ -25,26 +45,6 @@ const getRoleLabel = (role?: string | null) =>
   ROLE_OPTIONS.find((option) => option.value === role)?.label ?? role ?? '';
 
 const formatAction = (action: string) => action.replace(/_/g, ' ');
-// One-line summary of the details an admin-related entry carries.
-function summarizeMetadata(log: { action: string; metadata: Record<string, unknown> }) {
-  const m = log.metadata || {};
-  const target = (m.targetName as string) || (m.targetEmail as string) || (m.targetUid as string);
-  switch (log.action) {
-    case 'user_created':
-      return `Created ${m.role ?? 'user'} account for ${target ?? 'unknown user'}`;
-    case 'user_status_changed':
-    case 'user_role_changed':
-      return `${target ?? 'Unknown user'}: ${m.from ?? '?'} → ${m.to ?? '?'}`;
-    case 'admin_notification_sent':
-      return `${m.type ?? 'notification'} sent to ${m.recipientCount ?? 0} admin(s)${m.urgent ? ' (urgent)' : ''}`;
-    case 'admin_notification_read':
-      return `Read ${m.type ?? 'notification'}`;
-    case 'admin_notification_read_all':
-      return `Marked ${m.count ?? 0} notification(s) as read`;
-    default:
-      return null;
-  }
-}
 const getActor = (log: AuditLog) => log.actorName || log.actorUid || 'system';
 
 // The browser's local time decides where a day or month starts and ends, so
@@ -66,6 +66,7 @@ export default function AdminAuditLogPage() {
   const [roleFilter, setRoleFilter] = React.useState<string | undefined>();
   const [datePeriod, setDatePeriod] = React.useState<DatePeriod>('date');
   const [dateValue, setDateValue] = React.useState('');
+  const [hideNotificationEvents, setHideNotificationEvents] = React.useState(true);
 
   const range = React.useMemo(() => getDateRange(datePeriod, dateValue), [datePeriod, dateValue]);
 
@@ -75,12 +76,19 @@ export default function AdminAuditLogPage() {
     queryKey: [
       'admin-audit-logs',
       'list',
-      { role: roleFilter, action: actionFilter, from: range?.from, to: range?.to },
+      {
+        role: roleFilter,
+        action: actionFilter,
+        from: range?.from,
+        to: range?.to,
+        hideNotificationEvents,
+      },
     ],
     queryFn: () => {
       const params = new URLSearchParams();
       if (roleFilter) params.set('role', roleFilter);
       if (actionFilter) params.set('action', actionFilter);
+      if (hideNotificationEvents) params.set('excludeActions', NOTIFICATION_AUDIT_ACTIONS.join(','));
       if (range) {
         params.set('from', range.from.toISOString());
         params.set('to', range.to.toISOString());
@@ -104,13 +112,17 @@ export default function AdminAuditLogPage() {
       Array.from(new Set([...(filterOptions?.actions ?? []), ...logs.map((log) => log.action)]))
         .filter(Boolean)
         .sort()
-        .map((action) => ({ label: formatAction(action), value: action })),
+        .map((action) => ({
+          label: getAuditLabel({ action, metadata: {} }).label,
+          value: action,
+        })),
     [filterOptions, logs]
   );
 
   const filteredLogs = React.useMemo(() => {
     const query = search.trim().toLowerCase();
     return logs.filter((log) => {
+      if (hideNotificationEvents && NOTIFICATION_AUDIT_ACTIONS.includes(log.action)) return false;
       if (actionFilter && log.action !== actionFilter) return false;
       if (roleFilter && log.actorRole !== roleFilter) return false;
       if (range) {
@@ -121,12 +133,15 @@ export default function AdminAuditLogPage() {
       return [
         log.action,
         formatAction(log.action),
+        getAuditLabel(log).label,
+        getAuditSummary(log),
         getActor(log),
+        log.actorRole,
         log.reportReferenceNumber,
         new Date(log.timestamp).toLocaleString(),
       ].some((value) => value?.toLowerCase().includes(query));
     });
-  }, [logs, search, actionFilter, roleFilter, range]);
+  }, [logs, search, actionFilter, roleFilter, range, hideNotificationEvents]);
 
   const clearFilters = () => {
     setActionFilter(undefined);
@@ -143,7 +158,7 @@ export default function AdminAuditLogPage() {
     },
     actionFilter && {
       key: 'action',
-      label: `Action: ${formatAction(actionFilter)}`,
+      label: `Action: ${getAuditLabel({ action: actionFilter, metadata: {} }).label}`,
       onClose: () => setActionFilter(undefined),
     },
     dateValue && {
@@ -188,7 +203,12 @@ export default function AdminAuditLogPage() {
           placeholder="All actions"
           options={actionOptions}
           value={actionFilter}
-          onChange={setActionFilter}
+          onChange={(action) => {
+            setActionFilter(action);
+            if (action && NOTIFICATION_AUDIT_ACTIONS.includes(action)) {
+              setHideNotificationEvents(false);
+            }
+          }}
           style={{ width: '100%' }}
         />
       </Space>
@@ -238,44 +258,55 @@ export default function AdminAuditLogPage() {
           onChange={(event) => setSearch(event.target.value)}
           style={{ flex: 1 }}
         />
-        <Popover trigger="click" placement="bottomRight" content={filterContent}>
-          <Button icon={<FilterOutlined />}>
-            Filters <Badge count={activeFilters.length} size="small" />
-          </Button>
-        </Popover>
+        <Space.Compact>
+          <Popover trigger="click" placement="bottomRight" content={filterContent}>
+            <Button icon={<FilterOutlined />}>
+              Filters <Badge count={activeFilters.length} size="small" />
+            </Button>
+          </Popover>
+          <Tooltip title="Exports all currently loaded results matching your filters">
+            <Button icon={<DownloadOutlined />} onClick={() => {
+              const rows = filteredLogs.map((log) => [
+                log.timestamp,
+                getAuditLabel(log).label,
+                getActor(log),
+                getAuditActorRole(log.actorRole),
+                getAuditSummary(log),
+              ]);
+              downloadCsv('anyareport-audit-loaded.csv', toCsv(
+                ['Timestamp', 'Action', 'Actor', 'Actor role', 'Summary'],
+                rows
+              ));
+            }}>
+              Export loaded results
+            </Button>
+          </Tooltip>
+        </Space.Compact>
       </Space.Compact>
 
       <Card className="soft-card">
-        <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
-          {filteredLogs.length} {filteredLogs.length === 1 ? 'entry' : 'entries'}
-          {logs.length !== filteredLogs.length ? ` of ${logs.length} loaded` : ''}
-        </Text>
+        <Space style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+          <Text type="secondary">
+            {`Showing ${filteredLogs.length} of ${logs.length} loaded ${logs.length === 1 ? 'entry' : 'entries'}`}
+          </Text>
+          <Button
+            type="link"
+            size="small"
+            onClick={() => setHideNotificationEvents((hidden) => !hidden)}
+          >
+            {hideNotificationEvents ? 'Show notification events' : 'Hide notification events'}
+          </Button>
+        </Space>
         <List
           // A new key sends the list back to page 1 whenever a filter changes.
-          key={`${search}|${roleFilter}|${actionFilter}|${datePeriod}|${dateValue}`}
+          key={`${search}|${roleFilter}|${actionFilter}|${datePeriod}|${dateValue}|${hideNotificationEvents}`}
           loading={isLoading}
           dataSource={filteredLogs}
           pagination={{ pageSize: 10, hideOnSinglePage: true, showSizeChanger: false }}
           locale={{ emptyText: 'No audit logs found' }}
           renderItem={(log) => (
             <List.Item key={log._id}>
-              <List.Item.Meta
-                title={
-                  <Space>
-                    <Text strong>{log.action}</Text>
-                    <Tag>{getActor(log)}</Tag>
-                    
-                  </Space>
-                }
-                description={
-                  <Space direction="vertical" size={2}>
-                    <Text type="secondary">{new Date(log.timestamp).toLocaleString()}</Text>
-                    <Text type="secondary">{log.userAgent || 'No user agent'}</Text>
-                    <Text type="secondary">{new Date(log.timestamp).toLocaleString()}</Text>
-{summarizeMetadata(log) && <Text>{summarizeMetadata(log)}</Text>}
-                  </Space>
-                }
-              />
+              <AuditActivityRow log={log} showDetails />
             </List.Item>
           )}
         />

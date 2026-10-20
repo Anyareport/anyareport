@@ -329,7 +329,14 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
   }
 
   if (pathname === '/api/audit-logs' && method === 'GET') {
-    return db.auditLogs.sort((a, b) => b.timestamp.localeCompare(a.timestamp)).slice(0, 100) as T;
+    const excludedActions = (searchParams.get('excludeActions') || '')
+      .split(',')
+      .filter(Boolean);
+    const limit = Math.min(Math.max(Number(searchParams.get('limit')) || 100, 1), 500);
+    return db.auditLogs
+      .filter((log) => !excludedActions.includes(log.action))
+      .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+      .slice(0, limit) as T;
   }
 
   if (pathname === '/api/admin/users' && method === 'GET') {

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Card, Col, List, Row, Space, Tag, Typography } from 'antd';
+import { Button, Card, Col, List, Row, Space, Typography } from 'antd';
 
 import Icon, {
   AlertOutlined,
@@ -21,6 +21,8 @@ import PurokBreakdownCard from '../../components/PurokBreakdownCard';
 import RecentActivityPanel from '../../components/RecentActivityPanel';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotificationFeed } from '../../lib/notificationFeed';
+import { NOTIFICATION_AUDIT_ACTIONS } from '../../lib/auditLabels';
+import AuditActivityRow from '../../components/AuditActivityRow';
 
 const { Text } = Typography;
 
@@ -51,43 +53,6 @@ const UserCheckSvg = () => (
 );
 
 const UserCheckIcon = () => <Icon component={UserCheckSvg} />;
-
-const ACTION_LABELS: Record<string, string> = {
-  official_created: 'Official created',
-  user_role_changed: 'Role changed',
-  user_status_changed: 'Account status changed',
-  report_submitted: 'Report submitted',
-  report_classified: 'Report classified',
-  report_flagged: 'Report flagged',
-  report_recipients_notified: 'Responders notified',
-  resolution_submitted: 'Resolution submitted',
-  hotline_opened: 'Hotline opened',
-};
-
-function getActionLabel(action: string) {
-  if (ACTION_LABELS[action]) return ACTION_LABELS[action];
-  const text = action.replace(/_/g, ' ');
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
-function getActionColor(action: string) {
-  if (['official_created', 'user_role_changed', 'user_status_changed'].includes(action)) {
-    return 'geekblue';
-  }
-  if (action === 'report_flagged') return 'red';
-  if (action === 'report_submitted') return 'green';
-  return undefined;
-}
-
-// What the entry was about: the affected account, or the report reference.
-function getAuditSubject(log: AuditLog) {
-  const meta = log.metadata || {};
-  const target = typeof meta.targetName === 'string' ? meta.targetName : '';
-  if (!target) return log.reportReferenceNumber || '';
-  const from = typeof meta.from === 'string' ? meta.from : '';
-  const to = typeof meta.to === 'string' ? meta.to : '';
-  return from && to ? `${target}: ${from} → ${to}` : target;
-}
 
 function formatAuditTime(timestamp: string, now: number) {
   const elapsed = now - new Date(timestamp).getTime();
@@ -138,8 +103,14 @@ export default function AdminDashboardPage() {
   });
 
   const { data: auditLogs = [], dataUpdatedAt: auditUpdatedAt } = useQuery({
-    queryKey: ['admin-audit-logs'],
-    queryFn: () => api.get<AuditLog[]>('/api/audit-logs'),
+    queryKey: ['admin-audit-logs', 'dashboard', 6],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        limit: '6',
+        excludeActions: NOTIFICATION_AUDIT_ACTIONS.join(','),
+      });
+      return api.get<AuditLog[]>(`/api/audit-logs?${params.toString()}`);
+    },
     enabled: isAdmin,
     refetchInterval: 30000,
   });
@@ -614,7 +585,7 @@ export default function AdminDashboardPage() {
             icon={<UserCheckIcon />}
             tone="success"
             loading={userSummaryLoading}
-            helper="Enabled accounts, not currently online users"
+            helper="Enabled, not necessarily online"
             link={{ text: 'Manage users', href: '/admin/users' }}
           />
         </Col>
@@ -635,7 +606,7 @@ export default function AdminDashboardPage() {
 
       <Card
         className="soft-card"
-        title="Latest audit trail"
+        title="Latest important activity"
         extra={
           <Button color="primary" variant="outlined" onClick={() => navigate('/admin/audit')}>
             View all
@@ -643,24 +614,14 @@ export default function AdminDashboardPage() {
         }
       >
         <List
-          dataSource={auditLogs.slice(0, 6)}
+          dataSource={auditLogs}
           locale={{ emptyText: 'No audit activity yet' }}
           renderItem={(log) => (
             <List.Item>
-              <List.Item.Meta
-                title={
-                  <Space size={8} wrap>
-                    <Tag color={getActionColor(log.action)} style={{ marginInlineEnd: 0 }}>
-                      {getActionLabel(log.action)}
-                    </Tag>
-                    <Text>{getAuditSubject(log)}</Text>
-                  </Space>
-                }
-                description={`By ${log.actorName || log.actorUid || 'system'}`}
+              <AuditActivityRow
+                log={log}
+                timeLabel={formatAuditTime(log.timestamp, auditUpdatedAt)}
               />
-              <Text type="secondary" title={new Date(log.timestamp).toLocaleString()}>
-                {formatAuditTime(log.timestamp, auditUpdatedAt)}
-              </Text>
             </List.Item>
           )}
         />

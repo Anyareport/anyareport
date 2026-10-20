@@ -27,7 +27,16 @@ export function buildAuditFilter(params = {}) {
 
   // If a specific actor was requested, we need to ensure that the actor is one of the allowed users.
   if (typeof params.actor === 'string' && params.actor) filter.actorUid = params.actor;
-  if (typeof params.action === 'string' && params.action) filter.action = params.action;
+  if (typeof params.action === 'string' && params.action) {
+    filter.action = { $eq: params.action };
+  }
+  const excludedActions =
+    typeof params.excludeActions === 'string'
+      ? params.excludeActions.split(',').map((action) => action.trim()).filter(Boolean)
+      : [];
+  if (excludedActions.length) {
+    filter.action = { ...(filter.action || {}), $nin: excludedActions };
+  }
 
   // `from` is inclusive and `to` is exclusive, so the client can send
   // "start of the day" and "start of the next day" for a date or month.
