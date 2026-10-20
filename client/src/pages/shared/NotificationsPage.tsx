@@ -22,7 +22,11 @@ function getLocalDateKey(date: Date) {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 }
 
-function formatDateHeading(value: string, translate: boolean, t: (key: 'today' | 'yesterday') => string) {
+function formatDateHeading(
+  value: string,
+  translate: boolean,
+  t: (key: 'today' | 'yesterday') => string
+) {
   const date = new Date(value);
   const today = new Date();
   const yesterday = new Date(today);
@@ -206,13 +210,14 @@ export default function NotificationsPage() {
           type="info"
           showIcon
           message={translate ? t('getNotified') : 'Get notified about new incident updates'}
-          description={
-            translate
-              ? t('enableNotificationsDescription')
-              : 'Enable browser notifications to receive alerts while using Anyareport.'
-          }
           action={
-            <Button size="small" icon={<BellOutlined />} onClick={enablePushNotifications}>
+            <Button
+              color="primary"
+              variant="solid"
+              size="small"
+              icon={<BellOutlined />}
+              onClick={enablePushNotifications}
+            >
               {translate ? t('enable') : 'Enable'}
             </Button>
           }
