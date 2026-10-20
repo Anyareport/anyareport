@@ -153,6 +153,23 @@
   padding-inline: 0;
 }
 
+.app-shell-sider.ant-layout-sider-collapsed
+  .app-shell-menu.ant-menu
+  .ant-menu-item-group-title {
+  padding: 12px 10px 4px;
+  font-size: 0;
+  line-height: 1;
+}
+
+.app-shell-sider.ant-layout-sider-collapsed
+  .app-shell-menu.ant-menu
+  .ant-menu-item-group-title::after {
+  display: block;
+  height: 1px;
+  background: var(--border-light);
+  content: '';
+}
+
 .app-shell-header.ant-layout-header {
   position: sticky;
   z-index: 1000;
