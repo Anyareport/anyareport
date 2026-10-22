@@ -9,6 +9,7 @@ import { classifyReport } from '../services/gemini.js';
 import {
   disconnectUserSockets,
   emitReportChanged,
+  notifyAdmins,
   notifyBackupJoined,
   notifyBackupRequest,
   notifyOnNewReport,
@@ -16,7 +17,7 @@ import {
   notifyRespondersDispatched,
   notifyDispatchResponse,
 } from '../services/notifications.js';
-import {buildReportFlaggedEvent} from '../services/adminNotificationEvents.js';
+import { buildReportFlaggedEvent } from '../services/adminNotificationEvents.js';
 import { antiAbuseConfig } from '../config/antiAbuse.js';
 import { workflowConfig } from '../config/workflow.js';
 import { uploadImage } from '../services/cloudinary.js';
@@ -39,10 +40,8 @@ import {
   statusFilterValues,
   supportsBackupRequests,
   validateResolutionDetails,
+  FLAG_REASON_LABELS,
 } from '../services/reportWorkflow.js';
-
-
-
 
 const RESPONDER_CATEGORIES = FIELD_REPORT_CATEGORIES;
 const BLOTTER_CATEGORY = BLOTTER_REPORT_CATEGORY;
@@ -184,7 +183,7 @@ export async function createReport(req, res) {
     if (req.userProfile?.status === 'suspended') {
       return res.status(403).json({ error: 'Account suspended — cannot submit reports' });
     }
-        const rawRequestId =
+    const rawRequestId =
       typeof req.body?.clientRequestId === 'string' ? req.body.clientRequestId : '';
     const clientRequestId = CLIENT_REQUEST_ID_PATTERN.test(rawRequestId) ? rawRequestId : null;
     const findExisting = () =>
@@ -239,7 +238,7 @@ export async function createReport(req, res) {
       console.error('[Report Creation] AI classification failed:', classifyErr.message);
     }
 
-        const concurrent = await findExisting();
+    const concurrent = await findExisting();
     if (concurrent) return res.status(200).json(serializeReport(concurrent));
 
     const referenceNumber = await getNextReportReference();
@@ -301,7 +300,12 @@ export async function getMyReports(req, res) {
     const reports = await Report.find({ submittedBy: req.firebaseUser.uid }).sort({
       createdAt: -1,
     });
-    res.json(reports.map(serializeReport));
+    res.json(
+      reports.map((report) => {
+        const { flaggedBy, ...safe } = serializeReport(report);
+        return safe;
+      })
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -685,6 +689,7 @@ export async function getReportById(req, res) {
         joinedByNames: (request.joinedBy || []).map((uid) => nameByUid[uid] || uid),
       })),
     };
+    if (req.userRole === 'resident') delete result.flaggedBy;
 
     res.json(result);
   } catch (err) {
@@ -735,7 +740,7 @@ export async function getReportAudit(req, res) {
   try {
     const report = await Report.findById(req.params.id).select('_id category referenceNumber');
     if (!report) return res.status(404).json({ error: 'Report not found' });
-    if (!['admin','captain','secretary'].includes(req.userRole)) {
+    if (!['admin', 'captain', 'secretary'].includes(req.userRole)) {
       return res.status(403).json({ error: 'Insufficient permissions to view this report audit' });
     }
 
@@ -807,6 +812,7 @@ export async function getCaptainInactiveReports(req, res) {
     res.status(500).json({ error: err.message });
   }
 }
+const FLAG_REASONS = ['prank', 'unrelated', 'duplicate', 'test', 'wrong_location'];
 
 export async function flagReport(req, res) {
   try {
@@ -816,12 +822,21 @@ export async function flagReport(req, res) {
 
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ error: 'Report not found' });
-    if (req.userRole === 'secretary' && report.category !== BLOTTER_CATEGORY) {
-      return res.status(404).json({ error: 'Report not found' });
+    if (['resolved', 'flagged'].includes(report.status)) {
+      return res.status(400).json({ error: 'This report is already closed' });
     }
 
-    report.status = 'flagged';
+    const reason = typeof req.body?.reason === 'string' ? req.body.reason : '';
+    if (!FLAG_REASONS.includes(reason)) {
+      return res.status(400).json({ error: 'A valid flag reason is required' });
+    }
+
     const flaggedAt = new Date();
+    report.status = 'flagged';
+    report.flagReason = reason; // new
+    report.flaggedBy = req.firebaseUser.uid; // new
+    report.flaggedAt = flaggedAt; // new
+
     for (const request of report.backupRequests || []) {
       if (request.status !== 'pending') continue;
       request.status = 'closed';
@@ -829,9 +844,16 @@ export async function flagReport(req, res) {
       request.closedAt = flaggedAt;
       request.closeReason = 'flagged';
     }
+
     const updatedBy = await resolveActorName(req.firebaseUser.uid);
     report.statusHistory.push({ status: 'flagged', updatedBy });
     await report.save();
+
+    // Single audit entry, after the save succeeds
+    await logAudit('report_flagged', req, report._id, {
+      submitterUid: report.submittedBy,
+      reason,
+    });
 
     const submitter = await User.findOne({ firebaseUid: report.submittedBy });
     if (submitter) {
@@ -842,28 +864,26 @@ export async function flagReport(req, res) {
       await submitter.save();
     }
 
-    await notifyOnStatusUpdate(report, 'flagged', updatedBy, req.userRole);
+    (notifyOnStatusUpdate(report, 'flagged', updatedBy, req.userRole, FLAG_REASON_LABELS[reason]),
+      await notifyBestEffort(
+        notifyAdmins({
+          ...buildReportFlaggedEvent({ actorName: updatedBy, report }),
+          report,
+          actorUid: req.firebaseUser.uid,
+          actorName: updatedBy,
+          actorRole: req.userRole,
+        }),
+        'Admin report flagged'
+      ));
 
-    await logAudit('report_flagged', req, report._id, {
-      submitterUid: report.submittedBy,
-    });
-        await notifyBestEffort(
-      notifyAdmins({
-        ...buildReportFlaggedEvent({ actorName: updatedBy, report }),
-        report,
-        actorUid: req.firebaseUser.uid,
-        actorName: updatedBy,
-        actorRole: req.userRole,
-      }),
-      'Admin report flagged'
-    );
     emitReportChanged(report, 'updated');
     if (submitter?.status === 'suspended') {
       disconnectUserSockets(submitter.firebaseUid);
     }
 
-    res.json(report);
+    res.json(serializeReport(report));
   } catch (err) {
+    console.error('[flagReport] failed:', err.stack);
     res.status(500).json({ error: err.message });
   }
 }

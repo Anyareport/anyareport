@@ -32,6 +32,7 @@ import {
   DownOutlined,
   DownloadOutlined,
   EnvironmentOutlined,
+  FlagOutlined,
   LeftOutlined,
   RightOutlined,
   RobotOutlined,
@@ -178,7 +179,12 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     queryKey: ['report', id],
     queryFn: () => api.get<Report>(`/api/reports/${id}`),
     enabled: !!id,
-    refetchInterval: 15000,
+    // Stop polling once the report is closed (resolved or flagged). TanStack Query v5 signature.
+    refetchInterval: (query) => {
+      const current = query.state.data;
+      const s = normalizeReportStatus(current?.status || current?.workflowStatus || '');
+      return s === 'flagged' || s === 'resolved' ? false : 15000;
+    },
   });
 
   const resolutionMutation = useMutation({
@@ -258,6 +264,19 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       if (['tanod', 'responder'].includes(role || '')) {
         message.success(t(status === 'in_progress' ? 'startWorkSuccess' : 'resolutionSuccess'));
       }
+    },
+    onError: (error: Error) => message.error(error.message),
+  });
+  const [flagOpen, setFlagOpen] = useState(false);
+  const [flagReason, setFlagReason] = useState<string | undefined>();
+  const flagMutation = useMutation({
+    mutationFn: (reason: string) => api.post<Report>(`/api/reports/${id}/flag`, { reason }),
+    onSuccess: async () => {
+      setFlagOpen(false);
+      setFlagReason(undefined);
+      await invalidateReportViews();
+      await queryClient.invalidateQueries({ queryKey: ['report-audit', id] });
+      message.success('Report flagged');
     },
     onError: (error: Error) => message.error(error.message),
   });
@@ -353,6 +372,43 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const isBlotter = report.category === BLOTTER_REPORT_CATEGORY;
   const status = dispatchStatus;
   const isTerminalStatus = status === 'resolved' || status === 'flagged';
+
+  // Must be declared after `status` (const is not usable before its declaration).
+  const flaggedNotice =
+    status === 'flagged' ? (
+      <Alert
+        type="warning"
+        showIcon
+        icon={<FlagOutlined />}
+        style={{ marginBottom: 16 }}
+        message={
+          isResident
+            ? text('reportFlaggedResident', 'Your report was flagged')
+            : text('reportFlaggedTitle', 'This report has been flagged')
+        }
+        description={
+          <Space direction="vertical" size={4}>
+            {report.flagReasonLabel && (
+              <Text>
+                <Text strong>{text('reason', 'Reason')}:</Text> {report.flagReasonLabel}
+              </Text>
+            )}
+            {isResident && (
+              <Text type="secondary">
+                {text(
+                  'flaggedResidentNote',
+                  'No response will be made to this report. Repeated flagged reports may lead to account suspension.'
+                )}
+              </Text>
+            )}
+            {report.flaggedAt && (
+              <Text type="secondary">{new Date(report.flaggedAt).toLocaleString()}</Text>
+            )}
+          </Space>
+        }
+      />
+    ) : null;
+
   const isOwner = isResponder && report.acknowledgedBy === profile?.firebaseUid;
   const backupRequests = report.backupRequests ?? [];
   const openBackupRequest = backupRequests.find((request) => request.status === 'pending');
@@ -402,6 +458,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     ['captain', 'secretary'].includes(role || '');
   const hotlineAction =
     variant !== 'resident' &&
+    !isTerminalStatus &&
     (role === 'captain' || isResponder) &&
     (report.category === 'Emergency Situations' || isCriminalBlotter) ? (
       <EmergencyHotline
@@ -458,7 +515,8 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     closeBackupMutation.isPending ||
     dispatchMutation.isPending ||
     resolutionMutation.isPending ||
-    verifyResolutionMutation.isPending;
+    verifyResolutionMutation.isPending ||
+    flagMutation.isPending;
 
   const showPreviousPhoto = () => {
     setActivePhotoIndex((currentIndex) => (currentIndex - 1 + photos.length) % photos.length);
@@ -641,9 +699,11 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         <Text type="secondary">
           {status === 'resolved'
             ? 'This blotter case is resolved.'
-            : isCriminalBlotter
-              ? 'Criminal cases are worked by the dispatched tanod or responder. Dispatch a responder, then verify the resolution.'
-              : 'Blotter processing is managed by the Captain and Secretary.'}
+            : status === 'flagged'
+              ? 'This blotter case was flagged and is closed to further action.'
+              : isCriminalBlotter
+                ? 'Criminal cases are worked by the dispatched tanod or responder. Dispatch a responder, then verify the resolution.'
+                : 'Blotter processing is managed by the Captain and Secretary.'}
         </Text>
       )}
       <Button
@@ -659,6 +719,22 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     </Card>
   ) : null;
 
+  const flagAction =
+    role === 'secretary' && !isTerminalStatus ? (
+      <Card
+        className="soft-card incident-side-section incident-mobile-hide-panel"
+        role="region"
+        aria-label="Flag report"
+        title="Flag report"
+      >
+        <Text type="secondary">
+          For prank, unrelated, duplicate or test reports. Repeated flags suspend the resident.
+        </Text>
+        <Button block danger icon={<FlagOutlined />} onClick={() => setFlagOpen(true)}>
+          Flag as false or unrelated
+        </Button>
+      </Card>
+    ) : null;
   const actionPanel = isResident ? null : isResponder ? (
     <Card
       className="soft-card incident-side-section incident-mobile-hide-panel"
@@ -671,7 +747,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           {status === 'resolved'
             ? text('incidentResolvedNotice', 'This incident is resolved.')
             : status === 'flagged'
-              ? text('reportFlaggedNotice', 'This report is flagged for review.')
+              ? text('reportFlaggedNotice', 'This report was flagged and requires no response.')
               : report.acknowledgedBy
                 ? `${text('beingHandledBy', 'Being handled by')} ${report.acknowledgedByName || text('leadResponder', 'the lead responder')}.`
                 : text('noResponseAction', 'No response action is available for this report.')}
@@ -717,6 +793,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       {captainResponseAction}
       {dispatchAction}
       {secretaryAction}
+      {flagAction}
     </Space>
   ) : isBlotter ? (
     <Card
@@ -730,12 +807,16 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           {role === 'captain'
             ? status === 'resolved'
               ? 'This blotter case is resolved.'
-              : 'Blotter cases can be resolved by the Captain or Secretary.'
+              : status === 'flagged'
+                ? 'This blotter case was flagged and is closed to further action.'
+                : 'Blotter cases can be resolved by the Captain or Secretary.'
             : status === 'resolved'
               ? 'This blotter case is resolved.'
-              : isCriminalBlotter
-                ? 'Criminal cases are worked by the dispatched tanod or responder.'
-                : 'Blotter processing is managed by the Captain and Secretary.'}
+              : status === 'flagged'
+                ? 'This blotter case was flagged and is closed to further action.'
+                : isCriminalBlotter
+                  ? 'Criminal cases are worked by the dispatched tanod or responder.'
+                  : 'Blotter processing is managed by the Captain and Secretary.'}
         </Text>
       )}
       {['captain', 'secretary'].includes(role || '') && (
@@ -1070,6 +1151,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       <div className="incident-detail-grid">
         <Card className="soft-card incident-main-card">
           <article className="incident-main">
+            {flaggedNotice}
             {variant === 'admin' ? (
               <>
                 {titleBlock}
@@ -1231,19 +1313,6 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
               role="region"
               aria-label={role === 'admin' ? 'Audit trail' : 'Case activity'}
               title={role === 'admin' ? 'Audit trail' : 'Case activity'}
-              extra={
-                role === 'admin' && (
-                  <Button
-                    size="small"
-                    icon={<DownloadOutlined />}
-                    onClick={() =>
-                      downloadFile('/api/audit-logs?format=csv', 'anyareport-audit.csv')
-                    }
-                  >
-                    Export system log
-                  </Button>
-                )
-              }
             >
               {auditEntries.length ? (
                 auditTimeline
@@ -1254,6 +1323,32 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           )}
         </aside>
       </div>
+
+      <Modal
+        title="Flag this report"
+        open={flagOpen}
+        zIndex={1200}
+        okText="Flag report"
+        okButtonProps={{ danger: true, disabled: !flagReason }}
+        confirmLoading={flagMutation.isPending}
+        onOk={() => flagReason && flagMutation.mutate(flagReason)}
+        onCancel={() => setFlagOpen(false)}
+      >
+        <Select
+          aria-label="Flag reason"
+          placeholder="Select a reason"
+          value={flagReason}
+          onChange={setFlagReason}
+          style={{ width: '100%' }}
+          options={[
+            { value: 'prank', label: 'Prank' },
+            { value: 'unrelated', label: 'Unrelated' },
+            { value: 'duplicate', label: 'Duplicate' },
+            { value: 'test', label: 'Test report' },
+            { value: 'wrong_location', label: 'Wrong location' },
+          ]}
+        />
+      </Modal>
 
       <Modal
         title={text('resolveIncident', 'Resolve incident')}

@@ -1,6 +1,13 @@
 export const FIELD_REPORT_CATEGORIES = ['Public Concerns', 'Emergency Situations'];
 export const BLOTTER_REPORT_CATEGORY = 'Blotter Cases';
 export const CRIMINAL_BLOTTER_SUBCATEGORY = 'Criminal';
+export const FLAG_REASON_LABELS = {
+  prank: 'Prank or false report',
+  unrelated: 'Not related to barangay concerns',
+  duplicate: 'Duplicate of another report',
+  test: 'Test submission',
+  wrong_location: 'Wrong or outside the barangay location',
+};
 
 const RESPONDER_ROLES = ['tanod', 'responder'];
 
@@ -74,6 +81,7 @@ export function serializeReport(report) {
     ...data,
     workflowStatus: data.status,
     status: normalizeReportStatus(data.status),
+    flagReasonLabel: data.flagReason ? FLAG_REASON_LABELS[data.flagReason] || null : null,
     statusHistory: (data.statusHistory || []).map((entry) => ({
       ...entry,
       status: normalizeHistoryStatus(entry.status),

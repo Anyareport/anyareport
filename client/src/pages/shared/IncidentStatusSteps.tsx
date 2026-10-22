@@ -26,13 +26,7 @@ export default function IncidentStatusSteps({
   const currentStep = getActiveStep(category, canonicalStatus, subcategory);
   const isTerminal = canonicalStatus === 'resolved';
 
-  if (canonicalStatus === 'flagged') {
-    return (
-      <p className="incident-flagged-state">
-        {translate ? t('flaggedReview') : 'This report has been flagged for review.'}
-      </p>
-    );
-  }
+  
 
   return (
     <ol

@@ -131,6 +131,9 @@ export interface Report {
   statusHistory: { status: string; updatedBy: string; timestamp: string }[];
   createdAt: string;
   updatedAt: string;
+  flagReason?: 'prank' | 'unrelated' | 'duplicate' | 'test' | 'wrong_location' | null;
+  flagReasonLabel?: string | null;
+  flaggedAt?: string | null;
 }
 
 export interface Category {

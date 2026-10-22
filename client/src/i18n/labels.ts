@@ -287,6 +287,22 @@ export const labels = {
     en: 'Resolution details are available for review.',
     fil: 'Maaari nang tingnan ang resulta.',
   },
+  reportFlaggedResident: {
+    en: 'Your report was flagged.',
+    fil: 'Na-flag ang iyong ulat.',
+  },
+  reportFlaggedTitle: {
+    en: 'This report has been flagged',
+    fil: 'Na-flag ang ulat na ito',
+  },
+  reason: {
+    en: 'Reason',
+    fil: 'Dahilan',
+  },
+  flaggedResidentNote: {
+    en: 'No response will be made to this report. Repeated flagged reports may lead to account suspension.',
+    fil: 'Walang aksyon ang gagawin sa ulat na ito. Ang paulit-ulit na pag-flag ng mga ulat ay maaaring magdulot ng suspensyon sa account.',
+  },
   resolutionSummary: { en: 'Resolution Summary', fil: 'Buod ng resulta' },
   actionsTaken: { en: 'Actions Taken', fil: 'Mga ginawa' },
   outcome: { en: 'Outcome', fil: 'Kinalabasan' },

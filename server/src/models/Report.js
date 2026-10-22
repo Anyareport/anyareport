@@ -81,6 +81,9 @@ const reportSchema = new mongoose.Schema(
         timestamp: { type: Date, default: Date.now },
       },
     ],
+    flagReason: { type: String, enum: ['prank', 'unrelated', 'duplicate', 'test', 'wrong_location'], default: null },
+flaggedBy: { type: String, default: null },
+flaggedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

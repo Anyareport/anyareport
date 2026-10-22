@@ -308,17 +308,18 @@ export async function notifyDispatchResponse(report, responder, accepted) {
   return notifications;
 }
 
-export async function notifyOnStatusUpdate(report, status, updatedBy, updatedByRole) {
+export async function notifyOnStatusUpdate(report, status, updatedBy, updatedByRole, note = null) {
   const user = await User.findOne({ firebaseUid: report.submittedBy });
   if (!user) return null;
   const reference = report.referenceNumber ? ` (${report.referenceNumber})` : '';
+  const reasonText = note ? ` Reason: ${note}.` : '';
 
   const notification = await Notification.create({
     recipientUid: user.firebaseUid,
     recipientRole: user.role,
     reportId: report._id,
     type: 'report_status_updated',
-    message: `Your report${reference} status was updated to ${status.replace(/_/g, ' ')} by ${updatedBy}.`,
+    message: `Your report${reference} status was updated to ${status.replace(/_/g, ' ')} by ${updatedBy}.${reasonText}`,
     reportSnapshot: getReportSnapshot(report),
     statusSnapshot: normalizeReportStatus(status),
     actorRole: updatedByRole || null,
@@ -326,7 +327,7 @@ export async function notifyOnStatusUpdate(report, status, updatedBy, updatedByR
   });
 
   if (ioInstance) {
-    ioInstance.to(`role:${user.role}`).emit('notification', notification);
+    ioInstance.to(`user:${user.firebaseUid}`).emit('notification', notification);
   }
   await deliverPushNotifications(notification);
 
