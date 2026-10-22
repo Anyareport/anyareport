@@ -1,6 +1,6 @@
 import { sharedColors } from '../theme/colorTokens';
 
-export async function compressImage(file: File, maxDimension = 800, quality = 0.75): Promise<Blob> {
+export async function compressImage(file: File, maxDimension = 1280, quality = 0.8): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);

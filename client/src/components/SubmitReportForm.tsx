@@ -208,8 +208,11 @@ export default function SubmitReportForm({
       formData.append('address', values.address || '');
       formData.append('latitude', String(selectedLocation[0]));
       formData.append('longitude', String(selectedLocation[1]));
-      // Upload all selected files (max 3)
-      fileList.forEach((f) => formData.append('photos', f.originFileObj));
+      
+      fileList.forEach((f) => {
+        if (f.compressedBlob) formData.append('photos', f.compressedBlob, 'photo.jpg');
+        else formData.append('photos', f.originFileObj);
+      });
       return api.post('/api/reports', formData);
     },
     onSuccess: () => {
