@@ -67,6 +67,19 @@ const AUDIT_LABELS: Record<string, AuditLabel> = {
   },
 };
 
+export const FLAG_REASON_LABELS: Record<string, string> = {
+  prank: 'Prank or false report',
+  unrelated: 'Not related to barangay concerns',
+  duplicate: 'Duplicate of another report',
+  test: 'Test submission',
+  wrong_location: 'Wrong or outside the barangay location',
+};
+
+export function getFlagReasonLabel(reason: unknown) {
+  if (typeof reason !== 'string' || !reason) return null;
+  return FLAG_REASON_LABELS[reason] ?? sentenceCase(reason);
+}
+
 export const NOTIFICATION_AUDIT_ACTIONS = [
   'admin_notification_read',
   'admin_notification_read_all',
@@ -139,8 +152,10 @@ export function getAuditSummary(log: AuditLog) {
       return metadata.category
         ? `${reference} classified as ${metadata.category}`
         : `${reference} classified`;
-    case 'report_flagged':
-      return `${reference} flagged`;
+    case 'report_flagged': {
+      const reason = getFlagReasonLabel(metadata.reason);
+      return reason ? `${reference} flagged: ${reason}` : `${reference} flagged`;
+    }
     case 'hotline_opened':
       return `${reference} hotline opened`;
     default:

@@ -864,17 +864,20 @@ export async function flagReport(req, res) {
       await submitter.save();
     }
 
-    (notifyOnStatusUpdate(report, 'flagged', updatedBy, req.userRole, FLAG_REASON_LABELS[reason]),
-      await notifyBestEffort(
-        notifyAdmins({
-          ...buildReportFlaggedEvent({ actorName: updatedBy, report }),
-          report,
-          actorUid: req.firebaseUser.uid,
-          actorName: updatedBy,
-          actorRole: req.userRole,
-        }),
-        'Admin report flagged'
-      ));
+    await notifyBestEffort(
+      notifyOnStatusUpdate(report, 'flagged', updatedBy, req.userRole, FLAG_REASON_LABELS[reason]),
+      'Flag status notification'
+    );
+    await notifyBestEffort(
+      notifyAdmins({
+        ...buildReportFlaggedEvent({ actorName: updatedBy, report }),
+        report,
+        actorUid: req.firebaseUser.uid,
+        actorName: updatedBy,
+        actorRole: req.userRole,
+      }),
+      'Admin report flagged'
+    );
 
     emitReportChanged(report, 'updated');
     if (submitter?.status === 'suspended') {
