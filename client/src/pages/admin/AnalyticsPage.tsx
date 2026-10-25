@@ -11,7 +11,6 @@ import {
   Row,
   Select,
   Space,
-  Spin,
   message,
   theme,
 } from 'antd';
@@ -26,6 +25,7 @@ import { useNavigate } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { api, type Analytics } from '../../lib/api';
 import { sharedColors } from '../../theme/colorTokens';
+import LoadingState from '../../components/LoadingState';
 import { getStatusLabel, normalizeReportStatus } from '../../lib/reportWorkflow';
 import { downloadCsv, toCsv } from '../../lib/csv';
 import { getIncidentLabel, getLocationLabel } from '../../lib/incidentUtils';
@@ -250,7 +250,7 @@ export default function AdminAnalyticsPage() {
   };
 
   if (isLoading) {
-    return <Spin size="large" style={{ display: 'block', margin: '48px auto' }} />;
+    return <LoadingState />;
   }
 
   if (isError) {

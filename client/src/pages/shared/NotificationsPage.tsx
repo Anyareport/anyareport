@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Alert, Button, Card, Empty, Modal, Space, Spin, Typography, message } from 'antd';
+import { Alert, Button, Card, Empty, Modal, Space, Typography, message } from 'antd';
 import { BellOutlined, CheckOutlined } from '@ant-design/icons';
 import { api, type NotificationFeedItem } from '../../lib/api';
 import { notificationFeedQueryKey, useNotificationFeed } from '../../lib/notificationFeed';
@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLang } from '../../contexts/LanguageContext';
 import { FilterControl } from '../../components/StatusFilter';
 import { registerPushToken } from '../../lib/pushNotifications';
+import LoadingState from '../../components/LoadingState';
 import {
   getBrowserNotificationPermission,
   requestBrowserNotificationPermission,
@@ -242,9 +243,7 @@ export default function NotificationsPage() {
       </div>
 
       {feed.isPending ? (
-        <div className="notifications-page__empty">
-          <Spin />
-        </div>
+        <LoadingState minHeight={240} size="default" />
       ) : feed.isError && loadedItems.length === 0 ? (
         <Alert
           type="error"

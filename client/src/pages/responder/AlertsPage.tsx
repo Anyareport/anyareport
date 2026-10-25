@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Empty, Space, Spin, Typography } from 'antd';
+import { Empty, Space, Typography } from 'antd';
 import { ClockCircleOutlined } from '@ant-design/icons';
 import { api, type Report } from '../../lib/api';
 import IncidentCard from '../../components/IncidentCard';
@@ -8,6 +8,7 @@ import { compareDateAsc, compareSeverity } from '../../lib/sortUtils';
 import { FilterControl } from '../../components/StatusFilter';
 import { useLang } from '../../contexts/LanguageContext';
 import { getLocalizedCategory } from '../../i18n/labels';
+import LoadingState from '../../components/LoadingState';
 
 const { Text } = Typography;
 type AlertCategoryFilter = 'all' | 'emergency' | 'public-concern' | 'criminal';
@@ -90,7 +91,7 @@ export default function ResponderAlertsPage() {
       />
 
       {isLoading ? (
-        <Spin />
+        <LoadingState minHeight={240} size="default" />
       ) : visibleAlerts.length === 0 ? (
         <Empty
           description={

@@ -1,7 +1,7 @@
 import { Navigate, Outlet } from 'react-router-dom';
-import { Spin } from 'antd';
 import { useAuth } from '../contexts/AuthContext';
 import VerifyEmailGate from '../components/VerifyEmailGate';
+import LoadingState from '../components/LoadingState';
 
 interface ProtectedRouteProps {
   allowedRoles?: string[];
@@ -12,11 +12,7 @@ export function ProtectedRoute({ allowedRoles, redirectTo = '/login' }: Protecte
   const { firebaseUser, profile, loading, role } = useAuth();
 
   if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <Spin size="large" />
-      </div>
-    );
+    return <LoadingState minHeight="100vh" />;
   }
 
   if (!firebaseUser) {
@@ -44,11 +40,7 @@ export function PublicRoute() {
   const { firebaseUser, loading, role } = useAuth();
 
   if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <Spin size="large" />
-      </div>
-    );
+    return <LoadingState minHeight="100vh" />;
   }
 
   if (firebaseUser && role) {

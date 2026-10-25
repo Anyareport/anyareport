@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { Spin } from 'antd';
 import { ProtectedRoute, PublicRoute } from './routes/ProtectedRoute';
+import LoadingState from './components/LoadingState';
 import { useAuth, getRedirectPath } from './contexts/AuthContext';
 import ResidentShell from './layouts/ResidentShell';
 import ResponderShell from './layouts/ResponderShell';
@@ -30,11 +30,7 @@ function HomeRedirect() {
   const { firebaseUser, loading, role } = useAuth();
 
   if (loading) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
-        <Spin size="large" />
-      </div>
-    );
+    return <LoadingState minHeight="100vh" />;
   }
 
   if (!firebaseUser) {

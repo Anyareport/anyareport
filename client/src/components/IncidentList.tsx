@@ -1,4 +1,4 @@
-import { Empty, Table, Grid, Spin, Typography, Space } from 'antd';
+import { Empty, Table, Grid, Typography, Space } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +17,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LanguageContext';
 import { getLocalizedCategory } from '../i18n/labels';
 import { useTranslatedTexts } from '../lib/translation';
+import LoadingState from './LoadingState';
 
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
@@ -103,9 +104,7 @@ export default function IncidentList({
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {loading ? (
-          <div style={{ minHeight: 96, display: 'grid', placeItems: 'center' }}>
-            <Spin />
-          </div>
+          <LoadingState minHeight={96} size="default" />
         ) : reports.length === 0 ? (
           <Empty description={translate ? t('noIncidentsInList') : 'No data'} />
         ) : (

@@ -1,8 +1,9 @@
-import { Card, Empty, Spin } from 'antd';
+import { Card, Empty } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api, type Report } from '../../lib/api';
 import IncidentList from '../../components/IncidentList';
+import LoadingState from '../../components/LoadingState';
 
 export default function MyReportsPage() {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ export default function MyReportsPage() {
     refetchInterval: 30000,
   });
 
-  if (isLoading) return <Spin size="large" style={{ display: 'block', margin: '40px auto' }} />;
+  if (isLoading) return <LoadingState />;
 
   return (
     <div>

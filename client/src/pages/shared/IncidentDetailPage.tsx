@@ -16,7 +16,6 @@ import {
   Radio,
   Row,
   Space,
-  Spin,
   Tag,
   Timeline,
   Typography,
@@ -59,6 +58,7 @@ import {
   normalizeReportStatus,
 } from '../../lib/reportWorkflow';
 import IncidentStatusSteps from './IncidentStatusSteps';
+import LoadingState from '../../components/LoadingState';
 import './IncidentDetailPage.css';
 const { Paragraph, Text, Title } = Typography;
 
@@ -357,11 +357,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const translationNote = <TranslationNote translation={translation} />;
 
   if (isLoading) {
-    return (
-      <div className="incident-loading">
-        <Spin size="large" />
-      </div>
-    );
+    return <LoadingState minHeight={320} />;
   }
 
   if (!report) {
