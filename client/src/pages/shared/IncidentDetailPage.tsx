@@ -52,6 +52,7 @@ import { useLang } from '../../contexts/LanguageContext';
 import { getLocalizedCategory, getLocalizedStatus, type LabelKey } from '../../i18n/labels';
 import { notificationFeedQueryKey } from '../../lib/notificationFeed';
 import { invalidateReportQueries } from '../../lib/reportUpdates';
+import { getSuggestedNextSteps } from '../../lib/nextSteps';
 import {
   BLOTTER_REPORT_CATEGORY,
   getStatusLabel,
@@ -369,9 +370,12 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
 
   const isResident = variant === 'resident';
   const isResponder = variant === 'responder' && ['tanod', 'responder'].includes(role || '');
+  const canViewSuggestedNextSteps =
+    variant !== 'resident' && ['tanod', 'responder', 'captain', 'secretary'].includes(role || '');
   const isBlotter = report.category === BLOTTER_REPORT_CATEGORY;
   const status = dispatchStatus;
   const isTerminalStatus = status === 'resolved' || status === 'flagged';
+  const suggestedNextSteps = getSuggestedNextSteps(report.category);
 
   // Must be declared after `status` (const is not usable before its declaration).
   const flaggedNotice =
@@ -1291,6 +1295,26 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         <aside className="incident-aside">
           {resolutionDetails}
           {!isResident && actionPanel}
+
+          {canViewSuggestedNextSteps && !isTerminalStatus && suggestedNextSteps.length > 0 && (
+            <Card
+              className="soft-card incident-side-section"
+              role="region"
+              aria-label={t('suggestedNextSteps')}
+              title={t('suggestedNextSteps')}
+            >
+              <ol style={{ margin: 0, paddingLeft: 20 }}>
+                {suggestedNextSteps.map((step) => (
+                  <li key={step} style={{ marginBottom: 8 }}>
+                    <Text>{t(step)}</Text>
+                  </li>
+                ))}
+              </ol>
+              <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
+                {t('nextStepsAdvisoryNote')}
+              </Text>
+            </Card>
+          )}
 
           {showStatusTimeline && (
             <Card

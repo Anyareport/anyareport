@@ -225,6 +225,55 @@ export const labels = {
   reportDescription: { en: 'Report description', fil: 'Detalye ng report' },
   aiSummaryLabel: { en: 'AI summary', fil: 'Buod ng AI' },
   suggestedCategory: { en: 'Suggested category', fil: 'Mungkahing uri' },
+  suggestedNextSteps: { en: 'Suggested next steps', fil: 'Mga susunod na hakbang' },
+  nextStepsAdvisoryNote: {
+    en: 'Guidance only. Follow barangay procedure.',
+    fil: 'Gabay lamang. Sundin ang patakaran ng barangay.',
+  },
+  nextStepEmergencyConfirm: {
+    en: 'Confirm the location and what is happening using the incident map pin.',
+    fil: 'Tiyakin ang lokasyon at pangyayari gamit ang pin sa mapa.',
+  },
+  nextStepEmergencyNotifyCaptain: {
+    en: 'Notify the Barangay Captain.',
+    fil: 'Ipaalam sa Kapitan.',
+  },
+  nextStepEmergencyHotline: {
+    en: 'Contact the relevant emergency service using the hotline options.',
+    fil: 'Tumawag sa angkop na emergency hotline.',
+  },
+  nextStepEmergencyNoTanod: {
+    en: 'If no tanod is available, contact the police.',
+    fil: 'Kung walang tanod, tumawag sa pulis.',
+  },
+  nextStepPublicVisit: {
+    en: 'Visit the location and verify the report.',
+    fil: 'Puntahan at tiyakin ang ulat.',
+  },
+  nextStepPublicDocument: {
+    en: 'Take note of the condition, or a photo if possible.',
+    fil: 'Itala ang kalagayan o kumuha ng litrato kung maaari.',
+  },
+  nextStepPublicInform: {
+    en: 'Inform the Barangay Captain or Kagawad for proper action.',
+    fil: 'Ipaalam sa Kapitan o Kagawad.',
+  },
+  nextStepBlotterVerify: {
+    en: 'Verify the report with the complainant.',
+    fil: 'Tiyakin ang ulat kasama ang nagreklamo.',
+  },
+  nextStepBlotterRefer: {
+    en: 'Refer the matter to the Barangay Captain for mediation.',
+    fil: 'Ipaabot sa Kapitan para mamagitan.',
+  },
+  nextStepBlotterPolice: {
+    en: 'Physical or serious cases may be referred to the police.',
+    fil: 'Ipaubaya sa pulis ang mga kasong may pananakit o seryoso.',
+  },
+  nextStepBlotterDiscreet: {
+    en: 'Handle sensitive cases discreetly.',
+    fil: 'Ingatan ang mga sensitibong kaso.',
+  },
   reportDetails: { en: 'Report details', fil: 'Detalye ng report' },
   locationUnavailable: { en: 'Location unavailable', fil: 'Walang lokasyon' },
   reporterLabel: { en: 'Reporter', fil: 'Nag-ulat' },
