@@ -244,7 +244,15 @@ export default function MapDashboard({
     .join(',')}`;
 
   return (
-    <div style={{ height, overflow: 'hidden', position: 'relative' }}>
+    <div
+      style={{
+        height,
+        overflow: 'hidden',
+        position: 'relative',
+        zIndex: 0,
+        isolation: 'isolate',
+      }}
+    >
       <MapContainer
         center={center}
         zoom={18}

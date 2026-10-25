@@ -20,8 +20,10 @@
 }
 
 .heatmap-map-shell {
-  height: 100%;
   position: relative;
+  z-index: 0;
+  isolation: isolate;
+  height: 100%;
   overflow: hidden;
   background: var(--bg-tertiary);
 }
