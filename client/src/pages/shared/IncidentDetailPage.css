@@ -315,6 +315,42 @@
   overflow-wrap: anywhere;
 }
 
+.incident-fact--reporter {
+  align-items: flex-start;
+}
+
+.incident-reporter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.incident-reporter__separator {
+  color: var(--text-secondary);
+}
+
+.incident-reporter__phone {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 9px;
+  border: 1px solid color-mix(in srgb, var(--app-color-primary) 35%, transparent);
+  border-radius: 6px;
+  color: var(--app-color-primary);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.incident-reporter__phone:hover {
+  border-color: var(--app-color-primary);
+  background: color-mix(in srgb, var(--app-color-primary) 8%, transparent);
+  color: var(--app-color-primary);
+}
+
 .incident-description-section {
   display: flex;
   flex-direction: column;

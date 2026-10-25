@@ -33,6 +33,7 @@ import {
   EnvironmentOutlined,
   FlagOutlined,
   LeftOutlined,
+  PhoneOutlined,
   RightOutlined,
   RobotOutlined,
   UserAddOutlined,
@@ -61,6 +62,11 @@ import IncidentStatusSteps from './IncidentStatusSteps';
 import LoadingState from '../../components/LoadingState';
 import './IncidentDetailPage.css';
 const { Paragraph, Text, Title } = Typography;
+
+function getDialablePhone(value: string) {
+  const dialNumber = value.trim().replace(/[\s().-]/g, '');
+  return /^\+?\d{7,15}$/.test(dialNumber) ? dialNumber : null;
+}
 
 interface IncidentDetailPageProps {
   variant: 'admin' | 'responder' | 'resident';
@@ -423,6 +429,9 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     (variant === 'admin' && ['admin', 'captain', 'secretary'].includes(role || ''));
   const canViewReporterContact =
     (variant === 'responder' && isParticipant) || (variant === 'admin' && role === 'secretary');
+  const submitterDialNumber = report.submitterPhone
+    ? getDialablePhone(report.submitterPhone)
+    : null;
   const canJoinBackup =
     isResponder &&
     !!openBackupRequest &&
@@ -1211,17 +1220,42 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                 </Text>
               </div>
               {!isResident && canViewReporter && (
-                <div className="incident-fact">
+                <div className="incident-fact incident-fact--reporter">
                   <UserOutlined />
                   {report.submitterName ? (
-                    <Text>
-                      {text('reporterLabel', 'Reporter')}: {report.submitterName}
-                      {canViewReporterContact
-                        ? report.submitterPhone
-                          ? ` · ${report.submitterPhone}`
-                          : ` · ${text('noContact', 'No contact on file')}`
-                        : ''}
-                    </Text>
+                    <div className="incident-reporter">
+                      <Text>
+                        {text('reporterLabel', 'Reporter')}: {report.submitterName}
+                      </Text>
+                      {canViewReporterContact &&
+                        (report.submitterPhone ? (
+                          <>
+                            <span className="incident-reporter__separator" aria-hidden="true">
+                              ·
+                            </span>
+                            {submitterDialNumber ? (
+                              <a
+                                className="incident-reporter__phone"
+                                href={`tel:${submitterDialNumber}`}
+                                aria-label={`${text('call', 'Call')} ${report.submitterName} at ${report.submitterPhone}`}
+                              >
+                                <PhoneOutlined aria-hidden="true" />
+                                <span>{report.submitterPhone}</span>
+                              </a>
+                            ) : (
+                              <span
+                                className="incident-reporter__phone"
+                                aria-label={`${text('phoneNumber', 'Phone number')}: ${report.submitterPhone}`}
+                              >
+                                <PhoneOutlined aria-hidden="true" />
+                                <span>{report.submitterPhone}</span>
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <Text type="secondary">{text('noContact', 'No contact on file')}</Text>
+                        ))}
+                    </div>
                   ) : (
                     <Text type="secondary">
                       {isResponder && report.acknowledgedBy !== profile?.firebaseUid
