@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { Spin } from 'antd';
 import { useAuth } from '../contexts/AuthContext';
+import VerifyEmailGate from '../components/VerifyEmailGate';
 
 interface ProtectedRouteProps {
   allowedRoles?: string[];
@@ -29,6 +30,11 @@ export function ProtectedRoute({ allowedRoles, redirectTo = '/login' }: Protecte
 
   if (!profile && firebaseUser) {
     return <Navigate to="/register" replace />;
+  }
+
+  // Officials with an unverified email cannot see any data until they confirm it.
+  if (profile && profile.role !== 'resident' && !profile.emailVerified) {
+    return <VerifyEmailGate />;
   }
 
   return <Outlet />;

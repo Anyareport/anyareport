@@ -29,11 +29,12 @@ import {
   verifyResolution,
 } from '../controllers/reportController.js';
 import { translateHandler } from '../controllers/translateController.js';
+import { requireVerifiedOfficial } from '../middleware/requireVerifiedOfficial.js';
 const router = Router();
 
 router.get('/categories', getCategories);
 
-router.use(verifyToken);
+router.use(verifyToken, requireVerifiedOfficial);
 
 router.post('/', reportSubmitLimiter, upload.array('photos', 3), createReport);
 router.post('/classify', upload.array('photos', 3), classifyReportHandler);

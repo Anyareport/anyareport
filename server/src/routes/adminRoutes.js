@@ -8,10 +8,11 @@ import {
   updateUserStatus,
   updateUserRole,
 } from '../controllers/adminController.js';
+import { requireVerifiedOfficial } from '../middleware/requireVerifiedOfficial.js';
 
 const router = Router();
 
-router.use(verifyToken);
+router.use(verifyToken, requireVerifiedOfficial);
 router.use(requireRole('admin'));
 
 router.get('/users/summary', getUserSummary);

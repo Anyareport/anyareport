@@ -48,6 +48,14 @@ function getRoleTagStyle(role: string) {
   return { ...getStatusTagStyle(roleTagStatuses[role] ?? ''), marginInlineEnd: 0 };
 }
 
+function VerifiedTag({ verified }: { verified: boolean }) {
+  return (
+    <Tag color={verified ? 'green' : 'orange'} style={{ marginInlineEnd: 0 }}>
+      {verified ? 'Verified' : 'Unverified'}
+    </Tag>
+  );
+}
+
 function getAccountStatusTagStyle(status: string) {
   return { ...getStatusTagStyle(status), marginInlineEnd: 0 };
 }
@@ -61,6 +69,7 @@ export default function AdminUsersPage() {
   const [form] = Form.useForm();
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string | undefined>();
+  const [verifiedFilter, setVerifiedFilter] = useState<'verified' | 'unverified' | undefined>();
   const [group, setGroup] = useState<'officials' | 'residents'>('officials');
   const [page, setPage] = useState(1);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -86,7 +95,10 @@ export default function AdminUsersPage() {
       return terms.every((term) => haystack.includes(term));
     };
     const matching = users.filter(
-      (user) => matchesSearch(user) && (!statusFilter || user.status === statusFilter)
+      (user) =>
+        matchesSearch(user) &&
+        (!statusFilter || user.status === statusFilter) &&
+        (!verifiedFilter || user.emailVerified === (verifiedFilter === 'verified'))
     );
     return {
       officials: matching.filter(
@@ -94,7 +106,7 @@ export default function AdminUsersPage() {
       ),
       residents: matching.filter((user) => user.role === 'resident'),
     };
-  }, [users, search, roleFilter, statusFilter]);
+  }, [users, search, roleFilter, statusFilter, verifiedFilter]);
 
   const createUser = useMutation({
     mutationFn: (values: Record<string, unknown>) => api.post('/api/admin/users', values),
@@ -231,6 +243,12 @@ export default function AdminUsersPage() {
       render: (role: string) => <Tag style={getRoleTagStyle(role)}>{getRoleLabel(role)}</Tag>,
     },
     {
+      title: 'Email',
+      dataIndex: 'emailVerified',
+      key: 'emailVerified',
+      render: (verified: boolean) => <VerifiedTag verified={!!verified} />,
+    },
+    {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
@@ -289,6 +307,20 @@ export default function AdminUsersPage() {
               setPage(1);
             }}
           />
+          <Select
+            aria-label="Filter by email verification"
+            allowClear
+            placeholder="All emails"
+            value={verifiedFilter}
+            options={[
+              { label: 'Verified', value: 'verified' },
+              { label: 'Unverified', value: 'unverified' },
+            ]}
+            onChange={(value) => {
+              setVerifiedFilter(value);
+              setPage(1);
+            }}
+          />
           {group === 'officials' && (
             <Select
               className="user-management-role-filter"
@@ -335,6 +367,7 @@ export default function AdminUsersPage() {
                 <Tag style={getAccountStatusTagStyle(user.status)}>
                   {capitalize(user.status)}
                 </Tag>
+                <VerifiedTag verified={!!user.emailVerified} />
               </Space>
             </Card>
           ))}

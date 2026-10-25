@@ -9,7 +9,7 @@ import {
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { auth, sendVerificationEmail } from '../lib/firebase';
 import { api, type UserProfile } from '../lib/api';
 import { getSocket, disconnectSocket } from '../lib/socket';
 import { notificationFeedQueryKey } from '../lib/notificationFeed';
@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const p = await api.get<UserProfile>('/api/auth/profile');
       setProfile(p);
-      if (p.role) getSocket();
+      if (p.role && (p.role === 'resident' || p.emailVerified)) getSocket();
     } catch {
       setProfile(null);
     }
@@ -124,10 +124,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsub;
   }, [refreshProfile]);
 
+  // Officials are created by an admin with an unverified email. Send the
+  // verification email once, the first time they log in.
+  useEffect(() => {
+    if (!firebaseUser || !profile || profile.role === 'resident' || firebaseUser.emailVerified) {
+      return;
+    }
+    const key = `anyareport:verification-sent:${firebaseUser.uid}`;
+    try {
+      if (localStorage.getItem(key)) return;
+      localStorage.setItem(key, 'true');
+    } catch {
+      return;
+    }
+    void sendVerificationEmail(firebaseUser).catch(() => {
+      try {
+        localStorage.removeItem(key);
+      } catch {
+        // They can still resend it from the profile page.
+      }
+    });
+  }, [firebaseUser, profile]);
+
   const role = profile?.role || null;
+  // Unverified officials get no live data: no socket and no push registration.
+  const accessRole =
+    profile && (profile.role === 'resident' || profile.emailVerified) ? profile.role : null;
 
   useEffect(() => {
-    if (!role) return;
+    if (!accessRole) return;
 
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       void registerPushToken().catch((error) => {
@@ -154,7 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body,
         tag: notificationId ? `anyareport-notification-${notificationId}` : undefined,
         url: payload.data?.reportId
-          ? `${getReportBasePath(role)}/${encodeURIComponent(payload.data.reportId)}`
+          ? `${getReportBasePath(accessRole)}/${encodeURIComponent(payload.data.reportId)}`
           : undefined,
       });
     };
@@ -191,7 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: notification.message,
         tag: notification._id ? `anyareport-notification-${notification._id}` : undefined,
         url: notification.reportId
-          ? `${getReportBasePath(role)}/${encodeURIComponent(notification.reportId)}`
+          ? `${getReportBasePath(accessRole)}/${encodeURIComponent(notification.reportId)}`
           : undefined,
       });
     };
@@ -213,7 +238,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       socket.off('report:changed', handleReportChange);
       socket.off('connect', handleReconnect);
     };
-  }, [installedPwa, queryClient, role]);
+  }, [installedPwa, queryClient, accessRole]);
 
   return (
     <AuthContext.Provider value={{ firebaseUser, profile, loading, role, refreshProfile }}>

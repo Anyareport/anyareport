@@ -15,6 +15,7 @@ import authRoutes from "./routes/authRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import auditRoutes from "./routes/auditRoutes.js";
+import { isBlockedUnverifiedOfficial } from "./middleware/requireVerifiedOfficial.js";
 import {
   notificationRoutes,
   exportRoutes,
@@ -72,10 +73,19 @@ io.use(async (socket, next) => {
 
   try {
     const user = await User.findOne({ firebaseUid: decoded.uid })
-      .select("firebaseUid role status")
+      .select("firebaseUid role status emailVerified")
       .lean();
     if (!user || user.status !== "active") {
       return next(new Error("Socket access denied"));
+    }
+    if (
+      isBlockedUnverifiedOfficial({
+        role: user.role,
+        profileVerified: user.emailVerified,
+        tokenVerified: decoded.email_verified,
+      })
+    ) {
+      return next(new Error("Email not verified"));
     }
 
     socket.data.firebaseUid = user.firebaseUid;

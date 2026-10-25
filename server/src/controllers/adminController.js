@@ -82,7 +82,7 @@ export async function createOfficial(req, res) {
       email,
       password,
       displayName: name,
-      emailVerified: true,
+      emailVerified: false,
     });
 
     await admin.auth().setCustomUserClaims(firebaseUser.uid, { role });
@@ -94,7 +94,7 @@ export async function createOfficial(req, res) {
       phone,
       address: address || '',
       role,
-      emailVerified: true,
+      emailVerified: false,
     });
 
     await auditAndNotify(req, {

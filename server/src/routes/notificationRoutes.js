@@ -9,10 +9,11 @@ import {
   markRead,
 } from '../controllers/notificationController.js';
 import { registerPushToken, removePushToken } from '../controllers/pushController.js';
+import { requireVerifiedOfficial } from '../middleware/requireVerifiedOfficial.js';
 
 const router = Router();
 
-router.use(verifyToken);
+router.use(verifyToken, requireVerifiedOfficial);
 
 router.post('/push-tokens', registerPushToken);
 router.delete('/push-tokens', removePushToken);
@@ -22,7 +23,7 @@ router.patch('/reports/:reportId/status-updates/read', markGroupRead);
 router.patch('/:id/read', markRead);
 
 const exportRouter = Router();
-exportRouter.use(verifyToken);
+exportRouter.use(verifyToken, requireVerifiedOfficial);
 exportRouter.use(requireRole('admin', 'captain', 'secretary'));
 exportRouter.get('/', exportReports);
 

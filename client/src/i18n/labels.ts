@@ -127,6 +127,16 @@ export const labels = {
   accountStanding: { en: 'Account standing', fil: 'Katayuan ng account' },
   role: { en: 'Role', fil: 'Tungkulin' },
   emailVerified: { en: 'Email verified', fil: 'Kumpirmado ang email' },
+    resendVerification: { en: 'Resend verification email', fil: 'Ipadala muli ang verification email' },
+  verificationSent: {
+    en: 'Verification email sent. Check your inbox.',
+    fil: 'Naipadala na ang verification email. Tingnan ang inbox mo.',
+  },
+  checkVerified: { en: "I've verified my email", fil: 'Na-verify ko na ang email ko' },
+  verificationPending: {
+    en: 'Your email is not verified yet.',
+    fil: 'Hindi pa na-verify ang email mo.',
+  },
   yes: { en: 'Yes', fil: 'Oo' },
   no: { en: 'No', fil: 'Hindi' },
   flaggedReports: { en: 'Flagged reports', fil: 'Mga report na minarkahan' },

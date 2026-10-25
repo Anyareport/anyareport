@@ -16,6 +16,7 @@ import {
 } from 'antd';
 import { api } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { sendVerificationEmail } from '../../lib/firebase';
 import { useLang } from '../../contexts/LanguageContext';
 import { getRoleLabel } from '../../lib/roles';
 
@@ -32,11 +33,12 @@ function getInitials(name: string) {
 }
 
 export default function ProfilePage() {
-  const { profile, refreshProfile, role } = useAuth();
+  const { profile, refreshProfile, role, firebaseUser } = useAuth();
   const { lang, t } = useLang();
   const translate = lang === 'fil' && ['tanod', 'responder'].includes(role || '');
   const [form] = Form.useForm();
   const [editing, setEditing] = useState(false);
+  const [verifyBusy, setVerifyBusy] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -58,6 +60,40 @@ export default function ProfilePage() {
     },
     onError: (error: Error) => message.error(error.message),
   });
+
+  const resendVerification = async () => {
+    if (!firebaseUser) return;
+    setVerifyBusy(true);
+    try {
+      await sendVerificationEmail(firebaseUser);
+      message.success(
+        translate ? t('verificationSent') : 'Verification email sent. Check your inbox.'
+      );
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : 'Could not send the email.');
+    } finally {
+      setVerifyBusy(false);
+    }
+  };
+
+  // After clicking the link in the email, reload the account and sync it here.
+  const checkVerified = async () => {
+    if (!firebaseUser) return;
+    setVerifyBusy(true);
+    try {
+      await firebaseUser.reload();
+      await firebaseUser.getIdToken(true);
+      await api.post('/api/auth/sync-claims');
+      await refreshProfile();
+      if (!firebaseUser.emailVerified) {
+        message.info(translate ? t('verificationPending') : 'Your email is not verified yet.');
+      }
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : 'Could not check verification.');
+    } finally {
+      setVerifyBusy(false);
+    }
+  };
 
   if (!profile) {
     return (
@@ -259,18 +295,30 @@ export default function ProfilePage() {
       <Col xs={24} lg={8}>
         <Card className="soft-card" title={translate ? t('accountStanding') : 'Account standing'}>
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
-            <Row align="middle" justify="space-between" gutter={[8, 8]}>
-              <Col>{translate ? t('emailVerified') : 'Email verified'}</Col>
-              <Col>
-                <Tag color={profile.emailVerified ? 'green' : 'default'}>
-                  {translate
-                    ? t(profile.emailVerified ? 'yes' : 'no')
-                    : profile.emailVerified
-                      ? 'Yes'
-                      : 'No'}
-                </Tag>
-              </Col>
-            </Row>
+            <div>
+              <Row align="middle" justify="space-between" gutter={[8, 8]}>
+                <Col>{translate ? t('emailVerified') : 'Email verified'}</Col>
+                <Col>
+                  <Tag color={profile.emailVerified ? 'green' : 'default'}>
+                    {translate
+                      ? t(profile.emailVerified ? 'yes' : 'no')
+                      : profile.emailVerified
+                        ? 'Yes'
+                        : 'No'}
+                  </Tag>
+                </Col>
+              </Row>
+              {!profile.emailVerified && firebaseUser && (
+                <Space wrap size={8} style={{ marginTop: 8 }}>
+                  <Button size="small" loading={verifyBusy} onClick={resendVerification}>
+                    {translate ? t('resendVerification') : 'Resend verification email'}
+                  </Button>
+                  <Button size="small" type="primary" loading={verifyBusy} onClick={checkVerified}>
+                    {translate ? t('checkVerified') : "I've verified my email"}
+                  </Button>
+                </Space>
+              )}
+            </div>
             <div>
               <Row align="middle" justify="space-between" gutter={[8, 8]}>
                 <Col>{translate ? t('flaggedReports') : 'Flagged reports'}</Col>

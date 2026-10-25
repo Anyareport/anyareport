@@ -38,6 +38,9 @@ export async function registerWithEmail(email: string, password: string) {
   await sendEmailVerification(cred.user);
   return cred.user;
 }
+export async function sendVerificationEmail(user: Parameters<typeof sendEmailVerification>[0]) {
+  await sendEmailVerification(user);
+}
 
 export async function loginWithEmail(email: string, password: string) {
   const cred = await signInWithEmailAndPassword(auth, email, password);
