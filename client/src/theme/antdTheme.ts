@@ -34,9 +34,9 @@ export const baseAntdTheme: ThemeConfig = {
       itemSelectedColor: sharedColors.white,
     },
     Select: {
-      optionSelectedBg: sharedColors.red100,
-      optionSelectedColor: sharedColors.red800,
-      optionActiveBg: sharedColors.red50,
+      optionSelectedBg: sharedColors.blue100,
+      optionSelectedColor: sharedColors.blueDark,
+      optionActiveBg: sharedColors.blue100,
     },
   },
 };
@@ -77,8 +77,8 @@ export const darkComponentOverrides: ThemeConfig['components'] = {
   },
   Select: {
     optionSelectedBg: sharedColors.selectDarkBg,
-    optionSelectedColor: sharedColors.red50,
-    optionActiveBg: sharedColors.red50,
+    optionSelectedColor: sharedColors.blue100,
+    optionActiveBg: sharedColors.selectDarkBg,
   },
 };
 

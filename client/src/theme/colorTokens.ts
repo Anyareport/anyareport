@@ -49,7 +49,7 @@ export const sharedColors = {
   infoBlue: '#83b4ff',
   neutralText: '#5E6472',
   lightTextSecondary: '#6b7280',
-  selectDarkBg: '#572328',
+  selectDarkBg: '#233a68',
 } as const;
 
 export const incidentHeatGradient = {
