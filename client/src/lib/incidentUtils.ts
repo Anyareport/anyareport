@@ -31,11 +31,15 @@ export function getIncidentMeta(report: Report) {
   return [report.referenceNumber, categoryDetail].filter(Boolean).join(' · ');
 }
 
+export function getCompactAddressLabel(address?: string | null) {
+  return address?.trim().replace(/,?\s*Don Mariano Marcos\s*$/i, '').trim() || '';
+}
+
 export function getLocationLabel(report: Report) {
-  const address = report.location?.address?.trim();
+  const address = getCompactAddressLabel(report.location?.address);
   if (!address) return 'Location unavailable';
 
-  return address.replace(/,?\s*Don Mariano Marcos\s*$/i, '').trim() || 'Location unavailable';
+  return address;
 }
 
 export function matchesIncidentSearch(report: Report, search: string) {

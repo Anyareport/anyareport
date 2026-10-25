@@ -21,6 +21,7 @@ import type { LabelKey } from '../i18n/labels';
 import { getStatusLabel } from '../lib/reportWorkflow';
 import { getSeverityStyle } from './SeverityTag';
 import { Link } from 'react-router-dom';
+import { getCompactAddressLabel } from '../lib/incidentUtils';
 
 const { Text } = Typography;
 
@@ -197,7 +198,8 @@ export default function NotificationCard({ item, role, to, onOpen }: Notificatio
   }
   if (item.report.referenceNumber) detailItems.push({ label: item.report.referenceNumber });
   if (item.report.category) detailItems.push({ label: item.report.category });
-  if (item.report.location) detailItems.push({ label: item.report.location });
+  const location = getCompactAddressLabel(item.report.location);
+  if (location) detailItems.push({ label: location });
   if (context) detailItems.push({ label: context });
   const row = (
     <>
