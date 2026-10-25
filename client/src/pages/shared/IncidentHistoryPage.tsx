@@ -410,9 +410,14 @@ export default function IncidentHistoryPage({
   ].filter(Boolean) as { key: string; label: string; onClose: () => void }[];
 
   const filterTags = activeFilterTags.length ? (
-    <Space size={2} style={{ maxWidth: 260, overflow: 'hidden' }}>
+    <Space wrap size={[4, 4]} style={{ width: '100%' }}>
       {activeFilterTags.map((filter) => (
-        <Tag key={filter.key} closable onClose={filter.onClose} style={{ marginInlineEnd: 0 }}>
+        <Tag
+          key={filter.key}
+          closable
+          onClose={filter.onClose}
+          style={{ marginInlineEnd: 0, maxWidth: '100%', whiteSpace: 'normal', overflowWrap: 'anywhere' }}
+        >
           {filter.label}
         </Tag>
       ))}
@@ -428,7 +433,6 @@ export default function IncidentHistoryPage({
             aria-label="Search incident history"
             allowClear
             prefix={<SearchOutlined />}
-            suffix={filterTags}
             placeholder="Search submitter, incident name, or ID"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -455,6 +459,7 @@ export default function IncidentHistoryPage({
             <Button icon={<FilterOutlined />}>Filters</Button>
           </Popover>
         </Space.Compact>
+        {filterTags}
 
         {/* <Card className="soft-card" title="Incident history"> */}
         <IncidentList reports={filtered} basePath="/responder/incidents" />
@@ -488,7 +493,6 @@ export default function IncidentHistoryPage({
             aria-label="Search incidents"
             allowClear
             prefix={<SearchOutlined />}
-            suffix={filterTags}
             placeholder="Search submitter, incident name, or ID"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -558,6 +562,7 @@ export default function IncidentHistoryPage({
           </Dropdown>
         </div>
       </div>
+      {filterTags}
 
       <IncidentList
         reports={filtered}

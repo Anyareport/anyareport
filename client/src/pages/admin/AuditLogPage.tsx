@@ -204,9 +204,14 @@ export default function AdminAuditLogPage() {
   ].filter(Boolean) as { key: string; label: string; onClose: () => void }[];
 
   const filterTags = activeFilters.length ? (
-    <Space size={2} style={{ maxWidth: 360, overflow: 'hidden' }}>
+    <Space wrap size={[4, 4]} style={{ width: '100%' }}>
       {activeFilters.map((filter) => (
-        <Tag key={filter.key} closable onClose={filter.onClose} style={{ marginInlineEnd: 0 }}>
+        <Tag
+          key={filter.key}
+          closable
+          onClose={filter.onClose}
+          style={{ marginInlineEnd: 0, maxWidth: '100%', whiteSpace: 'normal', overflowWrap: 'anywhere' }}
+        >
           {filter.label}
         </Tag>
       ))}
@@ -288,7 +293,6 @@ export default function AdminAuditLogPage() {
             aria-label="Search audit logs"
             allowClear
             prefix={<SearchOutlined />}
-            suffix={filterTags}
             placeholder="Search user, action, report no., or timestamp"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -321,6 +325,7 @@ export default function AdminAuditLogPage() {
           </Button>
         </Tooltip>
       </div>
+      {filterTags}
 
       <Card className="soft-card audit-log-card">
         <Space className="audit-log-card__toolbar" style={{ display: 'flex', justifyContent: 'space-between' }}>
