@@ -919,6 +919,28 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     />
   );
 
+  const responderRouteMap = (
+    <div className="incident-hero-map">
+      <section
+        className="incident-route-section"
+        aria-label={text('routeToIncident', 'Route to incident')}
+      >
+        <RouteMap incidentLat={latitude} incidentLng={longitude} />
+        <Button
+          block
+          color="primary"
+          variant="solid"
+          icon={<CompassOutlined />}
+          href={`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          {text('openMaps', 'Open in Google Maps')}
+        </Button>
+      </section>
+    </div>
+  );
+
   const reportHero = (
     <section
       className={photos.length ? 'incident-gallery' : 'incident-hero'}
@@ -976,27 +998,13 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           )}
         </div>
       ) : (
-        <div className="incident-hero-map">
-          {variant === 'responder' ? (
-            <section className="incident-route-section" aria-labelledby="incident-route-heading">
-              {/* <h2 id="incident-route-heading">{text('routeToIncident', 'Route to incident')}</h2> */}
-              <RouteMap incidentLat={latitude} incidentLng={longitude} />
-              <Button
-                block
-                color="primary"
-                variant="solid"
-                icon={<CompassOutlined />}
-                href={`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {text('openMaps', 'Open in Google Maps')}
-              </Button>
-            </section>
-          ) : (
+        variant === 'responder' ? (
+          responderRouteMap
+        ) : (
+          <div className="incident-hero-map">
             <StaticMap latitude={latitude} longitude={longitude} height={340} />
-          )}
-        </div>
+          </div>
+        )
       )}
     </section>
   );
@@ -1264,30 +1272,19 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
             </section>
 
             {photos.length > 0 && (
-              <section className="incident-location-section">
-                <h2>
-                  {variant === 'responder'
-                    ? text('routeToIncident', 'Route to incident')
-                    : 'Location'}
-                </h2>
-                {variant === 'responder' ? (
-                  <>
-                    <RouteMap incidentLat={latitude} incidentLng={longitude} />
-                    <Button
-                      block
-                      icon={<CompassOutlined />}
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{ marginTop: 8 }}
-                    >
-                      {text('openMaps', 'Open in Google Maps')}
-                    </Button>
-                  </>
-                ) : (
+              variant === 'responder' ? (
+                <section
+                  className="incident-hero"
+                  aria-label={text('incidentLocation', 'Incident location')}
+                >
+                  {responderRouteMap}
+                </section>
+              ) : (
+                <section className="incident-location-section">
+                  <h2>Location</h2>
                   <StaticMap latitude={latitude} longitude={longitude} height={250} />
-                )}
-              </section>
+                </section>
+              )
             )}
           </article>
         </Card>
