@@ -702,7 +702,7 @@ export async function logHotlineOpened(req, res) {
     bfp: 'Bureau of Fire Protection',
     pnp: 'Philippine National Police',
     'red-cross': 'Philippine Red Cross',
-    'nv-ert': 'Nueva Vizcaya Emergency Response Team (NV-ERT)',
+    'nv-ert': 'Nueva Vizcaya Emergency Response Team',
     911: 'National Emergency Hotline',
   };
 

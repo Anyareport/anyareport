@@ -66,7 +66,7 @@ function getContacts(translate: boolean): HotlineContact[] {
     },
     {
       id: 'nv-ert',
-      name: 'Nueva Vizcaya Emergency Response Team (NV-ERT)',
+      name: 'Nueva Vizcaya Emergency Response Team',
       description: translate ? 'NV-ERT · pagtugon sa emerhensiya' : 'NV-ERT · emergency response',
       number: '0917-122-7150',
       icon: <SafetyOutlined />,
