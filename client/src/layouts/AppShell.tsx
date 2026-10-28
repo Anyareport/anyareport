@@ -103,7 +103,9 @@ export default function AppShell({
   const showLanguageToggle = ['tanod', 'responder'].includes(role || '');
   const navigationEntries = getNavigationEntries(menuItems);
   const normalizedPath = location.pathname.replace(/\/$/, '') || '/';
-  const isResidentMapPage = role === 'resident' && normalizedPath === '/resident/map';
+  const isResidentMapPage =
+    role === 'resident' &&
+    ['/resident/map', '/resident/report', '/resident/submit'].includes(normalizedPath);
   const menuPath =
     normalizedPath === '/resident/report' || normalizedPath === '/resident/submit'
       ? '/resident/map'

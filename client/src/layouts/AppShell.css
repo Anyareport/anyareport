@@ -219,6 +219,15 @@
   display: none;
 }
 
+.app-shell-header.is-map .app-shell-header__leading,
+.app-shell-header.is-map .app-shell-header__title {
+  display: none;
+}
+
+.app-shell-header.is-map .app-shell-user-trigger {
+  margin-inline-start: auto;
+}
+
 .app-shell-user-trigger {
   display: flex;
   min-width: 0;
@@ -350,15 +359,6 @@
 
   .app-shell-header__brand > div > span:last-child {
     display: none;
-  }
-
-  .app-shell-header.is-map .app-shell-header__brand,
-  .app-shell-header.is-map .app-shell-header__title {
-    display: none;
-  }
-
-  .app-shell-header.is-map .app-shell-user-trigger {
-    margin-inline-start: auto;
   }
 
   .app-shell-header__title {
