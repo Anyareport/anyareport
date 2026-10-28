@@ -702,6 +702,7 @@ export async function logHotlineOpened(req, res) {
     bfp: 'Bureau of Fire Protection',
     pnp: 'Philippine National Police',
     'red-cross': 'Philippine Red Cross',
+    'nv-ert': 'Nueva Vizcaya Emergency Response Team (NV-ERT)',
     911: 'National Emergency Hotline',
   };
 
@@ -998,11 +999,13 @@ export async function submitResolution(req, res) {
       furtherActionRecommendation: req.body.furtherActionRecommendation,
       assistanceRequested,
     };
-    const validationError = validateResolutionDetails(details);
-    if (validationError) return res.status(400).json({ error: validationError });
 
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ error: 'Report not found' });
+    const validationError = validateResolutionDetails(details, {
+      allowShortCloseout: FIELD_REPORT_CATEGORIES.includes(report.category),
+    });
+    if (validationError) return res.status(400).json({ error: validationError });
     const canResolveAsBlotterOfficial =
       report.category === BLOTTER_REPORT_CATEGORY &&
       report.subcategory !== CRIMINAL_BLOTTER_SUBCATEGORY &&
@@ -1024,13 +1027,14 @@ export async function submitResolution(req, res) {
     );
     const resolvedByName = await resolveActorName(req.firebaseUser.uid);
     const resolution = {
-      summary: details.summary.trim(),
+      summary: typeof details.summary === 'string' ? details.summary.trim() || null : null,
       actionsTaken: details.actionsTaken.trim(),
       outcome: details.outcome.trim(),
       furtherActionRequired,
-      furtherActionRecommendation: furtherActionRequired
-        ? details.furtherActionRecommendation.trim()
-        : null,
+      furtherActionRecommendation:
+        furtherActionRequired && typeof details.furtherActionRecommendation === 'string'
+          ? details.furtherActionRecommendation.trim() || null
+          : null,
       assistanceRequested,
       supportingEvidence: uploadedEvidence.map((file) => file.secure_url),
       resolvedBy: req.firebaseUser.uid,

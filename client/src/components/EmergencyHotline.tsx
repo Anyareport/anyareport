@@ -21,7 +21,7 @@ interface EmergencyHotlineProps {
 }
 
 interface HotlineContact {
-  id: 'bfp' | 'pnp' | 'red-cross' | '911';
+  id: 'bfp' | 'pnp' | 'red-cross' | 'nv-ert' | '911';
   name: string;
   description: string;
   number: string;
@@ -63,6 +63,13 @@ function getContacts(translate: boolean): HotlineContact[] {
       description: translate ? 'Tulong medikal at ambulansya' : 'Medical and ambulance assistance',
       number: import.meta.env.VITE_HOTLINE_RED_CROSS_NUMBER || '',
       icon: <MedicineBoxOutlined />,
+    },
+    {
+      id: 'nv-ert',
+      name: 'Nueva Vizcaya Emergency Response Team (NV-ERT)',
+      description: translate ? 'NV-ERT · pagtugon sa emerhensiya' : 'NV-ERT · emergency response',
+      number: '0917-122-7150',
+      icon: <SafetyOutlined />,
     },
     {
       id: '911',

@@ -100,7 +100,7 @@ function tryAtomicJoin(report, decision, actorUid, ownerUid) {
   return true;
 }
 
-test('resolution details require all mandatory fields and conditional recommendation', () => {
+test('full resolution details require all mandatory fields and conditional recommendation', () => {
   const valid = {
     summary: 'The incident was contained.',
     actionsTaken: 'The responder secured the area and assisted the resident.',
@@ -121,6 +121,29 @@ test('resolution details require all mandatory fields and conditional recommenda
   assert.match(
     validateResolutionDetails({ ...valid, assistanceRequested: undefined }),
     /assistance/i
+  );
+});
+
+test('field report closeout only requires actions taken and outcome', () => {
+  const shortCloseout = {
+    actionsTaken: 'Called PNP.',
+    outcome: 'PNP answered and took over.',
+  };
+
+  assert.equal(validateResolutionDetails(shortCloseout, { allowShortCloseout: true }), null);
+  assert.match(
+    validateResolutionDetails(
+      { ...shortCloseout, actionsTaken: ' ' },
+      { allowShortCloseout: true }
+    ),
+    /actions taken and outcome/i
+  );
+  assert.match(
+    validateResolutionDetails(
+      { ...shortCloseout, outcome: '' },
+      { allowShortCloseout: true }
+    ),
+    /actions taken and outcome/i
   );
 });
 

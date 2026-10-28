@@ -11,22 +11,27 @@ export const FLAG_REASON_LABELS = {
 
 const RESPONDER_ROLES = ['tanod', 'responder'];
 
-export function validateResolutionDetails(details) {
-  const requiredText = ['summary', 'actionsTaken', 'outcome'];
+export function validateResolutionDetails(details, { allowShortCloseout = false } = {}) {
+  const requiredText = allowShortCloseout
+    ? ['actionsTaken', 'outcome']
+    : ['summary', 'actionsTaken', 'outcome'];
   if (requiredText.some((field) => typeof details[field] !== 'string' || !details[field].trim())) {
-    return 'Resolution summary, actions taken, and outcome are required';
+    return allowShortCloseout
+      ? 'Actions taken and outcome are required'
+      : 'Resolution summary, actions taken, and outcome are required';
   }
-  if (typeof details.furtherActionRequired !== 'boolean') {
+  if (!allowShortCloseout && typeof details.furtherActionRequired !== 'boolean') {
     return 'Further action required must be Yes or No';
   }
   if (
+    !allowShortCloseout &&
     details.furtherActionRequired &&
     (typeof details.furtherActionRecommendation !== 'string' ||
       !details.furtherActionRecommendation.trim())
   ) {
     return 'Further action or recommendation is required when Yes is selected';
   }
-  if (typeof details.assistanceRequested !== 'boolean') {
+  if (!allowShortCloseout && typeof details.assistanceRequested !== 'boolean') {
     return 'Assistance requested must be specified';
   }
   return null;

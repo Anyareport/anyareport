@@ -380,7 +380,16 @@ export const labels = {
     en: 'Describe the actions or interventions performed.',
     fil: 'Ilarawan ang mga ginawa.',
   },
+  describeFieldActions: {
+    en: 'For example: Called PNP, provided on-site help, or both.',
+    fil: 'Halimbawa: Tumawag sa PNP, tumulong sa lugar, o pareho.',
+  },
+  describeFieldOutcome: {
+    en: 'For example: PNP answered and took over, or no answer.',
+    fil: 'Halimbawa: Sumagot ang PNP at sila na ang humawak, o walang sumagot.',
+  },
   describeFinalResult: { en: 'Describe the final result.', fil: 'Ilagay ang kinalabasan.' },
+  optionalDetails: { en: 'Additional details (optional)', fil: 'Karagdagang detalye (opsyonal)' },
   selectYesNo: { en: 'Select Yes or No.', fil: 'Pumili ng Oo o Hindi.' },
   provideRecommendation: {
     en: 'Provide the further action or recommendation.',

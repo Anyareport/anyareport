@@ -103,12 +103,12 @@ export interface Report {
   acknowledgedBy: string | null;
   acknowledgedByName?: string | null;
   resolution?: {
-    summary: string;
+    summary: string | null;
     actionsTaken: string;
     outcome: string;
-    furtherActionRequired: boolean;
+    furtherActionRequired: boolean | null;
     furtherActionRecommendation: string | null;
-    assistanceRequested: boolean;
+    assistanceRequested: boolean | null;
     supportingEvidence: string[];
     resolvedBy: string;
     resolvedByName: string;
