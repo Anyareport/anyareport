@@ -7,6 +7,7 @@ import { api, type Report } from '../../lib/api';
 import MapDashboard, { type IncidentMarker } from '../../components/map/MapDashboard';
 import MapReportCard from '../../components/map/MapReportCard';
 import '../../components/map/MapReportCard.css';
+import EmergencyHotline from '../../components/EmergencyHotline';
 import SubmitReportForm from '../../components/SubmitReportForm';
 import type { FeatureCollection } from 'geojson';
 import { isInsideBarangayBoundary } from '../../components/map/MapPicker';
@@ -129,16 +130,35 @@ export default function MapPage() {
           />
         </div>
       )}
-      {!isMobile && (
-        <Button
-          type="primary"
-          size="large"
-          style={{ position: 'absolute', top: 16, left: 16, zIndex: 1101 }}
-          icon={<FileAddOutlined />}
-          onClick={() => navigate('/resident/report')}
+      {!isPickingLocation && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 16,
+            left: 16,
+            right: 16,
+            zIndex: 1101,
+            display: 'flex',
+            justifyContent: 'flex-start',
+            gap: 8,
+            pointerEvents: 'none',
+          }}
         >
-          Report an incident
-        </Button>
+          {!isMobile && (
+            <Button
+              type="primary"
+              size="large"
+              style={{ pointerEvents: 'auto' }}
+              icon={<FileAddOutlined />}
+              onClick={() => navigate('/resident/report')}
+            >
+              Report an incident
+            </Button>
+          )}
+          <div style={{ pointerEvents: 'auto' }}>
+            <EmergencyHotline />
+          </div>
+        </div>
       )}
       {isPickingLocation && (
         <Button

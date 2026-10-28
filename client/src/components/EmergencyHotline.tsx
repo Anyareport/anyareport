@@ -92,20 +92,22 @@ export default function EmergencyHotline({
   const screens = Grid.useBreakpoint();
   const { role } = useAuth();
   const { lang, t } = useLang();
-  const translate = lang === 'fil' && ['tanod', 'responder'].includes(role || '');
+  const translate = lang === 'fil';
   const text = (key: Parameters<typeof t>[0], english: string) => (translate ? t(key) : english);
   const [open, setOpen] = useState(false);
   const isMobile = !screens.md;
   const isCriminalCase = category === 'Blotter Cases' && subcategory === 'Criminal';
   const isEmergency = category === 'Emergency Situations';
 
-  if (!reportId || (!isEmergency && !isCriminalCase)) return null;
+  if (reportId && !isEmergency && !isCriminalCase) return null;
 
   const title = text('callHelp', 'Call for help');
   const incidentLabel = isCriminalCase
     ? `${text('blotterCase', 'Blotter')} · ${text('criminal', 'Criminal')}`
     : text('emergency', 'Emergency');
-  const subtitle = `${referenceNumber || text('incidentLabel', 'Incident')} · ${incidentLabel}`;
+  const subtitle = reportId
+    ? `${referenceNumber || text('incidentLabel', 'Incident')} · ${incidentLabel}`
+    : null;
   const contacts = getContacts(translate);
 
   const panel = (
@@ -142,6 +144,7 @@ export default function EmergencyHotline({
                 aria-label={`${text('call', 'Call')} ${contact.name}${dialNumber ? ` at ${contact.number}` : ''}`}
                 onClick={() => {
                   if (!dialNumber) return;
+                  if (!reportId || role === 'resident') return;
                   void api
                     .post(`/api/reports/${reportId}/hotline-opened`, { agency: contact.id })
                     .catch((error: Error) =>
@@ -157,8 +160,10 @@ export default function EmergencyHotline({
       </Space>
       <Text type="secondary" className="emergency-hotline__note">
         {text(
-          'hotlineNote',
-          'Tapping Call records “Hotline opened” on this incident. Anyareport cannot confirm whether the call connected or was answered.'
+          reportId && role !== 'resident' ? 'hotlineNote' : 'hotlineResidentNote',
+          reportId && role !== 'resident'
+            ? 'Tapping Call records “Hotline opened” on this incident. Anyareport cannot confirm whether the call connected or was answered.'
+            : 'Call opens your phone dialer. Anyareport cannot confirm whether the call connected or was answered.'
         )}
       </Text>
     </div>
@@ -194,7 +199,7 @@ export default function EmergencyHotline({
           }
           zIndex={1400}
         >
-          <div className="emergency-hotline__drawer-subtitle">{subtitle}</div>
+          {subtitle && <div className="emergency-hotline__drawer-subtitle">{subtitle}</div>}
           {panel}
         </Drawer>
       </>
@@ -210,7 +215,7 @@ export default function EmergencyHotline({
       title={
         <div className="emergency-hotline__popover-title">
           <Text strong>{text('hotlines', 'Hotlines')}</Text>
-          <Text type="secondary">{subtitle}</Text>
+          {subtitle && <Text type="secondary">{subtitle}</Text>}
         </div>
       }
       content={panel}

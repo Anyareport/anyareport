@@ -307,6 +307,10 @@ export const labels = {
     en: 'Tapping Call records “Hotline opened” on this incident. Anyareport cannot confirm whether the call connected or was answered.',
     fil: 'Itatala ang pagpindot sa Tawag, pero hindi matitiyak kung nasagot ang tawag.',
   },
+  hotlineResidentNote: {
+    en: 'Call opens your phone dialer. Anyareport cannot confirm whether the call connected or was answered.',
+    fil: 'Bubuksan ng Tawag ang dialer ng iyong telepono. Hindi matitiyak ng Anyareport kung nakakonekta o nasagot ang tawag.',
+  },
   close: { en: 'Close', fil: 'Isara' },
   previousPhoto: { en: 'Previous photo', fil: 'Naunang litrato' },
   nextPhoto: { en: 'Next photo', fil: 'Susunod na litrato' },
