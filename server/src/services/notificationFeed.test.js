@@ -6,7 +6,11 @@ import {
   encodeNotificationCursor,
   parseLegacyStatusNotification,
 } from './notificationFeed.js';
-import { getNotificationRecipientRoles, getReportChangeRooms } from './notifications.js';
+import {
+  buildPublicEmergencyAlert,
+  getNotificationRecipientRoles,
+  getReportChangeRooms,
+} from './notifications.js';
 
 test('notification cursor round-trips its timestamp and stable feed id', () => {
   const createdAt = new Date('2026-10-04T10:15:00.000Z');
@@ -93,6 +97,58 @@ test('new-report notification recipients follow the three report categories', ()
     'responder',
   ]);
   assert.deepEqual(getNotificationRecipientRoles('Unknown'), []);
+});
+
+test('only public emergency reports create a privacy-safe resident alert', () => {
+  const publicAlert = buildPublicEmergencyAlert({
+    category: 'Emergency Situations',
+    subcategory: 'Public',
+    description: 'Private report details',
+    aiTitle: 'Private AI title',
+    referenceNumber: 'AR-2026-001',
+    location: { coordinates: [121.1557, 16.482], address: 'Private exact address' },
+    submittedBy: 'resident-1',
+  });
+  assert.deepEqual(publicAlert, {
+    type: 'public_emergency_alert',
+    message:
+      'A public emergency has been reported near Purok 7. Please follow official guidance.',
+    urgent: true,
+    recipientRole: 'resident',
+  });
+  assert.equal('reportId' in publicAlert, false);
+  assert.equal('reportSnapshot' in publicAlert, false);
+  assert.doesNotMatch(publicAlert.message, /private|exact address|fire|community hall|AR-2026-001/i);
+  assert.equal(
+    buildPublicEmergencyAlert({
+      category: 'Emergency Situations',
+      subcategory: 'Public',
+      location: { coordinates: [121.154424, 16.485316] },
+    }).message,
+    'A public emergency has been reported near Barangay Don Mariano Marcos. Please follow official guidance.'
+  );
+
+  assert.equal(
+    buildPublicEmergencyAlert({
+      category: 'Emergency Situations',
+      subcategory: 'Private',
+    }),
+    null
+  );
+  assert.equal(
+    buildPublicEmergencyAlert({
+      category: 'Public Concerns',
+      subcategory: 'Infrastructure',
+    }),
+    null
+  );
+  assert.equal(
+    buildPublicEmergencyAlert({
+      category: 'Blotter Cases',
+      subcategory: 'Criminal',
+    }),
+    null
+  );
 });
 
 test('report change rooms follow report visibility and include the submitter only', () => {

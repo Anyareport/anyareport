@@ -14,6 +14,7 @@ import {
   notifyBackupRequest,
   notifyOnNewReport,
   notifyOnStatusUpdate,
+  notifyResidentsOfAcknowledgedPublicEmergency,
   notifyRespondersDispatched,
   notifyDispatchResponse,
 } from '../services/notifications.js';
@@ -1142,6 +1143,12 @@ export async function acknowledgeReport(req, res) {
         return res.json(serializeReport(latestReport));
       }
       return res.status(result.statusCode).json({ error: result.error });
+    }
+    if (report.category === 'Emergency Situations' && report.subcategory === 'Public') {
+      await notifyBestEffort(
+        notifyResidentsOfAcknowledgedPublicEmergency(result.report),
+        'Public emergency resident alert'
+      );
     }
     res.json(serializeReport(result.report));
   } catch (err) {

@@ -6,6 +6,9 @@ const barangayData = JSON.parse(
 const barangayFeature = barangayData.features.find((feature) =>
   feature.properties?.name?.toLowerCase().includes('don mariano marcos')
 );
+const purokFeatures = barangayData.features.filter((feature) =>
+  /^purok\b/i.test(feature.properties?.name || '')
+);
 
 if (
   !barangayFeature ||
@@ -66,4 +69,16 @@ export function isInsideBarangayBoundary(latitude, longitude) {
     geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
 
   return polygons.some((rings) => isInsidePolygon(longitude, latitude, rings));
+}
+
+export function getPurokForCoordinates(latitude, longitude) {
+  for (const feature of purokFeatures) {
+    const geometry = feature.geometry;
+    const polygons =
+      geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
+    if (polygons.some((rings) => isInsidePolygon(longitude, latitude, rings))) {
+      return feature.properties.name.replace(/^Purok 0+(\d+)/i, 'Purok $1');
+    }
+  }
+  return null;
 }

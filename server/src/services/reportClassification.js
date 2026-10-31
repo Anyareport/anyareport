@@ -11,6 +11,23 @@ export const SUBCATEGORY_MAP = {
 };
 
 export const VALID_SEVERITIES = ['Low', 'Medium', 'High', 'Critical'];
+export const VALID_EMERGENCY_TYPES = [
+  'fire',
+  'medical_emergency',
+  'vehicular_accident',
+  'flooding',
+  'other',
+];
+
+export function getEmergencyTypeError({ category, emergencyType }) {
+  if (category !== 'Emergency Situations') {
+    return emergencyType ? 'Emergency type is only valid for emergency reports' : null;
+  }
+  if (!VALID_EMERGENCY_TYPES.includes(emergencyType)) {
+    return 'Select a valid emergency type';
+  }
+  return null;
+}
 
 export function getReportClassificationError({ category, subcategory, severity }) {
   if (!VALID_CATEGORIES.includes(category)) {

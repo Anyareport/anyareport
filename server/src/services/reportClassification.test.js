@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getReportClassificationError } from './reportClassification.js';
+import {
+  getEmergencyTypeError,
+  getReportClassificationError,
+} from './reportClassification.js';
 
 const validClassification = {
   category: 'Public Concerns',
@@ -41,5 +44,29 @@ test('rejects low severity for emergency reports', () => {
       severity: 'Low',
     }),
     'Emergency reports cannot have Low severity'
+  );
+});
+
+test('requires a supported incident type for emergency reports', () => {
+  assert.equal(
+    getEmergencyTypeError({
+      category: 'Emergency Situations',
+      emergencyType: 'fire',
+    }),
+    null
+  );
+  assert.equal(
+    getEmergencyTypeError({
+      category: 'Emergency Situations',
+      emergencyType: 'AI-generated incident title',
+    }),
+    'Select a valid emergency type'
+  );
+  assert.equal(
+    getEmergencyTypeError({
+      category: 'Public Concerns',
+      emergencyType: 'fire',
+    }),
+    'Emergency type is only valid for emergency reports'
   );
 });

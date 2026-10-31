@@ -94,6 +94,7 @@ function isAdminEvent(item: NotificationFeedItem) {
 }
 
 function getIconKind(item: NotificationFeedItem) {
+  if (item.type === 'public_emergency_alert') return 'public-emergency';
   if (item.type === 'admin_report_flagged') return 'flagged';
   if (
     item.type === 'admin_user_created' ||
@@ -139,6 +140,7 @@ function getIcon(kind: string) {
       return <CheckCircleOutlined />;
     case 'flagged':
     case 'emergency':
+    case 'public-emergency':
       return <AlertOutlined />;
     case 'in-progress':
       return <SyncOutlined />;
@@ -181,6 +183,7 @@ export default function NotificationCard({ item, role, to, onOpen }: Notificatio
   const [expanded, setExpanded] = useState(false);
   const context = getContext(item, role);
   const iconKind = getIconKind(item);
+  const isPublicEmergencyAlert = item.type === 'public_emergency_alert';
   const severity = item.report.severity;
   const severityStyle = severity ? getSeverityStyle(severity) : undefined;
   const incidentSeverityClass =
@@ -210,6 +213,9 @@ export default function NotificationCard({ item, role, to, onOpen }: Notificatio
         {getIcon(iconKind)}
       </div>
       <div className="notification-card__body">
+        {isPublicEmergencyAlert && (
+          <Text className="notification-card__emergency-label">PUBLIC EMERGENCY ALERT</Text>
+        )}
         <Text className="notification-card__headline">{getHeadline(item, role)}</Text>
         {detailItems.length > 0 && (
           <Text type="secondary" className="notification-card__details">
@@ -272,7 +278,11 @@ export default function NotificationCard({ item, role, to, onOpen }: Notificatio
   );
 
   return (
-    <article className={`notification-card${item.read ? '' : ' notification-card--unread'}`}>
+    <article
+      className={`notification-card${item.read ? '' : ' notification-card--unread'}${
+        isPublicEmergencyAlert ? ' notification-card--public-emergency' : ''
+      }`}
+    >
       {to ? (
         <Link to={to} className="notification-card__row" onClick={onOpen}>
           {row}

@@ -16,6 +16,7 @@ import {
   normalizeReportStatus,
 } from './reportWorkflow.js';
 import { writeAudit } from './auditLog.js';
+import { getPurokForCoordinates } from './barangayBoundary.js';
 
 let ioInstance = null;
 const NOTIFICATION_ROLES_BY_CATEGORY = {
@@ -30,6 +31,29 @@ export function getNotificationRecipientRoles(category, subcategory) {
       : ['captain', 'secretary'];
   }
   return [...(NOTIFICATION_ROLES_BY_CATEGORY[category] || [])];
+}
+
+export function buildPublicEmergencyAlert(report) {
+  if (
+    report.category !== 'Emergency Situations' ||
+    report.subcategory !== 'Public'
+  ) {
+    return null;
+  }
+
+  const [longitude, latitude] = report.location?.coordinates || [];
+  const purok =
+    Number.isFinite(latitude) && Number.isFinite(longitude)
+      ? getPurokForCoordinates(latitude, longitude)
+      : null;
+  const area = purok || 'Barangay Don Mariano Marcos';
+
+  return {
+    type: 'public_emergency_alert',
+    message: `A public emergency has been reported near ${area}. Please follow official guidance.`,
+    urgent: true,
+    recipientRole: 'resident',
+  };
 }
 
 function getReportSnapshot(report) {
@@ -188,7 +212,8 @@ export async function notifyOnNewReport(report) {
     }
     await deliverPushNotifications(notif);
   }
-    // Admins only hear about urgent reports; the caller's recipient audit entry covers them.
+
+  // Admins only hear about urgent reports; the caller's recipient audit entry covers them.
   if (isEmergency || isCriminalBlotter) {
     notifications.push(
       ...(await dispatchAdminNotifications({
@@ -201,6 +226,28 @@ export async function notifyOnNewReport(report) {
     );
   }
 
+  return notifications;
+}
+
+export async function notifyResidentsOfAcknowledgedPublicEmergency(report) {
+  const alert = buildPublicEmergencyAlert(report);
+  if (!alert) return [];
+
+  const residents = await User.find({ role: 'resident', status: 'active' })
+    .select('firebaseUid')
+    .lean();
+  const notifications = [];
+  for (const resident of residents) {
+    const notification = await Notification.create({
+      ...alert,
+      recipientUid: resident.firebaseUid,
+    });
+    notifications.push(notification);
+    if (ioInstance) {
+      ioInstance.to('role:resident').emit('notification', notification);
+    }
+    await deliverPushNotifications(notification);
+  }
   return notifications;
 }
 

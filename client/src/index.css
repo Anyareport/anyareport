@@ -234,6 +234,15 @@ a {
   box-shadow: inset 3px 0 0 var(--brand-color-info);
 }
 
+.notification-card--public-emergency.notification-card--unread {
+  background: color-mix(in srgb, var(--severity-critical-tag) 8%, var(--bg-primary));
+  box-shadow: inset 4px 0 0 var(--severity-critical-text);
+}
+
+.notification-card--public-emergency.notification-card--unread .notification-card__row:hover {
+  background: color-mix(in srgb, var(--severity-critical-tag) 12%, var(--bg-primary));
+}
+
 .notification-card__row {
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr) 112px;
@@ -307,6 +316,12 @@ a {
   color: var(--severity-critical-text);
 }
 
+.notification-card__icon--public-emergency {
+  background: color-mix(in srgb, var(--severity-critical-tag) 22%, transparent);
+  color: var(--severity-critical-text);
+  font-size: 17px;
+}
+
 .notification-card__icon--severity-low {
   background: color-mix(in srgb, var(--severity-low-tag) 14%, transparent);
   color: var(--severity-low-text);
@@ -341,6 +356,18 @@ a {
   font-weight: 500;
   line-height: 1.4;
   overflow-wrap: anywhere;
+}
+
+.notification-card__emergency-label.ant-typography {
+  color: var(--severity-critical-text);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  line-height: 1.2;
+}
+
+.notification-card--public-emergency .notification-card__headline.ant-typography {
+  color: var(--text-primary);
 }
 
 .notification-card--unread .notification-card__headline.ant-typography {
