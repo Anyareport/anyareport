@@ -22,6 +22,7 @@ import { antiAbuseConfig } from '../config/antiAbuse.js';
 import { workflowConfig } from '../config/workflow.js';
 import { uploadImage } from '../services/cloudinary.js';
 import { getNextReportReference } from '../services/reportReference.js';
+import { isInsideBarangayBoundary } from '../services/barangayBoundary.js';
 import { canVerifyReports } from '../middleware/rbac.js';
 import {
   BLOTTER_REPORT_CATEGORY,
@@ -208,11 +209,21 @@ export async function createReport(req, res) {
     const { category, subcategory, description, latitude, longitude, address, severity } = req.body;
     const trimmedDescription = (description || '').trim();
     const hasPhoto = Array.isArray(req.files) && req.files.length > 0;
+    const parsedLatitude =
+      typeof latitude === 'string' && latitude.trim() !== '' ? Number(latitude) : latitude;
+    const parsedLongitude =
+      typeof longitude === 'string' && longitude.trim() !== '' ? Number(longitude) : longitude;
+
     if (Array.isArray(req.files) && req.files.length > 3) {
       return res.status(400).json({ error: 'Maximum 3 photos allowed per report' });
     }
-    if (!category || !latitude || !longitude) {
+    if (!category || !Number.isFinite(parsedLatitude) || !Number.isFinite(parsedLongitude)) {
       return res.status(400).json({ error: 'Category and location are required' });
+    }
+    if (!isInsideBarangayBoundary(parsedLatitude, parsedLongitude)) {
+      return res.status(400).json({
+        error: 'Report location must be within Barangay Don Mariano Marcos',
+      });
     }
     if (!hasPhoto && trimmedDescription.length < 10) {
       return res.status(400).json({
@@ -255,7 +266,7 @@ export async function createReport(req, res) {
         photos,
         location: {
           type: 'Point',
-          coordinates: [parseFloat(longitude), parseFloat(latitude)],
+          coordinates: [parsedLongitude, parsedLatitude],
           address: address || '',
         },
         aiTitle,
