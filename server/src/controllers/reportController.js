@@ -23,6 +23,7 @@ import { workflowConfig } from '../config/workflow.js';
 import { uploadImage } from '../services/cloudinary.js';
 import { getNextReportReference } from '../services/reportReference.js';
 import { isInsideBarangayBoundary } from '../services/barangayBoundary.js';
+import { getReportClassificationError } from '../services/reportClassification.js';
 import { canVerifyReports } from '../middleware/rbac.js';
 import {
   BLOTTER_REPORT_CATEGORY,
@@ -219,6 +220,14 @@ export async function createReport(req, res) {
     }
     if (!category || !Number.isFinite(parsedLatitude) || !Number.isFinite(parsedLongitude)) {
       return res.status(400).json({ error: 'Category and location are required' });
+    }
+    const classificationError = getReportClassificationError({
+      category,
+      subcategory,
+      severity,
+    });
+    if (classificationError) {
+      return res.status(400).json({ error: classificationError });
     }
     if (!isInsideBarangayBoundary(parsedLatitude, parsedLongitude)) {
       return res.status(400).json({

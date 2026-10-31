@@ -1,15 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-
-// ASSUMPTION: Unified category list reconciles two manuscript lists
-const VALID_CATEGORIES = ['Public Concerns', 'Blotter Cases', 'Emergency Situations'];
-
-const SUBCATEGORY_MAP = {
-  'Public Concerns': ['Sanitation', 'Infrastructure'],
-  'Blotter Cases': ['Civil', 'Criminal'],
-  'Emergency Situations': ['Public', 'Private'],
-};
-
-const VALID_SEVERITIES = ['Low', 'Medium', 'High', 'Critical'];
+import {
+  SUBCATEGORY_MAP,
+  VALID_CATEGORIES,
+  VALID_SEVERITIES,
+} from './reportClassification.js';
 
 export async function classifyReport(description, files) {
   const apiKey = process.env.GEMINI_API_KEY;
