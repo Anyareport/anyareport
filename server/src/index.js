@@ -6,7 +6,7 @@ import morgan from "morgan";
 import { createServer } from "http";
 import { Server } from "socket.io";
 
-import { connectDB } from "./config/db.js";
+import { buildHealthResponse, connectDB, getDatabaseStatus } from "./config/db.js";
 import { getFirebaseAdmin, initFirebase } from "./config/firebase.js";
 import { setSocketIO } from "./services/notifications.js";
 import User from "./models/User.js";
@@ -115,7 +115,8 @@ app.use((req, _res, next) => {
 });
 
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+  const health = buildHealthResponse(getDatabaseStatus());
+  res.status(health.statusCode).json(health.body);
 });
 
 app.use("/api/auth", authRoutes);
@@ -134,7 +135,12 @@ const PORT = process.env.PORT || 5000;
 
 async function start() {
   initFirebase();
-  await connectDB();
+  const databaseConnected = await connectDB();
+  if (!databaseConnected) {
+    console.error(
+      "[Server] Starting without MongoDB. Database-backed requests may fail; /api/health will return HTTP 503 until connected."
+    );
+  }
 
   httpServer.listen(PORT, () => {
     console.log(`[Server] Running on http://localhost:${PORT}`);
