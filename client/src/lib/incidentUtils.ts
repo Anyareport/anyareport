@@ -24,26 +24,11 @@ export function getIncidentLabel(report: Report) {
   return report.subcategory || report.category;
 }
 
-export function getEmergencyTypeLabel(emergencyType?: string | null) {
-  const labels: Record<string, string> = {
-    fire: 'Fire',
-    medical_emergency: 'Medical emergency',
-    vehicular_accident: 'Vehicular accident',
-    flooding: 'Flooding',
-    other: 'Other emergency',
-  };
-  return emergencyType ? labels[emergencyType] || null : null;
-}
-
 export function getIncidentMeta(report: Report) {
   const categoryDetail = report.subcategory
     ? `${report.category} · ${report.subcategory}`
     : report.category;
-  const emergencyType =
-    report.category === 'Emergency Situations'
-      ? getEmergencyTypeLabel(report.emergencyType)
-      : null;
-  return [report.referenceNumber, categoryDetail, emergencyType].filter(Boolean).join(' · ');
+  return [report.referenceNumber, categoryDetail].filter(Boolean).join(' · ');
 }
 
 export function getCompactAddressLabel(address?: string | null) {
