@@ -16,6 +16,15 @@ export const reportSubmitLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+export const classificationLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  keyGenerator: (req) => req.firebaseUser.uid,
+  message: { error: 'Too many classification requests. Please wait a moment.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export const translateLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 30,
