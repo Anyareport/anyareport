@@ -6,6 +6,8 @@ import {
   listUsers,
   getUserSummary,
   createOfficial,
+  listResidentAccounts,
+  reactivateResident,
   updateUserStatus,
   updateUserRole,
 } from '../controllers/adminController.js';
@@ -14,6 +16,12 @@ import { requireVerifiedOfficial } from '../middleware/requireVerifiedOfficial.j
 const router = Router();
 
 router.use(verifyToken, requireActiveUser(), requireVerifiedOfficial);
+router.get('/residents', requireRole('admin', 'captain', 'secretary'), listResidentAccounts);
+router.patch(
+  '/residents/:id/reactivate',
+  requireRole('admin', 'captain', 'secretary'),
+  reactivateResident
+);
 router.use(requireRole('admin'));
 
 router.get('/users/summary', getUserSummary);

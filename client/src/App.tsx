@@ -24,6 +24,7 @@ import AdminHeatmapPage from './pages/admin/HeatmapPage';
 import AdminAnalyticsPage from './pages/admin/AnalyticsPage';
 import AdminAuditLogPage from './pages/admin/AuditLogPage';
 import AdminUsersPage from './pages/admin/UsersPage';
+import ResidentAccountsPage from './pages/admin/ResidentAccountsPage';
 import SecretaryIntakePage from './pages/admin/IntakeQueuePage';
 import { getProfilePath } from './lib/roles';
 
@@ -99,7 +100,14 @@ function App() {
             <Route path="/admin/audit" element={<AdminAuditLogPage />} />
           </Route>
           <Route path="/admin/intake" element={<SecretaryIntakePage />} />
-          <Route path="/admin/users" element={<AdminUsersPage />} />
+          <Route
+            element={<ProtectedRoute allowedRoles={['captain', 'secretary']} />}
+          >
+            <Route path="/admin/resident-accounts" element={<ResidentAccountsPage />} />
+          </Route>
+          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+            <Route path="/admin/users" element={<AdminUsersPage />} />
+          </Route>
           <Route path="/admin/notifications" element={<NotificationsPage />} />
           <Route path="/admin/profile" element={<ProfilePage />} />
         </Route>

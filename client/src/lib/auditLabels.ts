@@ -45,6 +45,12 @@ const AUDIT_LABELS: Record<string, AuditLabel> = {
     tone: 'orange',
     icon: 'user',
   },
+  resident_account_reactivated: {
+    label: 'Resident account reactivated',
+    category: 'account',
+    tone: 'green',
+    icon: 'user',
+  },
   user_created: { label: 'User created', category: 'account', tone: 'orange', icon: 'user' },
   report_flagged: { label: 'Report flagged', category: 'flagged', tone: 'orange', icon: 'flag' },
   admin_notification_read: {
@@ -130,6 +136,8 @@ export function getAuditSummary(log: AuditLog) {
     case 'user_status_changed':
     case 'user_role_changed':
       return `${target ?? 'Unknown user'}: ${metadata.from ?? '?'} → ${metadata.to ?? '?'}`;
+    case 'resident_account_reactivated':
+      return `${target ?? 'Unknown resident'} reactivated after appeal; flagged-report count reset from ${metadata.previousFlaggedReportCount ?? '?'} to 0. Reason: ${metadata.reason ?? 'not recorded'}`;
     case 'admin_notification_sent':
       return `${metadata.urgent ? 'Urgent ' : ''}${sentenceCase(getNotificationSubject(metadata.type))} notification sent to ${metadata.recipientCount ?? 0} admins`;
     case 'admin_notification_read':

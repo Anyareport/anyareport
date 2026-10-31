@@ -49,6 +49,14 @@ export default function AdminShell() {
       workItems.push({ key: '/admin/intake', icon: <InboxOutlined />, label: 'Intake Queue' });
     }
 
+    if (role === 'captain' || role === 'secretary') {
+      workItems.push({
+        key: '/admin/resident-accounts',
+        icon: <TeamOutlined />,
+        label: 'Resident Accounts',
+      });
+    }
+
     if (role === 'admin') {
       insightItems.push(
         { key: '/admin/audit', icon: <AuditOutlined />, label: 'Audit Log' },

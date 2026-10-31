@@ -67,6 +67,8 @@ export default function AdminUsersPage() {
   const isMobile = !screens.md;
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [form] = Form.useForm();
+  const [reactivationForm] = Form.useForm<{ reason: string }>();
+  const [reactivationTarget, setReactivationTarget] = useState<UserProfile | null>(null);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string | undefined>();
   const [verifiedFilter, setVerifiedFilter] = useState<'verified' | 'unverified' | undefined>();
@@ -131,6 +133,18 @@ export default function AdminUsersPage() {
     onError: (error: Error) => message.error(error.message),
   });
 
+  const reactivateResident = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      api.patch(`/api/admin/residents/${id}/reactivate`, { reason }),
+    onSuccess: async () => {
+      message.success('Resident account reactivated; current flagged-report count reset to zero');
+      setReactivationTarget(null);
+      reactivationForm.resetFields();
+      await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    },
+    onError: (error: Error) => message.error(error.message),
+  });
+
   const updateRole = useMutation({
     mutationFn: ({ id, role }: { id: string; role: UserProfile['role'] }) =>
       api.patch(`/api/admin/users/${id}/role`, { role }),
@@ -164,6 +178,11 @@ export default function AdminUsersPage() {
   const confirmStatusChange = (user: UserProfile) => {
     const status: UserProfile['status'] =
       user.status === 'active' ? 'suspended' : 'active';
+    if (user.role === 'resident' && user.status === 'suspended') {
+      setReactivationTarget(user);
+      reactivationForm.resetFields();
+      return;
+    }
     const suspending = status === 'suspended';
     Modal.confirm({
       title: suspending ? 'Suspend account?' : 'Reactivate account?',
@@ -439,6 +458,44 @@ export default function AdminUsersPage() {
           </Button>
         </Form>
       </Drawer>
+      <Modal
+        title="Reactivate resident account?"
+        open={!!reactivationTarget}
+        okText="Reactivate account"
+        cancelText="Cancel"
+        confirmLoading={reactivateResident.isPending}
+        onCancel={() => {
+          setReactivationTarget(null);
+          reactivationForm.resetFields();
+        }}
+        onOk={() =>
+          reactivationForm.validateFields().then(({ reason }) => {
+            if (reactivationTarget) {
+              return reactivateResident.mutateAsync({
+                id: reactivationTarget._id,
+                reason,
+              });
+            }
+          })
+        }
+      >
+        <p>
+          Reactivating <strong>{reactivationTarget?.name}</strong> resets the current flagged-report
+          count to zero. Previous report flags remain in the system history.
+        </p>
+        <Form layout="vertical" form={reactivationForm}>
+          <Form.Item
+            name="reason"
+            label="Appeal decision reason"
+            rules={[
+              { required: true, whitespace: true, message: 'Enter the appeal decision reason' },
+              { max: 500, message: 'The reason must be 500 characters or fewer' },
+            ]}
+          >
+            <Input.TextArea rows={3} maxLength={500} showCount />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }

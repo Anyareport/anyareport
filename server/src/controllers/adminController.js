@@ -1,4 +1,6 @@
+import mongoose from 'mongoose';
 import User from '../models/User.js';
+import AuditLog from '../models/AuditLog.js';
 import { getFirebaseAdmin } from '../config/firebase.js';
 import { disconnectUserSockets, notifyAdmins } from '../services/notifications.js';
 import { writeAudit } from '../services/auditLog.js';
@@ -7,6 +9,7 @@ import {
   buildUserRoleEvent,
   buildUserStatusEvent,
 } from '../services/adminNotificationEvents.js';
+import { applyResidentReactivation } from '../services/residentReactivation.js';
 
 const USER_STATUSES = ['active', 'suspended'];
 const USER_ROLES = ['resident', 'tanod', 'responder', 'captain', 'secretary', 'admin'];
@@ -57,6 +60,75 @@ export async function getUserSummary(req, res) {
     res.json({ total, active, suspended });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+}
+
+export async function listResidentAccounts(_req, res) {
+  try {
+    const residents = await User.find({ role: 'resident' })
+      .select('name email status flaggedReportCount')
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json(residents);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export async function reactivateResident(req, res) {
+  const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim() : '';
+  if (!reason || reason.length > 500) {
+    return res.status(400).json({ error: 'A reactivation reason of 1–500 characters is required' });
+  }
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ error: 'Invalid resident account ID' });
+  }
+
+  let session;
+  let reactivatedUser = null;
+  let failure = null;
+  try {
+    session = await mongoose.startSession();
+    await session.withTransaction(async () => {
+      const user = await User.findOne({
+        _id: req.params.id,
+        role: 'resident',
+        status: 'suspended',
+      }).session(session);
+
+      if (!user) {
+        const existing = await User.findById(req.params.id).session(session);
+        failure = existing
+          ? { status: 409, error: 'Only suspended resident accounts can be reactivated here' }
+          : { status: 404, error: 'Resident account not found' };
+        return;
+      }
+
+      const auditRecord = applyResidentReactivation(user, {
+        actorUid: req.firebaseUser.uid,
+        reason,
+      });
+      await user.save({ session });
+      await AuditLog.create([auditRecord], { session });
+      reactivatedUser = user;
+    });
+
+    if (failure) return res.status(failure.status).json({ error: failure.error });
+    if (!reactivatedUser) {
+      return res.status(409).json({ error: 'Resident account changed before reactivation completed' });
+    }
+    res.json({
+      _id: reactivatedUser._id,
+      name: reactivatedUser.name,
+      email: reactivatedUser.email,
+      status: reactivatedUser.status,
+      flaggedReportCount: reactivatedUser.flaggedReportCount,
+    });
+  } catch (err) {
+    console.error('[Resident reactivation] Failed:', err);
+    res.status(500).json({ error: 'Could not reactivate resident account' });
+  } finally {
+    if (session) await session.endSession();
   }
 }
 
@@ -120,6 +192,11 @@ export async function updateUserStatus(req, res) {
       return res.status(403).json({ error: 'You cannot change your own account status' });
     }
     const previousStatus = user.status;
+    if (status === 'active' && user.role === 'resident' && previousStatus === 'suspended') {
+      return res.status(400).json({
+        error: 'Use the resident reactivation action and provide an appeal reason',
+      });
+    }
     user.status = status;
     await user.save();
     disconnectUserSockets(user.firebaseUid);
