@@ -216,6 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     const handleNotification = (notification?: {
       _id?: string;
+      type?: string;
       message?: string;
       reportId?: string;
       urgent?: boolean;
@@ -230,7 +231,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (installedPwa && !isStandaloneApp()) return;
 
       showBrowserNotification({
-        title: notification.urgent ? 'Urgent Anyareport alert' : 'New Anyareport notification',
+        title:
+          notification.type === 'public_emergency_resolved'
+            ? 'Public emergency update'
+            : notification.urgent
+              ? 'Urgent Anyareport alert'
+              : 'New Anyareport notification',
         body: notification.message,
         tag: notification._id ? `anyareport-notification-${notification._id}` : undefined,
         url: notification.reportId

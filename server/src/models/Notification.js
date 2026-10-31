@@ -5,6 +5,7 @@ const notificationSchema = new mongoose.Schema(
     recipientUid: { type: String, required: true, index: true },
     recipientRole: { type: String, required: true },
     reportId: { type: mongoose.Schema.Types.ObjectId, ref: 'Report' },
+    dedupeKey: { type: String },
     type: { type: String, required: true },
     message: { type: String, required: true },
     read: { type: Boolean, default: false },
@@ -27,5 +28,9 @@ const notificationSchema = new mongoose.Schema(
 );
 
 notificationSchema.index({ recipientUid: 1, createdAt: -1, _id: -1 });
+notificationSchema.index(
+  { dedupeKey: 1 },
+  { unique: true, partialFilterExpression: { dedupeKey: { $type: 'string' } } }
+);
 
 export default mongoose.model('Notification', notificationSchema);

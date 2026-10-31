@@ -366,6 +366,14 @@ a {
   line-height: 1.2;
 }
 
+.notification-card__resolved-label.ant-typography {
+  color: var(--severity-low-text);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  line-height: 1.2;
+}
+
 .notification-card--public-emergency .notification-card__headline.ant-typography {
   color: var(--text-primary);
 }

@@ -34,6 +34,30 @@ export function getNotificationRecipientRoles(category, subcategory) {
 }
 
 export function buildPublicEmergencyAlert(report) {
+  const area = getPublicEmergencyArea(report);
+  if (!area) return null;
+
+  return {
+    type: 'public_emergency_alert',
+    message: `A public emergency has been reported near ${area}. Please follow official guidance.`,
+    urgent: true,
+    recipientRole: 'resident',
+  };
+}
+
+export function buildPublicEmergencyResolvedAnnouncement(report) {
+  const area = getPublicEmergencyArea(report);
+  if (!area) return null;
+
+  return {
+    type: 'public_emergency_resolved',
+    message: `The public emergency reported near ${area} has been marked resolved. Please continue to follow official guidance.`,
+    urgent: false,
+    recipientRole: 'resident',
+  };
+}
+
+function getPublicEmergencyArea(report) {
   if (
     report.category !== 'Emergency Situations' ||
     report.subcategory !== 'Public'
@@ -46,14 +70,7 @@ export function buildPublicEmergencyAlert(report) {
     Number.isFinite(latitude) && Number.isFinite(longitude)
       ? getPurokForCoordinates(latitude, longitude)
       : null;
-  const area = purok || 'Barangay Don Mariano Marcos';
-
-  return {
-    type: 'public_emergency_alert',
-    message: `A public emergency has been reported near ${area}. Please follow official guidance.`,
-    urgent: true,
-    recipientRole: 'resident',
-  };
+  return purok || 'Barangay Don Mariano Marcos';
 }
 
 function getReportSnapshot(report) {
@@ -149,7 +166,12 @@ async function sendPushNotifications(notifications) {
       return {
         token: token.token,
         notification: {
-          title: item.urgent ? 'Urgent Anyareport alert' : 'New Anyareport notification',
+          title:
+            item.type === 'public_emergency_resolved'
+              ? 'Public emergency update'
+              : item.urgent
+                ? 'Urgent Anyareport alert'
+                : 'New Anyareport notification',
           body: item.message,
         },
         data: {
@@ -245,6 +267,37 @@ export async function notifyResidentsOfAcknowledgedPublicEmergency(report) {
     notifications.push(notification);
     if (ioInstance) {
       ioInstance.to('role:resident').emit('notification', notification);
+    }
+    await deliverPushNotifications(notification);
+  }
+  return notifications;
+}
+
+export async function notifyResidentsOfResolvedPublicEmergency(report) {
+  const announcement = buildPublicEmergencyResolvedAnnouncement(report);
+  if (!announcement) return [];
+
+  const residents = await User.find({ role: 'resident', status: 'active' })
+    .select('firebaseUid')
+    .lean();
+  const notifications = [];
+  for (const resident of residents) {
+    const dedupeKey = `${report._id}:public-emergency-resolved:${resident.firebaseUid}`;
+    let notification;
+    try {
+      notification = await Notification.create({
+        ...announcement,
+        recipientUid: resident.firebaseUid,
+        dedupeKey,
+      });
+    } catch (error) {
+      if (error.code === 11000) continue;
+      throw error;
+    }
+
+    notifications.push(notification);
+    if (ioInstance) {
+      ioInstance.to(`role:resident`).emit('notification', notification);
     }
     await deliverPushNotifications(notification);
   }

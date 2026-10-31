@@ -8,6 +8,7 @@ import {
 } from './notificationFeed.js';
 import {
   buildPublicEmergencyAlert,
+  buildPublicEmergencyResolvedAnnouncement,
   getNotificationRecipientRoles,
   getReportChangeRooms,
 } from './notifications.js';
@@ -146,6 +147,47 @@ test('only public emergency reports create a privacy-safe resident alert', () =>
     buildPublicEmergencyAlert({
       category: 'Blotter Cases',
       subcategory: 'Criminal',
+    }),
+    null
+  );
+});
+
+test('public emergency resolution creates a separate announcement without incident details', () => {
+  const announcement = buildPublicEmergencyResolvedAnnouncement({
+    _id: 'report-id',
+    category: 'Emergency Situations',
+    subcategory: 'Public',
+    description: 'Private report details',
+    aiTitle: 'Private AI title',
+    referenceNumber: 'AR-2026-001',
+    location: { coordinates: [121.1557, 16.482], address: 'Private exact address' },
+    submittedBy: 'resident-1',
+  });
+
+  assert.deepEqual(announcement, {
+    type: 'public_emergency_resolved',
+    message:
+      'The public emergency reported near Purok 7 has been marked resolved. Please continue to follow official guidance.',
+    urgent: false,
+    recipientRole: 'resident',
+  });
+  assert.equal('reportId' in announcement, false);
+  assert.equal('dedupeKey' in announcement, false);
+  assert.doesNotMatch(
+    announcement.message,
+    /private|exact address|fire|community hall|AR-2026-001|report-id/i
+  );
+  assert.equal(
+    buildPublicEmergencyResolvedAnnouncement({
+      category: 'Emergency Situations',
+      subcategory: 'Private',
+    }),
+    null
+  );
+  assert.equal(
+    buildPublicEmergencyResolvedAnnouncement({
+      category: 'Public Concerns',
+      subcategory: 'Infrastructure',
     }),
     null
   );

@@ -15,6 +15,7 @@ import {
   notifyOnNewReport,
   notifyOnStatusUpdate,
   notifyResidentsOfAcknowledgedPublicEmergency,
+  notifyResidentsOfResolvedPublicEmergency,
   notifyRespondersDispatched,
   notifyDispatchResponse,
 } from '../services/notifications.js';
@@ -974,6 +975,16 @@ async function applyReportTransition(
     notifyOnStatusUpdate(updatedReport, decision.update.status, updatedBy, req.userRole),
     'Report status update'
   );
+  if (
+    decision.update.status === 'resolved' &&
+    updatedReport.category === 'Emergency Situations' &&
+    updatedReport.subcategory === 'Public'
+  ) {
+    await notifyBestEffort(
+      notifyResidentsOfResolvedPublicEmergency(updatedReport),
+      'Public emergency resolution announcement'
+    );
+  }
   return { report: updatedReport };
 }
 
