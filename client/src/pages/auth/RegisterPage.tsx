@@ -99,9 +99,10 @@ export default function RegisterPage() {
       }
       const captchaToken = await getCaptchaToken();
       await api.post('/api/auth/register', {
-        ...values,
         name: [values.firstName, values.lastName].filter(Boolean).join(' '),
         email: completingProfile ? firebaseUser?.email : values.email,
+        phone: values.phone,
+        address: values.address,
         captchaToken,
       });
       await refreshProfile();
