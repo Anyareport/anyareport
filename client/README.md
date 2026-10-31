@@ -11,6 +11,12 @@ npm run dev
 
 The root `npm run dev` script starts both client and server together. The client runs on `http://localhost:5173` and proxies API requests to the server on `http://localhost:5000`.
 
+## Deployment URLs
+
+- Set `VITE_API_URL` to the backend origin when the API is hosted on a different origin from the client.
+- Set `VITE_SOCKET_URL` to the Socket.IO server origin when it differs from `VITE_API_URL`. If omitted, the client uses `VITE_API_URL`.
+- If neither variable is set, development uses `http://localhost:5000`, while production uses the client origin; production deployments on separate origins must configure `VITE_API_URL` or `VITE_SOCKET_URL`.
+
 If you only want the frontend:
 
 ```bash

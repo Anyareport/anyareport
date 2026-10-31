@@ -3,9 +3,15 @@ import { auth as firebaseAuth } from './firebase';
 
 let socket: Socket | null = null;
 
+function getSocketUrl() {
+  const configuredSocketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL;
+  if (configuredSocketUrl) return configuredSocketUrl;
+  return import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin;
+}
+
 export function getSocket(): Socket {
   if (!socket) {
-    socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000', {
+    socket = io(getSocketUrl(), {
       autoConnect: true,
       auth: (callback) => {
         const user = firebaseAuth.currentUser;
