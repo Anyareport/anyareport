@@ -5,6 +5,20 @@ import {
   VALID_SEVERITIES,
 } from './reportClassification.js';
 
+function getValidImageFiles(files) {
+  if (!Array.isArray(files)) return [];
+  return files.filter((file) => file?.buffer && file?.mimetype);
+}
+
+export function getClassificationInputMode(description, files) {
+  const hasText = typeof description === 'string' && description.trim().length > 0;
+  const hasImages = getValidImageFiles(files).length > 0;
+
+  if (hasText && hasImages) return 'text and photos';
+  if (hasImages) return 'photos only';
+  return 'text only';
+}
+
 export async function classifyReport(description, files) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey.includes('your-gemini')) {
@@ -25,7 +39,18 @@ export async function classifyReport(description, files) {
       generationConfig: { temperature: 0, responseMimeType: 'application/json' },
     });
 
+    const imageFiles = getValidImageFiles(files);
+    const inputMode = getClassificationInputMode(description, imageFiles);
+    const inputGuidance =
+      inputMode === 'text and photos'
+        ? 'Use both the written description and attached photos as evidence. Consider them together, and do not invent details that neither supports.'
+        : inputMode === 'photos only'
+          ? 'There is no written description. Classify the incident using only the attached photos; do not assume details that are not visible.'
+          : 'There are no attached photos. Classify the incident using only the written description.';
     const prompt = `You are classifying an incident report for Barangay Don Mariano Marcos. Respond with ONLY a valid JSON object.
+
+INPUT MODE: ${inputMode}
+${inputGuidance}
 
 CATEGORIES:
 - Public Concerns: everyday community problems that need attention but not an urgent response.
@@ -55,24 +80,20 @@ Return this exact shape:
 
 For "title": always write a neutral, factual headline in simple English, even when the description is in another language. Translate its meaning when needed, then rewrite it as a concise third-person incident headline in 3-8 words. Use sentence case: capitalize the first word and proper nouns, but do not capitalize every word. Preserve acronyms. Do not copy the description verbatim or use the reporter's first-person wording. Preserve uncertainty with words like "Reported" when appropriate. Do not add details or judgments that the user did not provide, and do not end the title with a period. Example: "Napilitan akong sumali sa misa" becomes "Reported pressure to attend Mass".
 
-For "summary": synthesize a concise 1-3 sentence incident description based on the user's description text and the attached image(s) (if any). Use objective, factual language suitable for barangay officials.
+For "summary": synthesize a concise 1-3 sentence incident description based only on the available input described above. Use objective, factual language suitable for barangay officials.
 
-Description: ${description}`;
+Written description: ${description?.trim() || '(none provided)'}`;
 
     const parts = [{ text: prompt }];
 
     // Add all images (max 3)
-    if (Array.isArray(files)) {
-      for (const file of files) {
-        if (file.buffer && file.mimetype) {
-          parts.push({
-            inlineData: {
-              data: file.buffer.toString('base64'),
-              mimeType: file.mimetype,
-            },
-          });
-        }
-      }
+    for (const file of imageFiles) {
+      parts.push({
+        inlineData: {
+          data: file.buffer.toString('base64'),
+          mimeType: file.mimetype,
+        },
+      });
     }
 
     const result = await model.generateContent(parts);
