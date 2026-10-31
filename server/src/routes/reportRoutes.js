@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { verifyToken } from '../middleware/verifyToken.js';
+import { requireActiveUser } from '../middleware/requireActiveUser.js';
 import { requireRole } from '../middleware/rbac.js';
 import { reportSubmitLimiter, translateLimiter } from '../middleware/rateLimiters.js';
 import upload from '../middleware/upload.js';
@@ -34,7 +35,7 @@ const router = Router();
 
 router.get('/categories', getCategories);
 
-router.use(verifyToken, requireVerifiedOfficial);
+router.use(verifyToken, requireActiveUser(), requireVerifiedOfficial);
 
 router.post('/', reportSubmitLimiter, upload.array('photos', 3), createReport);
 router.post('/classify', upload.array('photos', 3), classifyReportHandler);

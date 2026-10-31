@@ -1,7 +1,8 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import VerifyEmailGate from '../components/VerifyEmailGate';
 import LoadingState from '../components/LoadingState';
+import { getProfilePath } from '../lib/roles';
 
 interface ProtectedRouteProps {
   allowedRoles?: string[];
@@ -10,6 +11,7 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ allowedRoles, redirectTo = '/login' }: ProtectedRouteProps) {
   const { firebaseUser, profile, loading, role } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return <LoadingState minHeight="100vh" />;
@@ -28,8 +30,18 @@ export function ProtectedRoute({ allowedRoles, redirectTo = '/login' }: Protecte
     return <Navigate to="/register" replace />;
   }
 
+  const profilePath = getProfilePath(profile?.role);
+  if (profile?.status === 'suspended' && location.pathname !== profilePath) {
+    return <Navigate to={profilePath} replace />;
+  }
+
   // Officials with an unverified email cannot see any data until they confirm it.
-  if (profile && profile.role !== 'resident' && !profile.emailVerified) {
+  if (
+    profile &&
+    profile.role !== 'resident' &&
+    !profile.emailVerified &&
+    profile.status !== 'suspended'
+  ) {
     return <VerifyEmailGate />;
   }
 
@@ -37,13 +49,16 @@ export function ProtectedRoute({ allowedRoles, redirectTo = '/login' }: Protecte
 }
 
 export function PublicRoute() {
-  const { firebaseUser, loading, role } = useAuth();
+  const { firebaseUser, profile, loading, role } = useAuth();
 
   if (loading) {
     return <LoadingState minHeight="100vh" />;
   }
 
   if (firebaseUser && role) {
+    if (profile?.status === 'suspended') {
+      return <Navigate to={getProfilePath(role)} replace />;
+    }
     const path = role === 'resident' ? '/resident' : ['tanod', 'responder'].includes(role) ? '/responder' : '/admin';
     return <Navigate to={path} replace />;
   }

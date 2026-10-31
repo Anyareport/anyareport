@@ -25,9 +25,10 @@ import AdminAnalyticsPage from './pages/admin/AnalyticsPage';
 import AdminAuditLogPage from './pages/admin/AuditLogPage';
 import AdminUsersPage from './pages/admin/UsersPage';
 import SecretaryIntakePage from './pages/admin/IntakeQueuePage';
+import { getProfilePath } from './lib/roles';
 
 function HomeRedirect() {
-  const { firebaseUser, loading, role } = useAuth();
+  const { firebaseUser, loading, role, profile } = useAuth();
 
   if (loading) {
     return <LoadingState minHeight="100vh" />;
@@ -39,6 +40,10 @@ function HomeRedirect() {
 
   if (!role) {
     return <Navigate to="/register" replace />;
+  }
+
+  if (profile?.status === 'suspended') {
+    return <Navigate to={getProfilePath(role)} replace />;
   }
 
   return <Navigate to={getRedirectPath(role)} replace />;

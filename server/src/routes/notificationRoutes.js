@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { verifyToken } from '../middleware/verifyToken.js';
+import { requireActiveUser } from '../middleware/requireActiveUser.js';
 import { requireRole } from '../middleware/rbac.js';
 import {
   exportReports,
@@ -13,7 +14,7 @@ import { requireVerifiedOfficial } from '../middleware/requireVerifiedOfficial.j
 
 const router = Router();
 
-router.use(verifyToken, requireVerifiedOfficial);
+router.use(verifyToken, requireActiveUser(), requireVerifiedOfficial);
 
 router.post('/push-tokens', registerPushToken);
 router.delete('/push-tokens', removePushToken);
@@ -23,7 +24,7 @@ router.patch('/reports/:reportId/status-updates/read', markGroupRead);
 router.patch('/:id/read', markRead);
 
 const exportRouter = Router();
-exportRouter.use(verifyToken, requireVerifiedOfficial);
+exportRouter.use(verifyToken, requireActiveUser(), requireVerifiedOfficial);
 exportRouter.use(requireRole('admin', 'captain', 'secretary'));
 exportRouter.get('/', exportReports);
 

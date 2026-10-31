@@ -39,6 +39,8 @@ export default function ProfilePage() {
   const [form] = Form.useForm();
   const [editing, setEditing] = useState(false);
   const [verifyBusy, setVerifyBusy] = useState(false);
+  const suspended = profile?.status === 'suspended';
+  const isEditing = editing && !suspended;
 
   useEffect(() => {
     if (profile) {
@@ -152,7 +154,18 @@ export default function ProfilePage() {
         </Card>
       </Col>
 
-      {addressMissing && !editing && (
+      {suspended && (
+        <Col span={24}>
+          <Alert
+            type="error"
+            showIcon
+            message="Your account is suspended"
+            description="Your access to Anyareport features is restricted because your reports have reached the flagged-report limit. Please visit the Barangay Hall to discuss your account and appeal."
+          />
+        </Col>
+      )}
+
+      {addressMissing && !isEditing && !suspended && (
         <Col span={24}>
           <Alert
             type="warning"
@@ -177,14 +190,14 @@ export default function ProfilePage() {
           form={form}
           layout="vertical"
           onFinish={(values) => {
-            if (editing) updateMutation.mutate(values);
+            if (isEditing) updateMutation.mutate(values);
           }}
         >
           <Card
             className="soft-card"
             title={translate ? t('personalInformation') : 'Personal information'}
             extra={
-              editing ? (
+              suspended ? null : isEditing ? (
                 <Space>
                   <Button type="primary" htmlType="submit" loading={updateMutation.isPending}>
                     {translate ? t('saveChanges') : 'Save changes'}
@@ -194,13 +207,13 @@ export default function ProfilePage() {
                   </Button>
                 </Space>
               ) : (
-                <Button htmlType="button" onClick={() => setEditing(true)}>
+                <Button htmlType="button" disabled={suspended} onClick={() => setEditing(true)}>
                   {translate ? t('editProfile') : 'Edit profile'}
                 </Button>
               )
             }
           >
-            {editing ? (
+            {isEditing ? (
               <Row gutter={[16, 0]}>
                 <Col xs={24} sm={12}>
                   <Form.Item
@@ -308,7 +321,7 @@ export default function ProfilePage() {
                   </Tag>
                 </Col>
               </Row>
-              {!profile.emailVerified && firebaseUser && (
+              {!suspended && !profile.emailVerified && firebaseUser && (
                 <Space wrap size={8} style={{ marginTop: 8 }}>
                   <Button size="small" loading={verifyBusy} onClick={resendVerification}>
                     {translate ? t('resendVerification') : 'Resend verification email'}

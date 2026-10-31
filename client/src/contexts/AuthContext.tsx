@@ -99,7 +99,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const p = await api.get<UserProfile>('/api/auth/profile');
       setProfile(p);
-      if (p.role && (p.role === 'resident' || p.emailVerified)) getSocket();
+      if (p.status === 'active' && p.role && (p.role === 'resident' || p.emailVerified)) {
+        getSocket();
+      }
     } catch {
       setProfile(null);
     }
@@ -123,6 +125,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return unsub;
   }, [refreshProfile]);
+
+  useEffect(() => {
+    if (!firebaseUser) return;
+    const refreshAccountStatus = () => {
+      void refreshProfile();
+    };
+    const intervalId = window.setInterval(refreshAccountStatus, 30_000);
+    window.addEventListener('focus', refreshAccountStatus);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', refreshAccountStatus);
+    };
+  }, [firebaseUser, refreshProfile]);
 
   // Officials are created by an admin with an unverified email. Send the
   // verification email once, the first time they log in.
@@ -149,7 +165,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const role = profile?.role || null;
   // Unverified officials get no live data: no socket and no push registration.
   const accessRole =
-    profile && (profile.role === 'resident' || profile.emailVerified) ? profile.role : null;
+    profile?.status === 'active' && (profile.role === 'resident' || profile.emailVerified)
+      ? profile.role
+      : null;
 
   useEffect(() => {
     if (!accessRole) return;

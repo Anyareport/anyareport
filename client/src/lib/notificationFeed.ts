@@ -4,7 +4,7 @@ import { api, type NotificationFeedResponse } from './api';
 export const notificationFeedQueryKey = ['notification-feed'] as const;
 const NOTIFICATION_PAGE_SIZE = 20;
 
-export function useNotificationFeed() {
+export function useNotificationFeed({ enabled = true }: { enabled?: boolean } = {}) {
   return useInfiniteQuery({
     queryKey: notificationFeedQueryKey,
     queryFn: ({ pageParam }) => {
@@ -16,5 +16,6 @@ export function useNotificationFeed() {
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: 20_000,
     refetchInterval: 30_000,
+    enabled,
   });
 }

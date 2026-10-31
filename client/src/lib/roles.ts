@@ -29,3 +29,10 @@ export function getHomePath(role?: string | null) {
   if (role && ['admin', 'captain', 'secretary'].includes(role)) return '/admin';
   return '/login';
 }
+
+export function getProfilePath(role?: string | null) {
+  if (role === 'resident') return '/resident/profile';
+  if (role === 'tanod' || role === 'responder') return '/responder/profile';
+  if (role && ['admin', 'captain', 'secretary'].includes(role)) return '/admin/profile';
+  return '/login';
+}

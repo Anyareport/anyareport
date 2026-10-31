@@ -9,34 +9,43 @@ import { useLocation } from 'react-router-dom';
 import { useMemo } from 'react';
 import AppShell from './AppShell';
 import { useNotificationFeed } from '../lib/notificationFeed';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function ResidentShell() {
-  const { data: notificationFeed } = useNotificationFeed();
+  const { profile } = useAuth();
+  const suspended = profile?.status === 'suspended';
+  const { data: notificationFeed } = useNotificationFeed({ enabled: !suspended });
   const unreadCount = notificationFeed?.pages[0]?.unreadCount ?? 0;
 
   const location = useLocation();
 
   const menuItems = useMemo(
-    () => [
-      { key: '/resident/map', icon: <EnvironmentOutlined />, label: 'Map' },
-      { key: '/resident/reports', icon: <UnorderedListOutlined />, label: 'My Reports' },
-      {
-        key: '/resident/notifications',
-        icon: <BellOutlined />,
-        label: 'Notifications',
-      },
-      { key: '/resident/profile', icon: <UserOutlined />, label: 'Profile' },
-    ],
-    []
+    () =>
+      suspended
+        ? [{ key: '/resident/profile', icon: <UserOutlined />, label: 'Profile' }]
+        : [
+            { key: '/resident/map', icon: <EnvironmentOutlined />, label: 'Map' },
+            { key: '/resident/reports', icon: <UnorderedListOutlined />, label: 'My Reports' },
+            {
+              key: '/resident/notifications',
+              icon: <BellOutlined />,
+              label: 'Notifications',
+            },
+            { key: '/resident/profile', icon: <UserOutlined />, label: 'Profile' },
+          ],
+    [suspended]
   );
 
   const mobileMenuItems = useMemo(
-    () => [
-      ...menuItems.slice(0, 2),
-      { key: '/resident/report', icon: <PlusOutlined />, label: 'Report' },
-      ...menuItems.slice(2),
-    ],
-    [menuItems]
+    () =>
+      suspended
+        ? menuItems
+        : [
+            ...menuItems.slice(0, 2),
+            { key: '/resident/report', icon: <PlusOutlined />, label: 'Report' },
+            ...menuItems.slice(2),
+          ],
+    [menuItems, suspended]
   );
 
   return (
@@ -47,8 +56,10 @@ export default function ResidentShell() {
       quietBadgeKeys={['/resident/notifications']}
       siderWidth={220}
       mobileNavigation
-      mobilePrimaryAction="/resident/report"
-      fullWidthContent={['/resident/map', '/resident/report'].includes(location.pathname)}
+      mobilePrimaryAction={suspended ? undefined : '/resident/report'}
+      fullWidthContent={
+        !suspended && ['/resident/map', '/resident/report'].includes(location.pathname)
+      }
     />
   );
 }
