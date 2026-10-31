@@ -169,6 +169,14 @@ export default function RegisterPage() {
           showIcon
         />
 
+        <Alert
+          type="info"
+          message="Privacy notice"
+          description="Your registration details are used to create and maintain your Anyareport account. If you submit a report, its description and attached photos will be sent to Google Gemini for AI-assisted classification; you will see a separate notice and acknowledgement before that information is sent."
+          style={{ marginBottom: 16 }}
+          showIcon
+        />
+
         <Form form={form} layout="vertical" onFinish={handleRegister}>
           <Form.Item name="firstName" label="First Name" rules={[{ required: true }]}>
             <Input size="large" />

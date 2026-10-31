@@ -95,6 +95,15 @@ body {
   font-family: var(--app-font-family);
 }
 
+.report-ai-processing-checkbox.ant-checkbox-wrapper {
+  align-items: flex-start;
+}
+
+.report-ai-processing-checkbox .ant-checkbox {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
 h1,
 h2,
 h3,

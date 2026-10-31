@@ -4,6 +4,7 @@ import {
   Select,
   Input,
   Button,
+  Checkbox,
   Upload,
   Typography,
   message,
@@ -85,6 +86,7 @@ export default function SubmitReportForm({
 
   const [currentStep, setCurrentStep] = useState(0);
   const [maxStepReached, setMaxStepReached] = useState(0);
+  const [aiProcessingAcknowledged, setAiProcessingAcknowledged] = useState(false);
 
   const [reportType, setReportType] = useState<ReportType>('text');
   const [fileList, setFileList] = useState<
@@ -239,6 +241,11 @@ export default function SubmitReportForm({
   const goNext = useCallback(async () => {
     try {
       if (currentStep === 0) {
+        if (!aiProcessingAcknowledged) {
+          message.warning('Please acknowledge how your report is processed before continuing.');
+          return;
+        }
+
         const fieldsToCheck = reportType === 'text' ? ['description'] : [];
         await form.validateFields(fieldsToCheck);
 
@@ -265,7 +272,15 @@ export default function SubmitReportForm({
     } catch {
       // Form validation displays the relevant field errors.
     }
-  }, [currentStep, reportType, selectedLocation, ensureClassified, form, fileList]);
+  }, [
+    currentStep,
+    reportType,
+    selectedLocation,
+    ensureClassified,
+    form,
+    fileList,
+    aiProcessingAcknowledged,
+  ]);
 
   const goBack = () => setCurrentStep((s) => Math.max(0, s - 1));
 
@@ -282,6 +297,10 @@ export default function SubmitReportForm({
       if (step > maxStepReached) return;
 
       if (step >= 1) {
+        if (!aiProcessingAcknowledged) {
+          message.warning('Please acknowledge how your report is processed before continuing.');
+          return;
+        }
         if (!selectedLocation) {
           message.error('Please select a location on the map or use GPS.');
           return;
@@ -295,7 +314,7 @@ export default function SubmitReportForm({
 
       setCurrentStep(step);
     },
-    [currentStep, maxStepReached, selectedLocation, ensureClassified, form]
+    [currentStep, maxStepReached, selectedLocation, ensureClassified, form, aiProcessingAcknowledged]
   );
 
   const handleUseGPS = () => {
@@ -607,6 +626,19 @@ export default function SubmitReportForm({
             </Descriptions.Item>
           </Descriptions>
         </div>
+
+        {currentStep === 0 && (
+          <Checkbox
+            className="report-ai-processing-checkbox"
+            checked={aiProcessingAcknowledged}
+            onChange={(event) => setAiProcessingAcknowledged(event.target.checked)}
+            style={{ marginTop: 4 }}
+          >
+            I understand that my report description and attached photos will be sent to Google
+            Gemini to help categorize this report. I will avoid including names or other personal
+            details in them.
+          </Checkbox>
+        )}
 
         {/* Navigation */}
         <div style={{ display: 'flex', gap: 8, width: '100%', marginTop: 12 }}>
