@@ -26,6 +26,10 @@ import { uploadImage } from '../services/cloudinary.js';
 import { getNextReportReference } from '../services/reportReference.js';
 import { isInsideBarangayBoundary } from '../services/barangayBoundary.js';
 import { getReportClassificationError } from '../services/reportClassification.js';
+import {
+  lockAndCheckResponders,
+  RespondersUnavailableError,
+} from '../services/responderDispatch.js';
 import { canVerifyReports } from '../middleware/rbac.js';
 import {
   BLOTTER_REPORT_CATEGORY,
@@ -444,76 +448,90 @@ export async function dispatchReport(req, res) {
         request.status === 'pending' &&
         request.requestedBy === report.acknowledgedBy
     );
-    const updatedReport = await updateWithAudit(
-      'incident_dispatched',
-      req,
-      report._id,
-      { responderUids, additionalDispatch: isAdditionalDispatch },
-      (session) =>
-        Report.findOneAndUpdate(
-          isAdditionalDispatch
-            ? {
-                _id: report._id,
-                status: { $in: ['in_progress', 'en_route', 'on_scene'] },
-                ...(hasLeadResponder
-                  ? { acknowledgedBy: report.acknowledgedBy }
-                  : { acknowledgedBy: null }),
-                ...(openBackupRequest ? { 'backupRequests._id': openBackupRequest._id } : {}),
-              }
-            : { _id: report._id, status: 'pending', acknowledgedBy: null },
-          isAdditionalDispatch
-            ? isCivilBlotter
+    let updatedReport;
+    try {
+      updatedReport = await updateWithAudit(
+        'incident_dispatched',
+        req,
+        report._id,
+        { responderUids, additionalDispatch: isAdditionalDispatch },
+        async (session) => {
+          await lockAndCheckResponders({
+            reportId: report._id,
+            responderUids,
+            session,
+          });
+          return Report.findOneAndUpdate(
+            isAdditionalDispatch
               ? {
-                  $addToSet: {
-                    dispatchInvites: {
-                      $each: responderUids.map((responderUid) => ({ responderUid })),
-                    },
-                  },
+                  _id: report._id,
+                  status: { $in: ['in_progress', 'en_route', 'on_scene'] },
+                  ...(hasLeadResponder
+                    ? { acknowledgedBy: report.acknowledgedBy }
+                    : { acknowledgedBy: null }),
+                  ...(openBackupRequest ? { 'backupRequests._id': openBackupRequest._id } : {}),
                 }
-              : !hasLeadResponder
+              : { _id: report._id, status: 'pending', acknowledgedBy: null },
+            isAdditionalDispatch
+              ? isCivilBlotter
                 ? {
-                    $set: { acknowledgedBy: responderUids[0] },
+                    $addToSet: {
+                      dispatchInvites: {
+                        $each: responderUids.map((responderUid) => ({ responderUid })),
+                      },
+                    },
+                  }
+                : !hasLeadResponder
+                  ? {
+                      $set: { acknowledgedBy: responderUids[0] },
+                      ...(responderUids.length > 1
+                        ? {
+                            $push: {
+                              backupRequests: {
+                                requestedBy: responderUids[0],
+                                joinedBy: responderUids.slice(1),
+                              },
+                            },
+                          }
+                        : {}),
+                    }
+                  : openBackupRequest
+                    ? { $addToSet: { 'backupRequests.$.joinedBy': { $each: responderUids } } }
+                    : {
+                        $push: {
+                          backupRequests: {
+                            requestedBy: report.acknowledgedBy,
+                            joinedBy: responderUids,
+                          },
+                        },
+                      }
+              : {
+                  $set: {
+                    status: 'coordinating',
+                    ...(isCivilBlotter ? {} : { acknowledgedBy: responderUids[0] }),
+                  },
+                  $push: {
+                    statusHistory: { status: 'coordinating', updatedBy: req.firebaseUser.uid },
                     ...(responderUids.length > 1
                       ? {
-                          $push: {
-                            backupRequests: {
-                              requestedBy: responderUids[0],
-                              joinedBy: responderUids.slice(1),
-                            },
+                          backupRequests: {
+                            requestedBy: req.firebaseUser.uid,
+                            joinedBy: isCivilBlotter ? responderUids : responderUids.slice(1),
                           },
                         }
                       : {}),
-                  }
-                : openBackupRequest
-                  ? { $addToSet: { 'backupRequests.$.joinedBy': { $each: responderUids } } }
-                  : {
-                      $push: {
-                        backupRequests: {
-                          requestedBy: report.acknowledgedBy,
-                          joinedBy: responderUids,
-                        },
-                      },
-                    }
-            : {
-                $set: {
-                  status: 'coordinating',
-                  ...(isCivilBlotter ? {} : { acknowledgedBy: responderUids[0] }),
+                  },
                 },
-                $push: {
-                  statusHistory: { status: 'coordinating', updatedBy: req.firebaseUser.uid },
-                  ...(responderUids.length > 1
-                    ? {
-                        backupRequests: {
-                          requestedBy: req.firebaseUser.uid,
-                          joinedBy: isCivilBlotter ? responderUids : responderUids.slice(1),
-                        },
-                      }
-                    : {}),
-                },
-              },
-          { new: true, session }
-        )
-    );
+            { new: true, session }
+          );
+        }
+      );
+    } catch (error) {
+      if (error instanceof RespondersUnavailableError) {
+        return res.status(409).json({ error: error.message });
+      }
+      throw error;
+    }
     if (!updatedReport) {
       return res.status(409).json({ error: 'The incident changed before dispatch completed' });
     }

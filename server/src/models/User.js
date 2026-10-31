@@ -15,6 +15,7 @@ const userSchema = new mongoose.Schema(
     status: { type: String, enum: ['active', 'suspended'], default: 'active' },
     flaggedReportCount: { type: Number, default: 0 },
     emailVerified: { type: Boolean, default: false },
+    dispatchLockVersion: { type: Number, default: 0, select: false },
   },
   { timestamps: true }
 );
