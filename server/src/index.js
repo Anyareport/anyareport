@@ -7,6 +7,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 
 import { buildHealthResponse, connectDB, getDatabaseStatus } from "./config/db.js";
+import { uploadErrorHandler } from "./middleware/upload.js";
 import { getFirebaseAdmin, initFirebase } from "./config/firebase.js";
 import { setSocketIO } from "./services/notifications.js";
 import User from "./models/User.js";
@@ -125,6 +126,8 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/audit-logs", auditRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/export", exportRoutes);
+
+app.use(uploadErrorHandler);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
