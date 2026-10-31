@@ -182,6 +182,7 @@ export default function NotificationsPage() {
         <Alert
           type="success"
           showIcon
+          className="notifications-page__push-enabled"
           message={
             translate
               ? t('pushEnabled')

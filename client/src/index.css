@@ -378,6 +378,19 @@ a {
   color: var(--text-primary);
 }
 
+.notifications-page__push-enabled.ant-alert-success {
+  border-color: color-mix(in srgb, var(--severity-low-tag) 30%, var(--border-light));
+  background: color-mix(in srgb, var(--severity-low-tag) 8%, var(--bg-primary));
+}
+
+.notifications-page__push-enabled.ant-alert-success .ant-alert-icon {
+  color: var(--severity-low-text);
+}
+
+.notifications-page__push-enabled.ant-alert-success .ant-alert-message {
+  color: var(--text-primary);
+}
+
 .notification-card--unread .notification-card__headline.ant-typography {
   font-weight: 700;
 }
