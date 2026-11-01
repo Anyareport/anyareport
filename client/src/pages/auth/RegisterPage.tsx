@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Form, Input, Button, Card, Typography, message, Divider, Alert, Checkbox } from 'antd';
+import { Form, Input, Button, Typography, message, Divider, Checkbox } from 'antd';
 import { GoogleOutlined } from '@ant-design/icons';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -10,9 +10,9 @@ import {
 import { api } from '../../lib/api';
 import { PH_MOBILE_REGEX } from '../../lib/phone';
 import { getRedirectPath, useAuth } from '../../contexts/AuthContext';
-import Logo from '../../components/Logo';
+import AuthLayout from './AuthLayout';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 declare global {
   interface Window {
@@ -162,67 +162,49 @@ export default function RegisterPage() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--bg-secondary)',
-        padding: 16,
-      }}
-    >
-      <Card style={{ width: '100%', maxWidth: 480 }}>
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <Logo size="lg" />
-          <Title level={4} style={{ marginTop: 16 }}>
-            RESIDENT REGISTRATION
-          </Title>
-        </div>
+    <AuthLayout page="register">
+      <div className="auth-form-heading">
+        <h1>Create your account</h1>
+        <p>For residents of Barangay Don Mariano Marcos.</p>
+      </div>
 
-        <Alert
-          type="info"
-          message="Phone number is for contact purposes only — not used for login or OTP verification."
-          style={{ marginBottom: 16 }}
-          showIcon
-        />
-
-        <Form form={form} layout="vertical" onFinish={handleRegister}>
+      <Form className="auth-form" form={form} layout="vertical" onFinish={handleRegister}>
+        <div className="auth-fields-row">
           <Form.Item
             name="firstName"
-            label="First Name"
+            label="First name"
             rules={[{ required: true, whitespace: true, message: 'Please enter your first name.' }]}
           >
-            <Input size="large" />
+            <Input size="large" autoComplete="given-name" />
           </Form.Item>
           <Form.Item
             name="lastName"
-            label="Last Name"
+            label="Last name"
             rules={[{ required: true, whitespace: true, message: 'Please enter your last name.' }]}
           >
-            <Input size="large" />
+            <Input size="large" autoComplete="family-name" />
           </Form.Item>
+        </div>
 
-          <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
-            <Input size="large" disabled={completingProfile} />
-          </Form.Item>
-          {!completingProfile && (
+        <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
+          <Input size="large" disabled={completingProfile} autoComplete="email" />
+        </Form.Item>
+        {!completingProfile && (
+          <div className="auth-fields-row">
             <Form.Item
               name="password"
               label="Password"
-              extra="Use at least 8 characters."
+              extra="At least 8 characters"
               rules={[
                 { required: true, message: 'Please enter a password.' },
                 { min: 8, message: 'Password must be at least 8 characters.' },
               ]}
             >
-              <Input.Password size="large" />
+              <Input.Password size="large" autoComplete="new-password" />
             </Form.Item>
-          )}
-          {!completingProfile && (
             <Form.Item
               name="confirmPassword"
-              label="Confirm Password"
+              label="Confirm password"
               dependencies={['password']}
               rules={[
                 { required: true, message: 'Please confirm your password.' },
@@ -234,69 +216,71 @@ export default function RegisterPage() {
                 }),
               ]}
             >
-              <Input.Password size="large" />
+              <Input.Password size="large" autoComplete="new-password" />
             </Form.Item>
-          )}
-          <Form.Item
-            name="phone"
-            label="Phone Number"
-            rules={[
-              { required: true, whitespace: true, message: 'Please enter your phone number.' },
-              { pattern: PH_MOBILE_REGEX, message: 'Enter a valid PH mobile number (09XXXXXXXXX).' },
-            ]}
-          >
-            <Input size="large" placeholder="09XXXXXXXXX" />
-          </Form.Item>
-          <Form.Item name="address" label="Address">
-            <Input.TextArea rows={2} />
-          </Form.Item>
-          <div style={{ marginBottom: 24 }}>
-            <Checkbox
-              className="report-ai-processing-checkbox"
-              checked={privacyAcknowledged}
-              onChange={(event) => setPrivacyAcknowledged(event.target.checked)}
-              style={{ marginTop: 4 }}
-            >
-              <span style={{ color: '#ff4d4f' }}>*</span>{' '}
-              I agree that my details are used to create my account. If I submit a report, its text
-              and photos are sent to Google Gemini for AI classification. I will be asked to confirm
-              before anything is sent.
-            </Checkbox>
           </div>
-          <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              block
-              size="large"
-              loading={loading}
-              disabled={!privacyAcknowledged}
-            >
-              Create Account
-            </Button>
-          </Form.Item>
-        </Form>
+        )}
 
-        {!completingProfile && <Divider>or</Divider>}
+        <Form.Item
+          name="phone"
+          label="Phone number"
+          extra="For contact only. Not used to sign in."
+          rules={[
+            { required: true, whitespace: true, message: 'Please enter your phone number.' },
+            { pattern: PH_MOBILE_REGEX, message: 'Enter a valid PH mobile number (09XXXXXXXXX).' },
+          ]}
+        >
+          <Input size="large" placeholder="09XXXXXXXXX" autoComplete="tel" />
+        </Form.Item>
+        <Form.Item name="address" label="Street or purok (optional)">
+          <Input size="large" placeholder="e.g. Purok 3, Ponce St." autoComplete="street-address" />
+        </Form.Item>
 
-        {!completingProfile && (
+        <div className="auth-consent">
+          <Checkbox
+            className="report-ai-processing-checkbox"
+            checked={privacyAcknowledged}
+            onChange={(event) => setPrivacyAcknowledged(event.target.checked)}
+          >
+            I agree that my details are used to create my account. If I submit a report, its text and
+            photos are sent to Google Gemini for AI classification. I will be asked to confirm before
+            anything is sent.
+          </Checkbox>
+        </div>
+        <Form.Item>
           <Button
-            icon={<GoogleOutlined />}
+            type="primary"
+            htmlType="submit"
             block
             size="large"
-            onClick={handleGoogle}
             loading={loading}
             disabled={!privacyAcknowledged}
           >
-            Sign up with Google
+            Create account
           </Button>
-        )}
+        </Form.Item>
+      </Form>
 
-        <div style={{ textAlign: 'center', marginTop: 16 }}>
-          <Text type="secondary">Already have an account? </Text>
-          <Link to="/login">Sign in</Link>
-        </div>
-      </Card>
-    </div>
+      {!completingProfile && <Divider>or</Divider>}
+
+      {!completingProfile && (
+        <Button
+          className="auth-google-button"
+          icon={<GoogleOutlined aria-hidden="true" />}
+          block
+          size="large"
+          onClick={handleGoogle}
+          loading={loading}
+          disabled={!privacyAcknowledged}
+        >
+          Sign up with Google
+        </Button>
+      )}
+
+      <p className="auth-switch-account">
+        <Text type="secondary">Already have an account? </Text>
+        <Link to="/login">Sign in</Link>
+      </p>
+    </AuthLayout>
   );
 }

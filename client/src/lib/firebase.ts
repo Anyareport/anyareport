@@ -10,6 +10,9 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   fetchSignInMethodsForEmail,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
 } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -45,6 +48,10 @@ export async function sendVerificationEmail(user: Parameters<typeof sendEmailVer
 export async function loginWithEmail(email: string, password: string) {
   const cred = await signInWithEmailAndPassword(auth, email, password);
   return cred.user;
+}
+
+export async function setAuthPersistence(keepSignedIn: boolean) {
+  await setPersistence(auth, keepSignedIn ? browserLocalPersistence : browserSessionPersistence);
 }
 
 export async function loginWithGoogle() {
