@@ -35,6 +35,7 @@ import {
   FlagOutlined,
   LeftOutlined,
   PhoneOutlined,
+  PrinterOutlined,
   RightOutlined,
   RobotOutlined,
   UserAddOutlined,
@@ -54,6 +55,7 @@ import { getLocalizedCategory, getLocalizedStatus, type LabelKey } from '../../i
 import { notificationFeedQueryKey } from '../../lib/notificationFeed';
 import { invalidateReportQueries } from '../../lib/reportUpdates';
 import { getSuggestedNextSteps } from '../../lib/nextSteps';
+import { createIncidentSummaryHtml } from '../../lib/incidentSummary';
 import {
   BLOTTER_REPORT_CATEGORY,
   FIELD_REPORT_CATEGORIES,
@@ -167,6 +169,32 @@ async function downloadFile(path: string, filename: string) {
   } catch (error) {
     message.error(error instanceof Error ? error.message : 'Download failed');
   }
+}
+
+function printIncidentSummary(
+  report: Report,
+  reporterName?: string | null,
+  reporterPhone?: string | null,
+  generatedByName?: string | null,
+  generatedByRole?: string | null
+) {
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    message.error('Allow pop-ups to print the incident summary');
+    return;
+  }
+  printWindow.opener = null;
+  printWindow.document.write(
+    createIncidentSummaryHtml(report, {
+      generatedByName,
+      generatedByRole,
+      reporterName,
+      reporterPhone,
+    })
+  );
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
 }
 
 export default function IncidentDetailPage({ variant }: IncidentDetailPageProps) {
@@ -450,6 +478,8 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     (variant === 'admin' && ['admin', 'captain', 'secretary'].includes(role || ''));
   const canViewReporterContact =
     (variant === 'responder' && isParticipant) || (variant === 'admin' && role === 'secretary');
+  const canExportIncidentSummary =
+    variant === 'admin' && ['captain', 'secretary'].includes(role || '');
   const submitterDialNumber = report.submitterPhone
     ? getDialablePhone(report.submitterPhone)
     : null;
@@ -1208,6 +1238,25 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
           {text('back', 'Back')}
         </Button>
+        {canExportIncidentSummary && (
+          <Button
+            className="incident-summary-button"
+            aria-label="Print incident summary"
+            title="Print incident summary"
+            icon={<PrinterOutlined />}
+            onClick={() =>
+              printIncidentSummary(
+                report,
+                canViewReporter ? report.submitterName : null,
+                canViewReporterContact ? report.submitterPhone : null,
+                profile?.name,
+                role
+              )
+            }
+          >
+            <span className="incident-summary-button__label">Print summary</span>
+          </Button>
+        )}
         {/* {variant === 'admin' && <Text className="incident-role-label">{role?.toUpperCase()}</Text>} */}
       </header>
 
