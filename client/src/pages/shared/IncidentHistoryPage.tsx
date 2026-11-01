@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Dropdown, Grid, Input, message, Popover, Select, Space, Tag } from 'antd';
+import { Alert, Button, Dropdown, Grid, Input, message, Popover, Select, Space } from 'antd';
 import {
   DownloadOutlined,
   ExportOutlined,
@@ -8,6 +8,7 @@ import {
   FilterOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
+import AppTag from '../../components/AppTag';
 import { useSearchParams } from 'react-router-dom';
 import { api, type Report } from '../../lib/api';
 import IncidentList from '../../components/IncidentList';
@@ -412,14 +413,14 @@ export default function IncidentHistoryPage({
   const filterTags = activeFilterTags.length ? (
     <Space wrap size={[4, 4]} style={{ width: '100%' }}>
       {activeFilterTags.map((filter) => (
-        <Tag
+        <AppTag
           key={filter.key}
           closable
           onClose={filter.onClose}
           style={{ marginInlineEnd: 0, maxWidth: '100%', whiteSpace: 'normal', overflowWrap: 'anywhere' }}
         >
           {filter.label}
-        </Tag>
+        </AppTag>
       ))}
     </Space>
   ) : undefined;

@@ -1,7 +1,8 @@
-import { Card, Progress, Skeleton, Tag, Typography } from 'antd';
+import { Card, Progress, Skeleton, Typography } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
+import AppTag, { type AppTagTone } from './AppTag';
 
 const { Text } = Typography;
 
@@ -68,22 +69,13 @@ const toneProgressColor: Record<KpiTone, string> = {
   danger: 'var(--severity-critical-tag)',
 };
 
-const badgeBg: Record<KpiTone, string> = {
-  neutral: 'var(--bg-secondary)',
-  accent: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)',
-  success: 'color-mix(in srgb, var(--severity-low-tag) 14%, transparent)',
-  medium: 'color-mix(in srgb, var(--severity-medium-tag) 14%, transparent)',
-  warning: 'color-mix(in srgb, var(--severity-high-tag) 14%, transparent)',
-  danger: 'color-mix(in srgb, var(--severity-critical-tag) 14%, transparent)',
-};
-
-const badgeColor: Record<KpiTone, string> = {
-  neutral: 'var(--text-secondary)',
-  accent: 'var(--brand-primary)',
-  success: 'var(--severity-low-tag)',
-  medium: 'var(--severity-medium-tag)',
-  warning: 'var(--severity-high-tag)',
-  danger: 'var(--severity-critical-tag)',
+const badgeTones: Record<KpiTone, AppTagTone> = {
+  neutral: 'neutral',
+  accent: 'info',
+  success: 'success',
+  medium: 'caution',
+  warning: 'warning',
+  danger: 'danger',
 };
 
 export default function KpiCard({
@@ -163,21 +155,9 @@ export default function KpiCard({
       {badges && badges.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
           {badges.map((badge) => (
-            <Tag
-              key={badge.text}
-              bordered={false}
-              style={{
-                background: badgeBg[badge.tone],
-                color: badgeColor[badge.tone],
-                fontWeight: 500,
-                fontSize: 11,
-                borderRadius: 4,
-                padding: '1px 6px',
-                margin: 0,
-              }}
-            >
+            <AppTag key={badge.text} tone={badgeTones[badge.tone]}>
               {badge.text}
-            </Tag>
+            </AppTag>
           ))}
         </div>
       )}

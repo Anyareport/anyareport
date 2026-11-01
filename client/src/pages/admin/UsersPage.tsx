@@ -22,6 +22,7 @@ import { useSearchParams } from 'react-router-dom';
 import { api, type UserProfile } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { PH_MOBILE_REGEX } from '../../lib/phone';
+import AppTag from '../../components/AppTag';
 import { getStatusTagStyle } from '../../lib/statusTagStyles';
 import './UsersPage.css';
 
@@ -51,9 +52,9 @@ function getRoleTagStyle(role: string) {
 
 function VerifiedTag({ verified }: { verified: boolean }) {
   return (
-    <Tag color={verified ? 'green' : 'orange'} style={{ marginInlineEnd: 0 }}>
+    <AppTag tone={verified ? 'success' : 'warning'}>
       {verified ? 'Verified' : 'Unverified'}
-    </Tag>
+    </AppTag>
   );
 }
 
@@ -249,7 +250,9 @@ export default function AdminUsersPage() {
         <>
           {name}
           {user.firebaseUid === firebaseUser?.uid && (
-            <Tag className="user-management-self-tag">You</Tag>
+            <AppTag tone="info" className="user-management-self-tag">
+              You
+            </AppTag>
           )}
         </>
       ),
@@ -259,7 +262,11 @@ export default function AdminUsersPage() {
       title: 'Role',
       dataIndex: 'role',
       key: 'role',
-      render: (role: string) => <Tag style={getRoleTagStyle(role)}>{getRoleLabel(role)}</Tag>,
+      render: (role: string) => (
+        <AppTag tone="neutral" style={getRoleTagStyle(role)}>
+          {getRoleLabel(role)}
+        </AppTag>
+      ),
     },
     {
       title: 'Email',
@@ -272,7 +279,9 @@ export default function AdminUsersPage() {
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => (
-        <Tag style={getAccountStatusTagStyle(status)}>{capitalize(status)}</Tag>
+        <Tag className="app-tag" style={getAccountStatusTagStyle(status)}>
+          {capitalize(status)}
+        </Tag>
       ),
     },
     {
@@ -373,15 +382,21 @@ export default function AdminUsersPage() {
                 <strong>
                   {user.name}
                   {user.firebaseUid === firebaseUser?.uid && (
-                    <Tag className="user-management-self-tag">You</Tag>
+                    <AppTag tone="info" className="user-management-self-tag">
+                      You
+                    </AppTag>
                   )}
                 </strong>
                 {renderActions(user)}
               </div>
               <div className="user-management-mobile-card__email">{user.email}</div>
               <Space size={6} wrap>
-                <Tag style={getRoleTagStyle(user.role)}>{getRoleLabel(user.role)}</Tag>
-                <Tag style={getAccountStatusTagStyle(user.status)}>{capitalize(user.status)}</Tag>
+                <AppTag tone="neutral" style={getRoleTagStyle(user.role)}>
+                  {getRoleLabel(user.role)}
+                </AppTag>
+                <Tag className="app-tag" style={getAccountStatusTagStyle(user.status)}>
+                  {capitalize(user.status)}
+                </Tag>
                 <VerifiedTag verified={!!user.emailVerified} />
               </Space>
             </Card>

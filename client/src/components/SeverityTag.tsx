@@ -56,6 +56,7 @@ export default function SeverityTag({ severity }: { severity: string | null | un
 
   return (
     <Tag
+      className="app-tag"
       style={{ ...style, border: 0, fontWeight: 600, marginInlineEnd: 0 }}
       icon={<WarningOutlined />}
     >

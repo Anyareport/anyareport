@@ -9,11 +9,11 @@ import {
   Popover,
   Select,
   Space,
-  Tag,
   Tooltip,
   Typography,
 } from 'antd';
 import { ExportOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons';
+import AppTag from '../../components/AppTag';
 import { api, type AuditLog } from '../../lib/api';
 import { downloadCsv, toCsv } from '../../lib/csv';
 import {
@@ -206,14 +206,14 @@ export default function AdminAuditLogPage() {
   const filterTags = activeFilters.length ? (
     <Space wrap size={[4, 4]} style={{ width: '100%' }}>
       {activeFilters.map((filter) => (
-        <Tag
+        <AppTag
           key={filter.key}
           closable
           onClose={filter.onClose}
           style={{ marginInlineEnd: 0, maxWidth: '100%', whiteSpace: 'normal', overflowWrap: 'anywhere' }}
         >
           {filter.label}
-        </Tag>
+        </AppTag>
       ))}
     </Space>
   ) : undefined;

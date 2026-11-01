@@ -54,7 +54,7 @@ export default function ResidentAccountsPage() {
       dataIndex: 'status',
       key: 'status',
       render: (status: ResidentAccount['status']) => (
-        <Tag style={{ ...getStatusTagStyle(status), marginInlineEnd: 0 }}>
+        <Tag className="app-tag" style={{ ...getStatusTagStyle(status), marginInlineEnd: 0 }}>
           {status.charAt(0).toUpperCase() + status.slice(1)}
         </Tag>
       ),

@@ -10,7 +10,6 @@ import {
   Input,
   Row,
   Space,
-  Tag,
   Typography,
   message,
 } from 'antd';
@@ -20,6 +19,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { sendVerificationEmail } from '../../lib/firebase';
 import { useLang } from '../../contexts/LanguageContext';
 import { getRoleLabel } from '../../lib/roles';
+import AppTag from '../../components/AppTag';
 
 const { Text, Title } = Typography;
 
@@ -134,10 +134,10 @@ export default function ProfilePage() {
                     {profile.name}
                   </Title>
                   <Space size={[4, 4]} wrap>
-                    <Tag color="blue">{getRoleLabel(profile.role)}</Tag>
-                    <Tag color={profile.status === 'active' ? 'green' : 'red'}>
+                    <AppTag tone="info">{getRoleLabel(profile.role)}</AppTag>
+                    <AppTag tone={profile.status === 'active' ? 'success' : 'danger'}>
                       {translate && profile.status === 'active' ? t('active') : profile.status}
-                    </Tag>
+                    </AppTag>
                     <Text type="secondary">Barangay Don Mariano Marcos</Text>
                   </Space>
                 </Space>
@@ -319,13 +319,13 @@ export default function ProfilePage() {
               <Row align="middle" justify="space-between" gutter={[8, 8]}>
                 <Col>{translate ? t('emailVerified') : 'Email verified'}</Col>
                 <Col>
-                  <Tag color={profile.emailVerified ? 'green' : 'default'}>
+                  <AppTag tone={profile.emailVerified ? 'success' : 'neutral'}>
                     {translate
                       ? t(profile.emailVerified ? 'yes' : 'no')
                       : profile.emailVerified
                         ? 'Yes'
                         : 'No'}
-                  </Tag>
+                  </AppTag>
                 </Col>
               </Row>
               {!suspended && !profile.emailVerified && firebaseUser && (

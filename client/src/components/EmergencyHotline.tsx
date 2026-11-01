@@ -4,11 +4,12 @@ import {
   PhoneOutlined,
   SafetyOutlined,
 } from '@ant-design/icons';
-import { Button, Drawer, Grid, Popover, Space, Tag, Typography } from 'antd';
+import { Button, Drawer, Grid, Popover, Space, Typography } from 'antd';
 import { useState } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LanguageContext';
+import AppTag from './AppTag';
 import './EmergencyHotline.css';
 
 const { Text } = Typography;
@@ -128,7 +129,9 @@ export default function EmergencyHotline({
               <div className="emergency-hotline__details">
                 <div className="emergency-hotline__name-line">
                   <Text strong>{contact.name}</Text>
-                  {isSuggested && <Tag color="blue">{text('criminalCase', 'Criminal case')}</Tag>}
+                  {isSuggested && (
+                    <AppTag tone="info">{text('criminalCase', 'Criminal case')}</AppTag>
+                  )}
                 </div>
                 <Text type="secondary" className="emergency-hotline__description">
                   {dialNumber

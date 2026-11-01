@@ -2,6 +2,43 @@
 
 @import './styles/theme.css';
 
+.app-tag.ant-tag {
+  border: 0;
+  border-radius: 4px;
+  font-weight: 600;
+  margin-inline-end: 0;
+}
+
+.app-tag--neutral {
+  background: color-mix(in srgb, var(--badge-neutral-color) 14%, transparent);
+  color: var(--badge-neutral-color);
+}
+
+.app-tag--info {
+  background: color-mix(in srgb, var(--badge-info-color) 14%, transparent);
+  color: var(--badge-info-color);
+}
+
+.app-tag--success {
+  background: color-mix(in srgb, var(--badge-success-color) 14%, transparent);
+  color: var(--badge-success-color);
+}
+
+.app-tag--caution {
+  background: color-mix(in srgb, var(--badge-caution-color) 14%, transparent);
+  color: var(--badge-caution-color);
+}
+
+.app-tag--warning {
+  background: color-mix(in srgb, var(--badge-warning-color) 14%, transparent);
+  color: var(--badge-warning-color);
+}
+
+.app-tag--danger {
+  background: color-mix(in srgb, var(--badge-danger-color) 14%, transparent);
+  color: var(--badge-danger-color);
+}
+
 @font-face {
   font-family: 'Roboto Slab';
   src: url('./assets/fonts/Oswald-VariableFont_wght.ttf') format('truetype');
@@ -245,7 +282,7 @@ a {
 
 .notification-card--public-emergency.notification-card--unread {
   background: color-mix(in srgb, var(--severity-critical-tag) 8%, var(--bg-primary));
-  box-shadow: inset 4px 0 0 var(--severity-critical-text);
+  box-shadow: inset 4px 0 0 var(--severity-critical-tag);
 }
 
 .notification-card--public-emergency.notification-card--unread .notification-card__row:hover {
@@ -309,10 +346,14 @@ a {
 }
 
 .notification-card__icon--admin-account,
-.notification-card__icon--admin-event,
-.notification-card__icon--flagged {
+.notification-card__icon--admin-event {
   background: color-mix(in srgb, var(--severity-high-tag) 14%, transparent);
-  color: var(--severity-high-text);
+  color: var(--severity-high-tag);
+}
+
+.notification-card__icon--flagged {
+  background: color-mix(in srgb, var(--severity-critical-tag) 14%, transparent);
+  color: var(--severity-critical-tag);
 }
 
 .notification-card__icon--response-declined {
@@ -320,35 +361,30 @@ a {
   color: var(--neutral-500);
 }
 
-.notification-card__icon--emergency {
-  background: color-mix(in srgb, var(--severity-critical-tag) 14%, transparent);
-  color: var(--severity-critical-text);
-}
-
+.notification-card__icon--emergency,
 .notification-card__icon--public-emergency {
-  background: color-mix(in srgb, var(--severity-critical-tag) 22%, transparent);
-  color: var(--severity-critical-text);
-  font-size: 17px;
+  background: color-mix(in srgb, var(--severity-critical-tag) 14%, transparent);
+  color: var(--severity-critical-tag);
 }
 
 .notification-card__icon--severity-low {
   background: color-mix(in srgb, var(--severity-low-tag) 14%, transparent);
-  color: var(--severity-low-text);
+  color: var(--severity-low-tag);
 }
 
 .notification-card__icon--severity-medium {
   background: color-mix(in srgb, var(--severity-medium-tag) 14%, transparent);
-  color: var(--severity-medium-text);
+  color: var(--severity-medium-tag);
 }
 
 .notification-card__icon--severity-high {
   background: color-mix(in srgb, var(--severity-high-tag) 14%, transparent);
-  color: var(--severity-high-text);
+  color: var(--severity-high-tag);
 }
 
 .notification-card__icon--severity-critical {
   background: color-mix(in srgb, var(--severity-critical-tag) 14%, transparent);
-  color: var(--severity-critical-text);
+  color: var(--severity-critical-tag);
 }
 
 .notification-card__body {
@@ -368,7 +404,7 @@ a {
 }
 
 .notification-card__emergency-label.ant-typography {
-  color: var(--severity-critical-text);
+  color: var(--severity-critical-tag);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.07em;
@@ -376,7 +412,7 @@ a {
 }
 
 .notification-card__resolved-label.ant-typography {
-  color: var(--severity-low-text);
+  color: var(--severity-low-tag);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.07em;
@@ -393,7 +429,7 @@ a {
 }
 
 .notifications-page__push-enabled.ant-alert-success .ant-alert-icon {
-  color: var(--severity-low-text);
+  color: var(--severity-low-tag);
 }
 
 .notifications-page__push-enabled.ant-alert-success .ant-alert-message {

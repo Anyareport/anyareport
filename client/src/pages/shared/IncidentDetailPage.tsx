@@ -17,7 +17,6 @@ import {
   Radio,
   Row,
   Space,
-  Tag,
   Timeline,
   Typography,
   Select,
@@ -45,6 +44,7 @@ import {
 import { api, type AuditLog, type DispatchResponder, type Report } from '../../lib/api';
 import StatusTag from '../../components/StatusTag';
 import SeverityTag from '../../components/SeverityTag';
+import AppTag from '../../components/AppTag';
 import EmergencyHotline from '../../components/EmergencyHotline';
 import { StaticMap, RouteMap } from '../../components/map/MapPicker';
 import { useAuth } from '../../contexts/AuthContext';
@@ -1117,13 +1117,13 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                 {categoryLabels.subcategory ? ` · ${categoryLabels.subcategory}` : ''}
               </Text>
             </Space>
-            <Tag
-              color={report.resolution.verificationStatus === 'verified' ? 'success' : 'warning'}
+            <AppTag
+              tone={report.resolution.verificationStatus === 'verified' ? 'success' : 'warning'}
             >
               {report.resolution.verificationStatus === 'verified'
                 ? text('resolutionReviewed', 'Reviewed')
                 : text('pendingReview', 'Pending review')}
-            </Tag>
+            </AppTag>
           </div>
           <Divider style={{ margin: 0 }} />
           {resolutionSummaryText.trim() && (
@@ -1145,25 +1145,25 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
             <Col xs={12}>
               <Text strong>{text('furtherActionRequired', 'Further Action Required')}</Text>
               <div>
-                <Tag bordered={false}>
+                <AppTag tone="neutral">
                   {report.resolution.furtherActionRequired === null
                     ? '—'
                     : report.resolution.furtherActionRequired
                       ? text('yes', 'Yes')
                       : text('no', 'No')}
-                </Tag>
+                </AppTag>
               </div>
             </Col>
             <Col xs={12}>
               <Text strong>{text('assistanceRequested', 'Assistance Requested')}</Text>
               <div>
-                <Tag bordered={false}>
+                <AppTag tone="neutral">
                   {report.resolution.assistanceRequested === null
                     ? '—'
                     : report.resolution.assistanceRequested
                       ? text('yes', 'Yes')
                       : text('no', 'No')}
-                </Tag>
+                </AppTag>
               </div>
             </Col>
           </Row>

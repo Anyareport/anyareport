@@ -35,61 +35,66 @@
   --neutral-900: var(--shared-color-gray900);
   --neutral-black: var(--shared-color-black);
 
+  /* Shared badge color families */
+  --badge-green: var(--shared-color-green500);
+  --badge-yellow: var(--shared-color-yellow500);
+  --badge-orange: var(--shared-color-orange500);
+  --badge-red: var(--shared-color-red500);
+
   /* ===== Status Colors (Semantic) ===== */
   --status-pending-bg: var(--shared-color-slate100);
   --status-pending-border: var(--shared-color-slate300);
-  --status-pending-text: #8ca9d1;
   --status-pending-tag: var(--shared-color-slate400);
+  --status-pending-text: var(--status-pending-tag);
 
-  --status-verified-bg: var(--shared-color-green50);
-  --status-verified-border: #dbeafe;
-  --status-verified-text: var(--shared-color-greenVerified);
-  --status-verified-tag: var(--shared-color-greenVerified);
+  --status-verified-text: var(--badge-green);
+  --status-verified-tag: var(--badge-green);
 
   --status-coordinating-bg: rgb(228, 249, 252);
   --status-coordinating-border: #3bdaf6;
-  --status-coordinating-text: #18c4e2;
+  --status-coordinating-tag: #18c4e2;
+  --status-coordinating-text: var(--status-coordinating-tag);
 
   --status-en-route-bg: var(--shared-color-slate100);
   --status-en-route-border: #38b6e7;
-  --status-en-route-text: #0cb5f8;
   --status-en-route-tag: #0ea5e9;
+  --status-en-route-text: var(--status-en-route-tag);
 
   --status-on-scene-bg: #daeef5;
   --status-on-scene-border: var(--shared-color-sky400);
-  --status-on-scene-text: var(--shared-color-sky400);
   --status-on-scene-tag: var(--shared-color-sky400);
+  --status-on-scene-text: var(--status-on-scene-tag);
 
   --status-resolved-bg: var(--shared-color-blue100);
   --status-resolved-border: var(--shared-color-blue500);
-  --status-resolved-text: var(--shared-color-blue500);
   --status-resolved-tag: var(--shared-color-blue500);
+  --status-resolved-text: var(--status-resolved-tag);
 
   --status-flagged-bg: #fef2f2;
   --status-flagged-border: var(--shared-color-red100);
-  --status-flagged-text: var(--shared-color-red800);
-  --status-flagged-tag: var(--shared-color-red400);
+  --status-flagged-text: var(--badge-red);
+  --status-flagged-tag: var(--badge-red);
 
   /* ===== Severity Colors ===== */
-  --severity-critical-bg: var(--shared-color-red100);
-  --severity-critical-border: var(--shared-color-red300);
-  --severity-critical-text: var(--shared-color-red500);
-  --severity-critical-tag: var(--shared-color-red500);
+  --severity-critical-text: var(--badge-red);
+  --severity-critical-tag: var(--badge-red);
 
-  --severity-high-bg: #fce7cb;
-  --severity-high-border: var(--shared-color-orange300);
-  --severity-high-text: #f97316;
-  --severity-high-tag: #f97316;
+  --severity-high-text: var(--badge-orange);
+  --severity-high-tag: var(--badge-orange);
 
-  --severity-medium-bg: color-mix(in srgb, #eab308 14%, transparent);
-  --severity-medium-border: #eab308;
-  --severity-medium-text: #b45309;
-  --severity-medium-tag: #eab308;
+  --severity-medium-text: var(--badge-yellow);
+  --severity-medium-tag: var(--badge-yellow);
 
-  --severity-low-bg: #dcfce7;
-  --severity-low-border: var(--shared-color-green300);
-  --severity-low-text: var(--shared-color-green500);
-  --severity-low-tag: var(--shared-color-green500);
+  --severity-low-text: var(--badge-green);
+  --severity-low-tag: var(--badge-green);
+
+  /* Shared badge tones */
+  --badge-neutral-color: var(--status-pending-tag);
+  --badge-info-color: var(--status-resolved-tag);
+  --badge-success-color: var(--badge-green);
+  --badge-caution-color: var(--badge-yellow);
+  --badge-warning-color: var(--badge-orange);
+  --badge-danger-color: var(--badge-red);
 
   /* ===== Map Colors ===== */
   --map-boundary: var(--shared-color-slate400);
@@ -196,6 +201,10 @@
    Dark Theme Variables
    ======================================== */
 [data-theme='dark'] {
+  --badge-yellow: var(--shared-color-yellow400);
+  --badge-orange: var(--shared-color-orange400);
+  --badge-red: var(--shared-color-red400);
+
   /* ===== Brand Colors (Dark) ===== */
   --brand-primary: var(--shared-color-brandPrimaryLight);
   /* ===== Neutral Colors (Dark) ===== */
@@ -227,56 +236,47 @@
   /* ===== Status Colors (Dark) ===== */
   --status-pending-bg: #4d545e;
   --status-pending-border: #465264;
-  --status-pending-text: var(--shared-color-slate300);
   --status-pending-tag: var(--shared-color-slate400);
+  --status-pending-text: var(--status-pending-tag);
 
-  --status-verified-bg: #1a3822;
-  --status-verified-border: var(--shared-color-greenVerified);
-  --status-verified-text: #71dd67;
-  --status-verified-tag: var(--shared-color-green50);
+  --status-verified-text: var(--badge-green);
+  --status-verified-tag: var(--badge-green);
 
   --status-coordinating-bg: #006779;
   --status-coordinating-border: #11b4c0;
-  --status-coordinating-text: #67e8ff;
+  --status-coordinating-tag: #67e8ff;
+  --status-coordinating-text: var(--status-coordinating-tag);
 
   --status-en-route-bg: #082f49;
   --status-en-route-border: #0369a1;
-  --status-en-route-text: #bae6fd;
   --status-en-route-tag: #38bdf8;
+  --status-en-route-text: var(--status-en-route-tag);
 
   --status-on-scene-bg: #1c5170;
   --status-on-scene-border: #118fc0;
-  --status-on-scene-text: #5fd2ff;
   --status-on-scene-tag: #118fc0;
+  --status-on-scene-text: var(--status-on-scene-tag);
 
   --status-resolved-bg: #1d3985;
   --status-resolved-border: #1d4ed8;
-  --status-resolved-text: #6dbdff;
   --status-resolved-tag: var(--shared-color-blue400);
+  --status-resolved-text: var(--status-resolved-tag);
 
   --status-flagged-bg: var(--shared-color-red900);
   --status-flagged-border: #991b1b;
-  --status-flagged-text: var(--shared-color-red300);
-  --status-flagged-tag: var(--shared-color-red500);
+  --status-flagged-text: var(--badge-red);
+  --status-flagged-tag: var(--badge-red);
 
   /* ===== Severity Colors (Dark) ===== */
-  --severity-critical-bg: var(--shared-color-red900);
-  --severity-critical-border: var(--shared-color-red800);
-  --severity-critical-text: var(--shared-color-red300);
-  --severity-critical-tag: var(--shared-color-red400);
+  --severity-critical-text: var(--badge-red);
+  --severity-critical-tag: var(--badge-red);
 
-  --severity-high-bg: #7c2d12;
-  --severity-high-border: #c2410c;
-  --severity-high-text: var(--shared-color-orange300);
-  --severity-high-tag: #fb923c;
+  --severity-high-text: var(--badge-orange);
+  --severity-high-tag: var(--badge-orange);
 
-  --severity-medium-bg: color-mix(in srgb, #eab308 14%, transparent);
-  --severity-medium-border: #eab308;
-  --severity-medium-text: #fbbf24;
-  --severity-medium-tag: var(--shared-color-yellow400);
+  --severity-medium-text: var(--badge-yellow);
+  --severity-medium-tag: var(--badge-yellow);
 
-  --severity-low-bg: #14532d;
-  --severity-low-border: var(--shared-color-green800);
-  --severity-low-text: var(--shared-color-green300);
-  --severity-low-tag: var(--shared-color-green500);
+  --severity-low-text: var(--badge-green);
+  --severity-low-tag: var(--badge-green);
 }

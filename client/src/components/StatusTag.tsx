@@ -14,7 +14,11 @@ export default function StatusTag({ status }: { status: string }) {
       ? getLocalizedStatus(status, t)
       : formatStatus(status);
 
-  return <Tag style={getStatusTagStyle(status)}>{label}</Tag>;
+  return (
+    <Tag className="app-tag" style={getStatusTagStyle(status)}>
+      {label}
+    </Tag>
+  );
 }
 
 export function formatStatus(status: string) {

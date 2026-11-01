@@ -16,7 +16,6 @@ import {
   Image,
   Spin,
   Space,
-  Tag,
 } from 'antd';
 import {
   UploadOutlined,
@@ -32,6 +31,7 @@ import { useAuth } from '../contexts/AuthContext';
 import type { FeatureCollection } from 'geojson';
 import { findContainingPurok, isInsideBarangayBoundary } from '../components/map/MapPicker';
 import SeverityTag from './SeverityTag';
+import AppTag from './AppTag';
 import barangayData from '../data/DMM.json';
 import { compressImage } from '../lib/imageCompressor';
 
@@ -379,9 +379,9 @@ export default function SubmitReportForm({
           <Form.Item>
             <Space direction="vertical" size={8} style={{ width: '100%' }}>
               {selectedLocation ? (
-                <Tag color="blue">Location selected</Tag>
+                <AppTag tone="info">Location selected</AppTag>
               ) : (
-                <Tag color="red">No location selected</Tag>
+                <AppTag tone="danger">No location selected</AppTag>
               )}
               <div
                 style={{
