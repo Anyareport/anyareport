@@ -5,6 +5,10 @@ import { getUsernameByUid as lookupUsernameByUid } from '../services/userLookup.
 
 export async function registerProfile(req, res) {
   try {
+    if (req.body?.consent !== true) {
+      return res.status(400).json({ error: 'Privacy acknowledgement is required' });
+    }
+
     const { name, phone, address, email } = req.body;
     const uid = req.firebaseUser.uid;
 

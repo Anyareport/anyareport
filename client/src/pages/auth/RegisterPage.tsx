@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Form, Input, Button, Card, Typography, message, Divider, Alert } from 'antd';
+import { Form, Input, Button, Card, Typography, message, Divider, Alert, Checkbox } from 'antd';
 import { GoogleOutlined } from '@ant-design/icons';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -52,6 +52,7 @@ export default function RegisterPage() {
   const { firebaseUser, profile, loading: authLoading, refreshProfile } = useAuth();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [privacyAcknowledged, setPrivacyAcknowledged] = useState(false);
   const routeState = location.state as { completeGoogleProfile?: boolean } | null;
   const isGoogleUser = Boolean(
     firebaseUser?.providerData.some(({ providerId }) => providerId === 'google.com')
@@ -92,6 +93,11 @@ export default function RegisterPage() {
     phone: string;
     address: string;
   }) => {
+    if (!privacyAcknowledged) {
+      message.warning('Please acknowledge the privacy notice before continuing.');
+      return;
+    }
+
     setLoading(true);
     try {
       if (!completingProfile) {
@@ -103,6 +109,7 @@ export default function RegisterPage() {
         email: completingProfile ? firebaseUser?.email : values.email,
         phone: values.phone,
         address: values.address,
+        consent: privacyAcknowledged,
         captchaToken,
       });
       await refreshProfile();
@@ -118,6 +125,11 @@ export default function RegisterPage() {
   };
 
   const handleGoogle = async () => {
+    if (!privacyAcknowledged) {
+      message.warning('Please acknowledge the privacy notice before continuing.');
+      return;
+    }
+
     setLoading(true);
     try {
       const user = await loginWithGoogle();
@@ -165,14 +177,6 @@ export default function RegisterPage() {
         <Alert
           type="info"
           message="Phone number is for contact purposes only — not used for login or OTP verification."
-          style={{ marginBottom: 16 }}
-          showIcon
-        />
-
-        <Alert
-          type="info"
-          message="Privacy notice"
-          description="Your registration details are used to create and maintain your Anyareport account. If you submit a report, its description and attached photos will be sent to Google Gemini for AI-assisted classification; you will see a separate notice and acknowledgement before that information is sent."
           style={{ marginBottom: 16 }}
           showIcon
         />
@@ -227,8 +231,28 @@ export default function RegisterPage() {
           <Form.Item name="address" label="Address">
             <Input.TextArea rows={2} />
           </Form.Item>
+          <div style={{ marginBottom: 24 }}>
+            <Checkbox
+              className="report-ai-processing-checkbox"
+              checked={privacyAcknowledged}
+              onChange={(event) => setPrivacyAcknowledged(event.target.checked)}
+              style={{ marginTop: 4 }}
+            >
+              <span style={{ color: '#ff4d4f' }}>*</span>{' '}
+              I agree that my details are used to create my account. If I submit a report, its text
+              and photos are sent to Google Gemini for AI classification. I will be asked to confirm
+              before anything is sent.
+            </Checkbox>
+          </div>
           <Form.Item>
-            <Button type="primary" htmlType="submit" block size="large" loading={loading}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              block
+              size="large"
+              loading={loading}
+              disabled={!privacyAcknowledged}
+            >
               Create Account
             </Button>
           </Form.Item>
@@ -243,6 +267,7 @@ export default function RegisterPage() {
             size="large"
             onClick={handleGoogle}
             loading={loading}
+            disabled={!privacyAcknowledged}
           >
             Sign up with Google
           </Button>
