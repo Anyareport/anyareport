@@ -2,11 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Drawer, Grid, message } from 'antd';
-import { CloseOutlined, FileAddOutlined } from '@ant-design/icons';
+import { CloseOutlined, EnvironmentOutlined, FileAddOutlined } from '@ant-design/icons';
 import { api, type Report } from '../../lib/api';
 import MapDashboard, { type IncidentMarker } from '../../components/map/MapDashboard';
 import MapReportCard from '../../components/map/MapReportCard';
 import '../../components/map/MapReportCard.css';
+import './MapPage.css';
 import EmergencyHotline from '../../components/EmergencyHotline';
 import SubmitReportForm from '../../components/SubmitReportForm';
 import type { FeatureCollection } from 'geojson';
@@ -79,7 +80,7 @@ export default function MapPage() {
   };
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="resident-map-page">
       <MapDashboard
         points={mapPoints}
         height={isMobile ? 'calc(100dvh - var(--mobile-navigation-height))' : '100vh'}
@@ -161,14 +162,23 @@ export default function MapPage() {
         </div>
       )}
       {isPickingLocation && (
-        <Button
-          danger
-          icon={<CloseOutlined />}
-          style={{ position: 'absolute', top: 48, right: 16, zIndex: 1102 }}
-          onClick={() => setIsPickingLocation(false)}
-        >
-          Cancel location selection
-        </Button>
+        <section className="map-location-picker" aria-label="Location selection">
+          <div className="map-location-picker__instruction">
+            <EnvironmentOutlined aria-hidden="true" />
+            <span>Tap the map to set the incident location</span>
+          </div>
+          <Button
+            danger
+            className="map-location-picker__cancel"
+            icon={<CloseOutlined />}
+            onClick={() => {
+              setIsPickingLocation(false);
+              navigate('/resident/report');
+            }}
+          >
+            Cancel
+          </Button>
+        </section>
       )}
       <Drawer
         title="Report an incident"

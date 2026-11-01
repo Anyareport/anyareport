@@ -245,6 +245,7 @@ export default function MapDashboard({
 
   return (
     <div
+      className={isPickingLocation ? 'map-dashboard map-dashboard--picking' : 'map-dashboard'}
       style={{
         height,
         overflow: 'hidden',
