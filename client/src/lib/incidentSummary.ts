@@ -62,8 +62,8 @@ export function createIncidentSummaryHtml(
         field('Outcome', resolution?.outcome),
         ...(resolution?.verificationStatus === 'verified'
           ? [
-              field('Verified by', resolution.verifiedByName || resolution.verifiedBy),
-              field('Verified at', formatDate(resolution.verifiedAt)),
+              field('Reviewed by', resolution.verifiedByName || resolution.verifiedBy),
+              field('Reviewed at', formatDate(resolution.verifiedAt)),
             ]
           : []),
       ].join('')

@@ -1110,14 +1110,14 @@ export async function verifyResolution(req, res) {
     if (!['captain', 'secretary'].includes(req.userRole)) {
       return res
         .status(403)
-        .json({ error: 'Only the Captain or Secretary can verify resolutions' });
+        .json({ error: 'Only the Captain or Secretary can review resolutions' });
     }
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ error: 'Report not found' });
     if (!report.resolution?.resolvedAt) {
       return res
         .status(409)
-        .json({ error: 'Resolution details must be submitted before verification' });
+        .json({ error: 'Resolution details must be submitted before review' });
     }
     if (report.resolution.verificationStatus === 'verified') {
       return res.json(serializeReport(report));
@@ -1149,7 +1149,7 @@ export async function verifyResolution(req, res) {
         )
     );
     if (!updatedReport)
-      return res.status(409).json({ error: 'Resolution changed before verification completed' });
+      return res.status(409).json({ error: 'Resolution changed before review completed' });
     emitReportChanged(updatedReport, 'updated');
     res.json(serializeReport(updatedReport));
   } catch (err) {

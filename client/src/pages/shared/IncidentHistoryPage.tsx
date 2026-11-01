@@ -356,12 +356,12 @@ export default function IncidentHistoryPage({
     },
     paramVerification && {
       key: 'verification',
-      label: `Verification: ${paramVerification}`,
+      label: `Review: ${paramVerification === 'verified' ? 'reviewed' : paramVerification}`,
       onClose: () => removeSearchParams('verification'),
     },
     paramVerifiedPeriod === 'week' && {
       key: 'verifiedPeriod',
-      label: 'Verified this week',
+      label: 'Reviewed this week',
       onClose: () => removeSearchParams('verifiedPeriod'),
     },
     status !== 'all' && {

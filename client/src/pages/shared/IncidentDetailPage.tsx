@@ -130,7 +130,7 @@ function getAuditLabel(entry: AuditLog) {
     case 'resolution_submitted':
       return `Resolution submitted by ${entry.actorName || 'Responder'}`;
     case 'resolution_verified':
-      return `Resolution verified by ${entry.actorName || 'Official'}`;
+      return `Resolution reviewed by ${entry.actorName || 'Official'}`;
     default:
       return entry.action.replace(/_/g, ' ');
   }
@@ -260,7 +260,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     onSuccess: async () => {
       await invalidateReportViews();
       await queryClient.invalidateQueries({ queryKey: ['report-audit', id] });
-      message.success('Resolution verified');
+      message.success('Resolution marked as reviewed');
     },
     onError: (error: Error) => message.error(error.message),
   });
@@ -1121,8 +1121,8 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
               color={report.resolution.verificationStatus === 'verified' ? 'success' : 'warning'}
             >
               {report.resolution.verificationStatus === 'verified'
-                ? text('verified', 'Verified')
-                : text('pendingVerification', 'Pending verification')}
+                ? text('resolutionReviewed', 'Reviewed')
+                : text('pendingReview', 'Pending review')}
             </Tag>
           </div>
           <Divider style={{ margin: 0 }} />
@@ -1206,7 +1206,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
             </Col>
             {report.resolution.verificationStatus === 'verified' && (
               <Col xs={24}>
-                <Text strong>{text('verifiedBy', 'Verified by')}</Text>
+                <Text strong>{text('reviewedBy', 'Reviewed by')}</Text>
                 <div>
                   {report.resolution.verifiedByName || report.resolution.verifiedBy}
                   {report.resolution.verifiedAt &&
@@ -1223,7 +1223,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                 loading={verifyResolutionMutation.isPending}
                 onClick={() => verifyResolutionMutation.mutate()}
               >
-                {text('verifyResolution', 'Verify resolution')}
+                {text('markResolutionReviewed', 'Mark as reviewed')}
               </Button>
             )}
           </Space>
@@ -1758,7 +1758,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                   loading={resolutionMutation.isPending}
                   block
                 >
-                  {text('submitForVerification', 'Submit for verification')}
+                  {text('submitForReview', 'Submit for review')}
                 </Button>
               </Col>
             </Row>

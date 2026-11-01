@@ -371,7 +371,7 @@ export default function AdminDashboardPage() {
     const weekStart = new Date();
     weekStart.setHours(0, 0, 0, 0);
     weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
-    const resolvedThisWeek = reports.filter(
+    const reviewedThisWeek = reports.filter(
       (report) =>
         report.resolution?.verificationStatus === 'verified' &&
         report.resolution.verifiedAt &&
@@ -397,7 +397,7 @@ export default function AdminDashboardPage() {
               value={pendingResolutionReviews.length}
               icon={<CheckCircleOutlined />}
               tone={pendingResolutionReviews.length > 0 ? 'warning' : 'neutral'}
-              helper="Pending resolution verification"
+              helper="Pending resolution review"
               link={{
                 text: 'Review resolutions',
                 href: '/admin/incidents?status=resolved&verification=pending',
@@ -420,13 +420,13 @@ export default function AdminDashboardPage() {
           </Col>
           <Col xs={24} sm={12} xl={6}>
             <KpiCard
-              label="Verified resolutions this week"
-              value={resolvedThisWeek}
+              label="Reviewed resolutions this week"
+              value={reviewedThisWeek}
               icon={<CheckCircleOutlined />}
               tone="success"
               helper="Since Monday"
               link={{
-                text: 'View verified',
+                text: 'View reviewed',
                 href: '/admin/incidents?status=resolved&verification=verified&verifiedPeriod=week',
               }}
             />
