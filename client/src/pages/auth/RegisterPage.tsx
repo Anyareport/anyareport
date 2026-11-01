@@ -101,15 +101,20 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
+      const email = (completingProfile ? firebaseUser?.email : values.email)?.trim().toLowerCase();
+      const firstName = values.firstName.trim();
+      const lastName = values.lastName.trim();
+      const name = [firstName, lastName].filter(Boolean).join(' ');
+
       if (!completingProfile) {
-        await registerWithEmail(values.email, values.password);
+        await registerWithEmail(email || '', values.password);
       }
       const captchaToken = await getCaptchaToken();
       await api.post('/api/auth/register', {
-        name: [values.firstName, values.lastName].filter(Boolean).join(' '),
-        email: completingProfile ? firebaseUser?.email : values.email,
-        phone: values.phone,
-        address: values.address,
+        name,
+        email,
+        phone: values.phone.trim(),
+        address: typeof values.address === 'string' ? values.address.trim() : '',
         consent: privacyAcknowledged,
         captchaToken,
       });
@@ -183,10 +188,18 @@ export default function RegisterPage() {
         />
 
         <Form form={form} layout="vertical" onFinish={handleRegister}>
-          <Form.Item name="firstName" label="First Name" rules={[{ required: true }]}>
+          <Form.Item
+            name="firstName"
+            label="First Name"
+            rules={[{ required: true, whitespace: true, message: 'Please enter your first name.' }]}
+          >
             <Input size="large" />
           </Form.Item>
-          <Form.Item name="lastName" label="Last Name" rules={[{ required: true }]}>
+          <Form.Item
+            name="lastName"
+            label="Last Name"
+            rules={[{ required: true, whitespace: true, message: 'Please enter your last name.' }]}
+          >
             <Input size="large" />
           </Form.Item>
 
@@ -194,7 +207,15 @@ export default function RegisterPage() {
             <Input size="large" disabled={completingProfile} />
           </Form.Item>
           {!completingProfile && (
-            <Form.Item name="password" label="Password" rules={[{ required: true, min: 6 }]}>
+            <Form.Item
+              name="password"
+              label="Password"
+              extra="Use at least 8 characters."
+              rules={[
+                { required: true, message: 'Please enter a password.' },
+                { min: 8, message: 'Password must be at least 8 characters.' },
+              ]}
+            >
               <Input.Password size="large" />
             </Form.Item>
           )}
