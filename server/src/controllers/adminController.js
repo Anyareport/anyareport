@@ -10,6 +10,7 @@ import {
   buildUserStatusEvent,
 } from '../services/adminNotificationEvents.js';
 import { applyResidentReactivation } from '../services/residentReactivation.js';
+import { PH_MOBILE_REGEX } from '../services/phone.js';
 
 const USER_STATUSES = ['active', 'suspended'];
 const USER_ROLES = ['resident', 'tanod', 'responder', 'captain', 'secretary', 'admin'];
@@ -133,24 +134,46 @@ export async function reactivateResident(req, res) {
 }
 
 export async function createOfficial(req, res) {
+  const body = req.body || {};
+  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+  const password = typeof body.password === 'string' ? body.password : '';
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
+  const address = typeof body.address === 'string' ? body.address.trim() : '';
+  const { role } = body;
+
+  if (!email || !password || !name || !phone || !role) {
+    return res.status(400).json({ error: 'Email, password, name, phone, and role are required' });
+  }
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  }
+  if (!PH_MOBILE_REGEX.test(phone)) {
+    return res.status(400).json({ error: 'Phone must use the format 09XXXXXXXXX' });
+  }
+
+  const validRoles = ['tanod', 'responder', 'captain', 'secretary', 'admin'];
+  if (!validRoles.includes(role)) {
+    return res.status(400).json({ error: 'Invalid official role' });
+  }
+
   try {
-    const { email, password, name, phone, address, role } = req.body;
-
-    if (!email || !password || !name || !phone || !role) {
-      return res.status(400).json({ error: 'Email, password, name, phone, and role are required' });
+    if (await User.exists({ phone })) {
+      return res.status(409).json({ error: 'That phone number is already registered.' });
     }
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 
-    const validRoles = ['tanod', 'responder', 'captain', 'secretary', 'admin'];
-    if (!validRoles.includes(role)) {
-      return res.status(400).json({ error: 'Invalid official role' });
-    }
+  const admin = getFirebaseAdmin();
+  if (!admin) {
+    return res.status(503).json({ error: 'Firebase Admin SDK not configured' });
+  }
 
-    const admin = getFirebaseAdmin();
-    if (!admin) {
-      return res.status(503).json({ error: 'Firebase Admin SDK not configured' });
-    }
-
-    const firebaseUser = await admin.auth().createUser({
+  let firebaseUser;
+  let user;
+  try {
+    firebaseUser = await admin.auth().createUser({
       email,
       password,
       displayName: name,
@@ -159,24 +182,42 @@ export async function createOfficial(req, res) {
 
     await admin.auth().setCustomUserClaims(firebaseUser.uid, { role });
 
-    const user = await User.create({
+    user = await User.create({
       firebaseUid: firebaseUser.uid,
       email,
       name,
       phone,
-      address: address || '',
+      address,
       role,
       emailVerified: false,
     });
+  } catch (err) {
+    if (firebaseUser) {
+      try {
+        await admin.auth().deleteUser(firebaseUser.uid);
+      } catch (cleanupError) {
+        console.error('[Admin user creation] Failed to clean up Firebase user:', cleanupError);
+      }
+    }
 
+    if (err.code === 'auth/email-already-exists') {
+      return res.status(409).json({ error: 'That email is already registered.' });
+    }
+    if (err.code === 11000) {
+      const field = err.keyPattern?.phone ? 'phone number' : 'email';
+      return res.status(409).json({ error: `That ${field} is already registered.` });
+    }
+    return res.status(500).json({ error: err.message });
+  }
+
+  try {
     await auditAndNotify(req, {
       ...buildUserCreatedEvent({ actorName: getActorName(req), target: user }),
       actorName: getActorName(req),
     });
-
-    res.status(201).json(user);
+    return res.status(201).json(user);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
 

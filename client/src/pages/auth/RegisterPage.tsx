@@ -8,6 +8,7 @@ import {
   loginWithGoogle,
 } from '../../lib/firebase';
 import { api } from '../../lib/api';
+import { PH_MOBILE_REGEX } from '../../lib/phone';
 import { getRedirectPath, useAuth } from '../../contexts/AuthContext';
 import Logo from '../../components/Logo';
 
@@ -219,11 +220,8 @@ export default function RegisterPage() {
             name="phone"
             label="Phone Number"
             rules={[
-              {
-                required: true,
-                pattern: /^09\d{9}$/,
-                message: 'Enter valid PH mobile (09XXXXXXXXX)',
-              },
+              { required: true, whitespace: true, message: 'Please enter your phone number.' },
+              { pattern: PH_MOBILE_REGEX, message: 'Enter a valid PH mobile number (09XXXXXXXXX).' },
             ]}
           >
             <Input size="large" placeholder="09XXXXXXXXX" />

@@ -60,16 +60,16 @@ export default function VerifyEmailGate() {
           </Title>
           <Paragraph style={{ margin: 0 }}>
             Barangay officials must confirm their email before they can open reports, alerts or any
-            other data. We sent a verification link to{' '}
+            other data. We send a verification link to{' '}
             <Text strong style={{ overflowWrap: 'anywhere' }}>
               {profile?.email || firebaseUser?.email}
             </Text>
-            .
+            {' '}when you first sign in.
           </Paragraph>
           <Alert
             type="info"
             showIcon
-            message="Open the link in that email, then come back and press the button below."
+            message="If you don't receive it, use Resend verification email. After opening the link, come back and check your status."
           />
           <Space direction="vertical" size={8} style={{ width: '100%' }}>
             <Button type="primary" block loading={busy} onClick={checkVerified}>

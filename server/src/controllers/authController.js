@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import { getFirebaseAdmin } from '../config/firebase.js';
 import { isDisposableEmail } from '../services/disposableEmail.js';
 import { getUsernameByUid as lookupUsernameByUid } from '../services/userLookup.js';
+import { PH_MOBILE_REGEX } from '../services/phone.js';
 
 export async function registerProfile(req, res) {
   try {
@@ -9,27 +10,38 @@ export async function registerProfile(req, res) {
       return res.status(400).json({ error: 'Privacy acknowledgement is required' });
     }
 
-    const { name, phone, address, email } = req.body;
+    const { name, phone, address, email } = req.body || {};
     const uid = req.firebaseUser.uid;
+    const cleanName = typeof name === 'string' ? name.trim() : '';
+    const cleanPhone = typeof phone === 'string' ? phone.trim() : '';
 
-    if (!name || !phone) {
+    if (!cleanName || !cleanPhone) {
       return res.status(400).json({ error: 'Name and phone are required' });
     }
+    if (!PH_MOBILE_REGEX.test(cleanPhone)) {
+      return res.status(400).json({ error: 'Phone must use the format 09XXXXXXXXX' });
+    }
 
-    if (email && isDisposableEmail(email)) {
+    const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    if (cleanEmail && isDisposableEmail(cleanEmail)) {
       return res.status(400).json({ error: 'Disposable email addresses are not allowed' });
     }
 
-    const userEmail = email || req.firebaseUser.email;
+    const userEmail = cleanEmail || req.firebaseUser.email?.trim().toLowerCase();
     if (userEmail && isDisposableEmail(userEmail)) {
       return res.status(400).json({ error: 'Disposable email addresses are not allowed' });
     }
 
     const existing = await User.findOne({ firebaseUid: uid });
+    const phoneInUse = await User.exists({ phone: cleanPhone, firebaseUid: { $ne: uid } });
+    if (phoneInUse) {
+      return res.status(409).json({ error: 'That phone number is already registered.' });
+    }
     if (existing) {
-      existing.name = name;
-      existing.phone = phone;
-      existing.address = address || existing.address;
+      existing.name = cleanName;
+      existing.phone = cleanPhone;
+      existing.address =
+        typeof address === 'string' && address.trim() ? address.trim() : existing.address;
       existing.emailVerified = req.firebaseUser.email_verified || false;
       await existing.save();
       return res.json(existing);
@@ -38,9 +50,9 @@ export async function registerProfile(req, res) {
     const user = await User.create({
       firebaseUid: uid,
       email: userEmail,
-      name,
-      phone,
-      address: address || '',
+      name: cleanName,
+      phone: cleanPhone,
+      address: typeof address === 'string' ? address.trim() : '',
       role: 'resident',
       emailVerified: req.firebaseUser.email_verified || false,
     });
@@ -76,15 +88,34 @@ export async function getProfile(req, res) {
 
 export async function updateProfile(req, res) {
   try {
-    const { name, phone, address } = req.body;
+    const { name, phone, address } = req.body || {};
+    const cleanName = typeof name === 'string' ? name.trim() : '';
+    const cleanPhone = typeof phone === 'string' ? phone.trim() : '';
+
+    if (name !== undefined && !cleanName) {
+      return res.status(400).json({ error: 'Name cannot be empty' });
+    }
+    if (phone !== undefined && !PH_MOBILE_REGEX.test(cleanPhone)) {
+      return res.status(400).json({ error: 'Phone must use the format 09XXXXXXXXX' });
+    }
+
     const profile = await User.findOne({ firebaseUid: req.firebaseUser.uid });
     if (!profile) {
       return res.status(404).json({ error: 'Profile not found' });
     }
 
-    if (name) profile.name = name;
-    if (phone) profile.phone = phone;
-    if (address !== undefined) profile.address = address;
+    if (
+      phone !== undefined &&
+      (await User.exists({ phone: cleanPhone, firebaseUid: { $ne: req.firebaseUser.uid } }))
+    ) {
+      return res.status(409).json({ error: 'That phone number is already registered.' });
+    }
+
+    if (name !== undefined) profile.name = cleanName;
+    if (phone !== undefined) profile.phone = cleanPhone;
+    if (address !== undefined) {
+      profile.address = typeof address === 'string' ? address.trim() : address;
+    }
     profile.emailVerified = req.firebaseUser.email_verified || profile.emailVerified;
     await profile.save();
     res.json(profile);

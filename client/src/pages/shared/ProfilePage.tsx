@@ -15,6 +15,7 @@ import {
   message,
 } from 'antd';
 import { api } from '../../lib/api';
+import { PH_MOBILE_REGEX } from '../../lib/phone';
 import { useAuth } from '../../contexts/AuthContext';
 import { sendVerificationEmail } from '../../lib/firebase';
 import { useLang } from '../../contexts/LanguageContext';
@@ -222,6 +223,7 @@ export default function ProfilePage() {
                     rules={[
                       {
                         required: true,
+                        whitespace: true,
                         message: translate ? t('nameRequired') : 'Please enter your full name.',
                       },
                     ]}
@@ -236,11 +238,16 @@ export default function ProfilePage() {
                     rules={[
                       {
                         required: true,
+                        whitespace: true,
                         message: translate ? t('phoneRequired') : 'Please enter your phone number.',
+                      },
+                      {
+                        pattern: PH_MOBILE_REGEX,
+                        message: 'Enter a valid PH mobile number (09XXXXXXXXX).',
                       },
                     ]}
                   >
-                    <Input />
+                    <Input placeholder="09XXXXXXXXX" />
                   </Form.Item>
                 </Col>
                 <Col span={24}>

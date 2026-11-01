@@ -21,6 +21,7 @@ import { EllipsisOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icon
 import { useSearchParams } from 'react-router-dom';
 import { api, type UserProfile } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { PH_MOBILE_REGEX } from '../../lib/phone';
 import { getStatusTagStyle } from '../../lib/statusTagStyles';
 import './UsersPage.css';
 
@@ -113,7 +114,7 @@ export default function AdminUsersPage() {
   const createUser = useMutation({
     mutationFn: (values: Record<string, unknown>) => api.post('/api/admin/users', values),
     onSuccess: async () => {
-      message.success('Official created');
+      message.success('Official created. A verification email will be sent when they first sign in.');
       setDrawerOpen(false);
       form.resetFields();
       await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
@@ -165,8 +166,8 @@ export default function AdminUsersPage() {
       title: 'Change role?',
       content: (
         <>
-          Change <strong>{user.name}</strong> from {getRoleLabel(user.role)} to{' '}
-          {getRoleLabel(role)}? This takes effect immediately and is recorded in the audit log.
+          Change <strong>{user.name}</strong> from {getRoleLabel(user.role)} to {getRoleLabel(role)}
+          ? This takes effect immediately and is recorded in the audit log.
         </>
       ),
       okText: 'Confirm change',
@@ -176,8 +177,7 @@ export default function AdminUsersPage() {
   };
 
   const confirmStatusChange = (user: UserProfile) => {
-    const status: UserProfile['status'] =
-      user.status === 'active' ? 'suspended' : 'active';
+    const status: UserProfile['status'] = user.status === 'active' ? 'suspended' : 'active';
     if (user.role === 'resident' && user.status === 'suspended') {
       setReactivationTarget(user);
       reactivationForm.resetFields();
@@ -188,8 +188,8 @@ export default function AdminUsersPage() {
       title: suspending ? 'Suspend account?' : 'Reactivate account?',
       content: (
         <>
-          {suspending ? 'Suspend' : 'Reactivate'} <strong>{user.name}</strong>&apos;s account?
-          This takes effect immediately.
+          {suspending ? 'Suspend' : 'Reactivate'} <strong>{user.name}</strong>&apos;s account? This
+          takes effect immediately.
         </>
       ),
       okText: suspending ? 'Suspend account' : 'Reactivate account',
@@ -278,9 +278,7 @@ export default function AdminUsersPage() {
     {
       title: 'Actions',
       key: 'actions',
-      render: (_: unknown, user: UserProfile) => (
-        renderActions(user)
-      ),
+      render: (_: unknown, user: UserProfile) => renderActions(user),
     },
   ];
 
@@ -383,9 +381,7 @@ export default function AdminUsersPage() {
               <div className="user-management-mobile-card__email">{user.email}</div>
               <Space size={6} wrap>
                 <Tag style={getRoleTagStyle(user.role)}>{getRoleLabel(user.role)}</Tag>
-                <Tag style={getAccountStatusTagStyle(user.status)}>
-                  {capitalize(user.status)}
-                </Tag>
+                <Tag style={getAccountStatusTagStyle(user.status)}>{capitalize(user.status)}</Tag>
                 <VerifiedTag verified={!!user.emailVerified} />
               </Space>
             </Card>
@@ -422,7 +418,10 @@ export default function AdminUsersPage() {
 
       <Drawer
         open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
+        onClose={() => {
+          setDrawerOpen(false);
+          form.resetFields();
+        }}
         title="Create official"
         width={screens.md ? 420 : '100%'}
       >
@@ -430,21 +429,37 @@ export default function AdminUsersPage() {
           <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="password" label="Password" rules={[{ required: true }]}>
+          <Form.Item
+            name="password"
+            label="Password"
+            extra="Use at least 8 characters."
+            rules={[
+              { required: true, message: 'Enter a password.' },
+              { min: 8, message: 'Password must be at least 8 characters.' },
+            ]}
+          >
             <Input.Password />
           </Form.Item>
-          <Form.Item name="name" label="Name" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="phone" label="Phone" rules={[{ required: true }]}>
+          <Form.Item
+            name="name"
+            label="Name"
+            rules={[
+              { required: true, whitespace: true, message: "Enter the official's name." },
+            ]}
+          >
             <Input />
           </Form.Item>
           <Form.Item
-            name="role"
-            label="Role"
-            extra="Residents register themselves, so only official roles are listed here."
-            rules={[{ required: true }]}
+            name="phone"
+            label="Phone"
+            rules={[
+              { required: true, whitespace: true, message: 'Enter a phone number.' },
+              { pattern: PH_MOBILE_REGEX, message: 'Use format 09XXXXXXXXX.' },
+            ]}
           >
+            <Input placeholder="09XXXXXXXXX" />
+          </Form.Item>
+          <Form.Item name="role" label="Role" rules={[{ required: true }]}>
             <Select
               placeholder="Select a role"
               options={roleOptions.filter((option) => option.value !== 'resident')}
