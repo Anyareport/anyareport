@@ -1,7 +1,8 @@
 .landing-page {
   --landing-ink: #1f2a44;
   --landing-muted: #5b6783;
-  --landing-blue: #2f63ff;
+  --landing-blue: var(--brand-primary);
+  --landing-blue-hover: var(--brand-primary-light);
   --landing-line: #d9dfec;
   --landing-surface: #fff;
   --landing-wash: #e8ecf6;
@@ -22,13 +23,22 @@
 
 [data-theme='dark'] .landing-page .landing-hero {
   background:
-    radial-gradient(ellipse at 78% 44%, rgb(71 120 253 / 9%), transparent 36%),
+    radial-gradient(
+      ellipse at 78% 44%,
+      color-mix(in srgb, var(--landing-blue) 9%, transparent),
+      transparent 36%
+    ),
     var(--landing-wash);
 }
 
 [data-theme='dark'] .landing-page .landing-emergency-card {
   border-color: #74414a;
   background: #321d22;
+}
+
+[data-theme='dark'] .landing-page .landing-emergency-icon {
+  background: color-mix(in srgb, var(--badge-red) 18%, #321d22);
+  color: var(--badge-red);
 }
 
 [data-theme='dark'] .landing-page .landing-emergency-card h2 {
@@ -159,12 +169,12 @@
 
 .landing-button--primary {
   background: var(--landing-blue);
-  box-shadow: 0 8px 18px rgb(47 99 255 / 18%);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--landing-blue) 18%, transparent);
   color: #fff;
 }
 
 .landing-button--primary:hover {
-  background: #2454e8;
+  background: var(--landing-blue-hover);
   color: #fff;
 }
 
@@ -270,7 +280,7 @@
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: #edf2ff;
+  background: color-mix(in srgb, var(--landing-blue) 12%, var(--landing-surface));
   color: var(--landing-blue);
   font-size: 1.1rem;
 }
@@ -286,7 +296,7 @@
   margin-left: auto;
   padding: 5px 10px;
   border-radius: 99px;
-  background: #edf2ff;
+  background: color-mix(in srgb, var(--landing-blue) 12%, var(--landing-surface));
   color: var(--landing-blue);
   font-size: 0.75rem;
   font-weight: 600;
@@ -347,7 +357,7 @@
 .landing-status--current {
   border-color: var(--landing-blue);
   background: var(--landing-blue);
-  box-shadow: 0 4px 12px rgb(47 99 255 / 24%);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--landing-blue) 24%, transparent);
   color: #fff;
 }
 
@@ -499,7 +509,11 @@
 .landing-install {
   padding-block: clamp(40px, 6vw, 68px);
   background:
-    radial-gradient(circle at 12% 50%, rgb(47 99 255 / 10%), transparent 24%),
+    radial-gradient(
+      circle at 12% 50%,
+      color-mix(in srgb, var(--landing-blue) 10%, transparent),
+      transparent 24%
+    ),
     var(--landing-wash);
 }
 
@@ -516,7 +530,7 @@
   height: 58px;
   place-items: center;
   border-radius: 16px;
-  background: #edf2ff;
+  background: color-mix(in srgb, var(--landing-blue) 12%, var(--landing-surface));
   color: var(--landing-blue);
   font-size: 1.4rem;
 }

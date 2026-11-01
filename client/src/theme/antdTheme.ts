@@ -86,9 +86,3 @@ export const fonts = {
   heading: "'Roboto', sans-serif",
   body: "'Roboto', sans-serif",
 };
-
-export const colors = {
-  red: sharedColors.brandPrimary,
-  white: sharedColors.white,
-  navy: sharedColors.brandNavy,
-};
