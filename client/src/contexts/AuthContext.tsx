@@ -16,6 +16,8 @@ import { notificationFeedQueryKey } from '../lib/notificationFeed';
 import { invalidateReportQueries, type ReportChangeEvent } from '../lib/reportUpdates';
 import { showBrowserNotification } from '../lib/browserNotifications';
 import {
+  isPushNotificationsConfigured,
+  isPushNotificationsDisabled,
   registerPushToken,
   startForegroundPushNotifications,
   type PushMessagePayload,
@@ -168,11 +170,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profile?.status === 'active' && (profile.role === 'resident' || profile.emailVerified)
       ? profile.role
       : null;
+  const firebaseUid = firebaseUser?.uid;
 
   useEffect(() => {
     if (!accessRole) return;
 
-    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    if (
+      firebaseUid &&
+      isPushNotificationsConfigured() &&
+      typeof Notification !== 'undefined' &&
+      Notification.permission === 'granted' &&
+      !isPushNotificationsDisabled(firebaseUid)
+    ) {
       void registerPushToken().catch((error) => {
         console.error('[Push] Automatic registration failed:', error);
       });
@@ -190,6 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const body = payload.notification?.body;
       if (!body) return;
       if (notificationId) displayedNotificationIds.current.add(notificationId);
+      if (!firebaseUid || isPushNotificationsDisabled(firebaseUid)) return;
       if (installedPwa && !isStandaloneApp()) return;
 
       showBrowserNotification({
@@ -228,6 +238,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       void queryClient.invalidateQueries({ queryKey: notificationFeedQueryKey });
       if (!notification?.message) return;
       if (notification._id) displayedNotificationIds.current.add(notification._id);
+      if (!firebaseUid || isPushNotificationsDisabled(firebaseUid)) return;
       if (installedPwa && !isStandaloneApp()) return;
 
       showBrowserNotification({
@@ -262,7 +273,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       socket.off('report:changed', handleReportChange);
       socket.off('connect', handleReconnect);
     };
-  }, [installedPwa, queryClient, accessRole]);
+  }, [firebaseUid, installedPwa, queryClient, accessRole]);
 
   return (
     <AuthContext.Provider value={{ firebaseUser, profile, loading, role, refreshProfile }}>

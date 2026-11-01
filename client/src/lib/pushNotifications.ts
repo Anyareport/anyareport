@@ -3,8 +3,25 @@ import { api } from './api';
 import { getFirebaseMessaging } from './firebase';
 
 const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+const disabledKey = (uid: string) => `anyareport:push-disabled:${uid}`;
 
-export async function registerPushToken() {
+export function isPushNotificationsConfigured() {
+  return Boolean(vapidKey);
+}
+
+export function isPushNotificationsDisabled(uid?: string | null) {
+  return !!uid && window.localStorage.getItem(disabledKey(uid)) === 'true';
+}
+
+export function setPushNotificationsDisabled(uid: string, disabled: boolean) {
+  if (disabled) {
+    window.localStorage.setItem(disabledKey(uid), 'true');
+  } else {
+    window.localStorage.removeItem(disabledKey(uid));
+  }
+}
+
+async function getMessagingRegistration() {
   if (!window.isSecureContext && window.location.hostname !== 'localhost') {
     throw new Error('Push notifications require an HTTPS site on mobile.');
   }
@@ -47,6 +64,11 @@ export async function registerPushToken() {
     });
   }
 
+  return { messaging, registration };
+}
+
+export async function registerPushToken() {
+  const { messaging, registration } = await getMessagingRegistration();
   let token: string;
   try {
     token = await getToken(messaging, {
@@ -65,6 +87,11 @@ export async function registerPushToken() {
 
   await api.post('/api/notifications/push-tokens', { token });
   return true;
+}
+
+export async function unregisterPushToken(uid: string) {
+  await api.delete('/api/notifications/push-tokens', {});
+  setPushNotificationsDisabled(uid, true);
 }
 
 export interface PushMessagePayload {

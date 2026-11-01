@@ -8,7 +8,12 @@ import NotificationCard from '../../components/NotificationCard';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLang } from '../../contexts/LanguageContext';
 import { FilterControl } from '../../components/StatusFilter';
-import { registerPushToken } from '../../lib/pushNotifications';
+import {
+  isPushNotificationsDisabled,
+  registerPushToken,
+  setPushNotificationsDisabled,
+  unregisterPushToken,
+} from '../../lib/pushNotifications';
 import LoadingState from '../../components/LoadingState';
 import {
   getBrowserNotificationPermission,
@@ -56,14 +61,18 @@ function formatDateHeading(
 
 export default function NotificationsPage() {
   const queryClient = useQueryClient();
-  const { role } = useAuth();
+  const { firebaseUser, role } = useAuth();
   const { lang, t } = useLang();
   const translate = lang === 'fil' && ['tanod', 'responder'].includes(role || '');
   const feed = useNotificationFeed();
   const [filter, setFilter] = useState<NotificationFilter>('all');
   const [notificationPermission, setNotificationPermission] =
     useState<BrowserNotificationPermission>(getBrowserNotificationPermission);
+  const [pushActionLoading, setPushActionLoading] = useState(false);
   const [dispatchInvite, setDispatchInvite] = useState<NotificationFeedItem | null>(null);
+  const pushDisabled = isPushNotificationsDisabled(firebaseUser?.uid);
+  const pushEnabled = notificationPermission === 'granted' && !pushDisabled;
+
   const pages = feed.data?.pages || [];
   const firstPage = pages[0];
   const counts = firstPage?.counts || { all: 0, unread: 0, alerts: 0, updates: 0 };
@@ -120,23 +129,35 @@ export default function NotificationsPage() {
     onError: (error: Error) => message.error(error.message),
   });
 
-  const enablePushNotifications = async () => {
+  const togglePushNotifications = async () => {
+    setPushActionLoading(true);
     try {
-      const permission = await requestBrowserNotificationPermission();
-      setNotificationPermission(permission);
-      if (permission === 'granted' && !(await registerPushToken())) {
-        message.error(
-          translate ? t('pushNotConfigured') : 'Push notifications are not configured for this app.'
-        );
+      if (pushEnabled) {
+        if (!firebaseUser) throw new Error('You must be signed in to disable notifications.');
+        await unregisterPushToken(firebaseUser.uid);
+      } else {
+        const permission = await requestBrowserNotificationPermission();
+        setNotificationPermission(permission);
+        if (permission === 'granted' && !(await registerPushToken())) {
+          message.error(
+            translate
+              ? t('pushNotConfigured')
+              : 'Push notifications are not configured for this app.'
+          );
+        } else if (permission === 'granted' && firebaseUser) {
+          setPushNotificationsDisabled(firebaseUser.uid, false);
+        }
       }
     } catch (error) {
       message.error(
         error instanceof Error
           ? error.message
           : translate
-            ? t('pushEnableFailed')
-            : 'Could not enable notifications.'
+            ? t(pushEnabled ? 'pushDisableFailed' : 'pushEnableFailed')
+            : `Could not ${pushEnabled ? 'disable' : 'enable'} notifications.`
       );
+    } finally {
+      setPushActionLoading(false);
     }
   };
 
@@ -176,9 +197,22 @@ export default function NotificationsPage() {
     }
   });
 
+  const pushAction = (
+    <Button
+      color="primary"
+      variant="solid"
+      size="small"
+      icon={<BellOutlined />}
+      loading={pushActionLoading}
+      onClick={togglePushNotifications}
+    >
+      {pushEnabled ? (translate ? t('disable') : 'Disable') : translate ? t('enable') : 'Enable'}
+    </Button>
+  );
+
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      {notificationPermission === 'granted' ? (
+      {pushEnabled ? (
         <Alert
           type="success"
           showIcon
@@ -188,6 +222,7 @@ export default function NotificationsPage() {
               ? t('pushEnabled')
               : 'Push notifications are enabled for new incident updates.'
           }
+          action={pushAction}
         />
       ) : notificationPermission === 'denied' ? (
         <Alert
@@ -211,18 +246,16 @@ export default function NotificationsPage() {
         <Alert
           type="info"
           showIcon
-          message={translate ? t('getNotified') : 'Get notified about new incident updates'}
-          action={
-            <Button
-              color="primary"
-              variant="solid"
-              size="small"
-              icon={<BellOutlined />}
-              onClick={enablePushNotifications}
-            >
-              {translate ? t('enable') : 'Enable'}
-            </Button>
+          message={
+            pushDisabled
+              ? translate
+                ? t('pushDisabled')
+                : 'Push notifications are disabled for this browser.'
+              : translate
+                ? t('getNotified')
+                : 'Get notified about new incident updates'
           }
+          action={pushAction}
         />
       )}
       <div className="toolbar-row">

@@ -153,6 +153,10 @@ export const labels = {
     en: 'Push notifications are enabled for new incident updates.',
     fil: 'Naka-on ang mga abiso para sa bagong ulat.',
   },
+  pushDisabled: {
+    en: 'Push notifications are disabled for this browser.',
+    fil: 'Naka-off ang mga abiso sa browser na ito.',
+  },
   pushBlocked: {
     en: 'Push notifications are blocked. Allow notifications in your browser settings to enable them.',
     fil: 'Naka-block ang mga abiso. Payagan ito sa settings ng browser.',
@@ -174,7 +178,12 @@ export const labels = {
     fil: 'Hindi naka-setup ang mga abiso sa app na ito.',
   },
   pushEnableFailed: { en: 'Could not enable notifications.', fil: 'Hindi nabuksan ang mga abiso.' },
+  pushDisableFailed: {
+    en: 'Could not disable notifications.',
+    fil: 'Hindi maihinto ang mga abiso.',
+  },
   enable: { en: 'Enable', fil: 'Payagan' },
+  disable: { en: 'Disable', fil: 'Ihinto' },
   filterNotifications: { en: 'Filter notifications', fil: 'Piliin ang mga abiso' },
   markAllRead: { en: 'Mark all as read', fil: 'Basahin lahat' },
   notificationsLoadError: {
