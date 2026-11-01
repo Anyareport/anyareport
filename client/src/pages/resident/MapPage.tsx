@@ -174,6 +174,7 @@ export default function MapPage() {
         title="Report an incident"
         zIndex={1200}
         placement={isMobile ? 'bottom' : 'right'}
+        closable={{ placement: isMobile ? 'end' : 'start' }}
         open={reportDrawerOpen}
         onClose={closeReportDrawer}
         width={isMobile ? undefined : 520}

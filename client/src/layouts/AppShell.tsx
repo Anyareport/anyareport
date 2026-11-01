@@ -286,13 +286,12 @@ export default function AppShell({
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         placement="left"
+        closable={{ placement: 'end' }}
+        title={<Logo size="sm" />}
         width={288}
         styles={{ body: { padding: 0, display: 'flex', flexDirection: 'column' } }}
       >
         <div className="app-shell-drawer__content">
-          <div className="app-shell-brand app-shell-drawer__brand">
-            <Logo size="sm" />
-          </div>
           <div className="app-shell-drawer__nav">{menu}</div>
           <div className="app-shell-drawer__account">
             <Avatar size={34}>{initials || 'U'}</Avatar>

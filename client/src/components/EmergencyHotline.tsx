@@ -192,6 +192,7 @@ export default function EmergencyHotline({
           className="emergency-hotline__drawer"
           placement="bottom"
           height="min(82dvh, 620px)"
+          closable={{ placement: 'end' }}
           open={open}
           onClose={() => setOpen(false)}
           title={<div className="emergency-hotline__drawer-title">{title}</div>}
