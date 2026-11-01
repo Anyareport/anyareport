@@ -21,7 +21,6 @@ import {
   Typography,
   Select,
   Upload,
-  message,
 } from 'antd';
 import type { UploadFile } from 'antd';
 import {
@@ -65,6 +64,7 @@ import {
 import IncidentStatusSteps from './IncidentStatusSteps';
 import LoadingState from '../../components/LoadingState';
 import './IncidentDetailPage.css';
+import { useAntdMessage } from '../../lib/useAntdMessage';
 const { Paragraph, Text, Title } = Typography;
 
 function getDialablePhone(value: string) {
@@ -157,7 +157,11 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
-async function downloadFile(path: string, filename: string) {
+async function downloadFile(
+  path: string,
+  filename: string,
+  message: ReturnType<typeof useAntdMessage>
+) {
   try {
     const blob = await api.download(path);
     const url = URL.createObjectURL(blob);
@@ -172,6 +176,7 @@ async function downloadFile(path: string, filename: string) {
 }
 
 function printIncidentSummary(
+  message: ReturnType<typeof useAntdMessage>,
   report: Report,
   reporterName?: string | null,
   reporterPhone?: string | null,
@@ -180,7 +185,7 @@ function printIncidentSummary(
 ) {
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
-    message.error('Allow pop-ups to print the incident summary');
+    message.error('Your browser blocked the print window. Allow pop-ups and try again.');
     return;
   }
   printWindow.opener = null;
@@ -198,6 +203,7 @@ function printIncidentSummary(
 }
 
 export default function IncidentDetailPage({ variant }: IncidentDetailPageProps) {
+  const message = useAntdMessage();
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const galleryTouchStart = useRef<{ x: number; y: number } | null>(null);
   const { id } = useParams();
@@ -250,7 +256,9 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       setEvidenceFiles([]);
       await invalidateReportViews();
       await queryClient.invalidateQueries({ queryKey: ['report-audit', id] });
-      message.success(useFilipinoLabels ? t('resolutionSuccess') : 'Resolution submitted');
+      message.success(
+        useFilipinoLabels ? t('resolutionSuccess') : 'This report has been marked as resolved.'
+      );
     },
     onError: (error: Error) => message.error(error.message),
   });
@@ -260,7 +268,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     onSuccess: async () => {
       await invalidateReportViews();
       await queryClient.invalidateQueries({ queryKey: ['report-audit', id] });
-      message.success('Resolution marked as reviewed');
+      message.success('Resolution reviewed.');
     },
     onError: (error: Error) => message.error(error.message),
   });
@@ -331,7 +339,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       setFlagReason(undefined);
       await invalidateReportViews();
       await queryClient.invalidateQueries({ queryKey: ['report-audit', id] });
-      message.success('Report flagged');
+      message.success('Report flagged for review.');
     },
     onError: (error: Error) => message.error(error.message),
   });
@@ -384,7 +392,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       setSelectedResponderUids([]);
       await invalidateReportViews();
       await queryClient.invalidateQueries({ queryKey: ['report-dispatch-options', id] });
-      message.success('Incident dispatched');
+      message.success('Responders have been dispatched to this incident.');
     },
     onError: (error: Error) => message.error(error.message),
   });
@@ -771,7 +779,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         icon={<DownloadOutlined />}
         disabled={!auditEntries.length}
         onClick={() =>
-          downloadFile(`/api/reports/${id}/audit?format=csv`, `report-${id}-audit.csv`)
+          downloadFile(`/api/reports/${id}/audit?format=csv`, `report-${id}-audit.csv`, message)
         }
       >
         Export case audit
@@ -843,7 +851,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       <Button
         block
         icon={<DownloadOutlined />}
-        onClick={() => downloadFile('/api/audit-logs?format=csv', 'anyareport-audit.csv')}
+        onClick={() => downloadFile('/api/audit-logs?format=csv', 'anyareport-audit.csv', message)}
       >
         Export system log
       </Button>
@@ -885,7 +893,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           icon={<DownloadOutlined />}
           disabled={!auditEntries.length}
           onClick={() =>
-            downloadFile(`/api/reports/${id}/audit?format=csv`, `report-${id}-audit.csv`)
+            downloadFile(`/api/reports/${id}/audit?format=csv`, `report-${id}-audit.csv`, message)
           }
         >
           Export case audit
@@ -1246,6 +1254,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
             icon={<PrinterOutlined />}
             onClick={() =>
               printIncidentSummary(
+                message,
                 report,
                 canViewReporter ? report.submitterName : null,
                 canViewReporterContact ? report.submitterPhone : null,

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Alert, Button, Card, Empty, Modal, Space, Typography, message } from 'antd';
+import { Alert, Button, Card, Empty, Modal, Space, Typography } from 'antd';
 import { BellOutlined, CheckOutlined } from '@ant-design/icons';
 import { api, type NotificationFeedItem } from '../../lib/api';
 import { notificationFeedQueryKey, useNotificationFeed } from '../../lib/notificationFeed';
@@ -20,6 +20,7 @@ import {
   requestBrowserNotificationPermission,
   type BrowserNotificationPermission,
 } from '../../lib/browserNotifications';
+import { useAntdMessage } from '../../lib/useAntdMessage';
 
 const { Title, Text } = Typography;
 type NotificationFilter = 'all' | 'unread' | 'alerts' | 'updates';
@@ -60,6 +61,7 @@ function formatDateHeading(
 }
 
 export default function NotificationsPage() {
+  const message = useAntdMessage();
   const queryClient = useQueryClient();
   const { firebaseUser, role } = useAuth();
   const { lang, t } = useLang();

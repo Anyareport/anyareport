@@ -11,7 +11,6 @@ import {
   Row,
   Select,
   Space,
-  message,
   theme,
 } from 'antd';
 import {
@@ -31,6 +30,7 @@ import { downloadCsv, toCsv } from '../../lib/csv';
 import { getIncidentLabel, getLocationLabel } from '../../lib/incidentUtils';
 import KpiCard from '../../components/KpiCard';
 import PurokBreakdownCard from '../../components/PurokBreakdownCard';
+import { useAntdMessage } from '../../lib/useAntdMessage';
 
 type AnalyticsPeriod = 'all' | 'week' | 'month' | 'year';
 
@@ -87,6 +87,7 @@ function fillDailyData(data: Analytics['last30Days'], period: AnalyticsPeriod) {
 }
 
 export default function AdminAnalyticsPage() {
+  const message = useAntdMessage();
   const navigate = useNavigate();
   const [period, setPeriod] = useState<AnalyticsPeriod>('month');
   const {
@@ -213,7 +214,7 @@ export default function AdminAnalyticsPage() {
     const { fileSuffix } = getExportDates();
     // The reports endpoint returns at most the newest 200 reports.
     if (reports.length >= 200) {
-      message.warning('Only the 200 most recent reports are available, so this file may be incomplete.');
+      message.warning('This export includes only the 200 most recent reports and may be incomplete.');
     }
     const rows = periodReports.map((report) => [
       report.referenceNumber,

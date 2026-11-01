@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Dropdown, Grid, Input, message, Popover, Select, Space } from 'antd';
+import { Alert, Button, Dropdown, Grid, Input, Popover, Select, Space } from 'antd';
 import {
   DownloadOutlined,
   ExportOutlined,
@@ -22,6 +22,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useLang } from '../../contexts/LanguageContext';
 import { getLocalizedCategory } from '../../i18n/labels';
+import { useAntdMessage } from '../../lib/useAntdMessage';
 
 export interface IncidentHistoryPageProps {
   variant?: 'admin' | 'responder';
@@ -32,6 +33,7 @@ export default function IncidentHistoryPage({
   variant = 'admin',
   defaultStatus = 'all',
 }: IncidentHistoryPageProps) {
+  const message = useAntdMessage();
   const screens = Grid.useBreakpoint();
   const [searchParams, setSearchParams] = useSearchParams();
   const paramStatus = searchParams.get('status') ?? defaultStatus;
@@ -282,7 +284,7 @@ export default function IncidentHistoryPage({
           (datePeriod === 'year' &&
             (!Number.isInteger(Number(date)) || Number(date) < 1900 || Number(date) > 2100))
         ) {
-          message.error('Enter a valid date filter before exporting');
+          message.error('Enter a valid date before exporting.');
           return;
         }
         params.set('dateFrom', start.toISOString());
@@ -311,7 +313,7 @@ export default function IncidentHistoryPage({
       anchor.click();
       URL.revokeObjectURL(url);
       message.success(
-        `${scope === 'all' ? 'All reports' : 'Current view'} ${format.toUpperCase()} export downloaded`
+        `Downloaded ${format.toUpperCase()} file for ${scope === 'all' ? 'all reports' : 'the current view'}.`
       );
     } catch (error) {
       message.error(error instanceof Error ? error.message : 'Export failed');

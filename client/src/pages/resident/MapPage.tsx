@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Drawer, Grid, message } from 'antd';
+import { Button, Drawer, Grid } from 'antd';
 import { CloseOutlined, EnvironmentOutlined, FileAddOutlined } from '@ant-design/icons';
 import { api, type Report } from '../../lib/api';
 import MapDashboard, { type IncidentMarker } from '../../components/map/MapDashboard';
@@ -14,8 +14,10 @@ import type { FeatureCollection } from 'geojson';
 import { isInsideBarangayBoundary } from '../../components/map/MapPicker';
 import barangayData from '../../data/DMM.json';
 import { getIncidentLabel } from '../../lib/incidentUtils';
+import { useAntdMessage } from '../../lib/useAntdMessage';
 
 export default function MapPage() {
+  const message = useAntdMessage();
   const navigate = useNavigate();
   const location = useLocation();
   const screens = Grid.useBreakpoint();

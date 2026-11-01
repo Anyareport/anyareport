@@ -10,11 +10,12 @@ import {
   MoonOutlined,
   SunOutlined,
 } from '@ant-design/icons';
-import { Button, message, Modal } from 'antd';
+import { Button, Modal } from 'antd';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Logo from '../../components/Logo';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAntdMessage } from '../../lib/useAntdMessage';
 import './LandingPage.css';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -30,6 +31,7 @@ const reportStatuses = [
 ];
 
 export default function LandingPage() {
+  const message = useAntdMessage();
   const { theme, toggleTheme } = useTheme();
   const [installHelpOpen, setInstallHelpOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);

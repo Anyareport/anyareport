@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
+import { App as AntdApp } from 'antd';
 import './index.css';
 import App from './App.tsx';
 import { AntdThemeProvider } from './theme/AntdThemeProvider';
@@ -15,13 +16,15 @@ createRoot(document.getElementById('root')!).render(
     <LanguageProvider>
       <ThemeProvider>
         <AntdThemeProvider>
-          <QueryClientProvider client={queryClient}>
-            <AuthProvider>
-              <BrowserRouter>
-                <App />
-              </BrowserRouter>
-            </AuthProvider>
-          </QueryClientProvider>
+          <AntdApp>
+            <QueryClientProvider client={queryClient}>
+              <AuthProvider>
+                <BrowserRouter>
+                  <App />
+                </BrowserRouter>
+              </AuthProvider>
+            </QueryClientProvider>
+          </AntdApp>
         </AntdThemeProvider>
       </ThemeProvider>
     </LanguageProvider>

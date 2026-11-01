@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { Form, Input, Button, Card, Typography, message } from 'antd';
+import { Form, Input, Button, Card, Typography } from 'antd';
 import { Link } from 'react-router-dom';
-import { resetPassword } from '../../lib/firebase';
+import { getAuthErrorMessage, resetPassword } from '../../lib/firebase';
 import Logo from '../../components/Logo';
+import { useAntdMessage } from '../../lib/useAntdMessage';
 
 const { Title, Text } = Typography;
 
 export default function ForgotPasswordPage() {
+  const message = useAntdMessage();
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
@@ -17,7 +19,9 @@ export default function ForgotPasswordPage() {
       setSent(true);
       message.success('Password reset email sent!');
     } catch (err: unknown) {
-      message.error(err instanceof Error ? err.message : 'Failed to send reset email');
+      message.error(
+        getAuthErrorMessage(err, 'Could not send the password reset email. Please try again.')
+      );
     } finally {
       setLoading(false);
     }

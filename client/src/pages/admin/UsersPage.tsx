@@ -15,7 +15,6 @@ import {
   Table,
   Tabs,
   Tag,
-  message,
 } from 'antd';
 import { EllipsisOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useSearchParams } from 'react-router-dom';
@@ -25,6 +24,7 @@ import { PH_MOBILE_REGEX } from '../../lib/phone';
 import AppTag from '../../components/AppTag';
 import { getStatusTagStyle } from '../../lib/statusTagStyles';
 import './UsersPage.css';
+import { useAntdMessage } from '../../lib/useAntdMessage';
 
 const PAGE_SIZE = 8;
 
@@ -63,6 +63,7 @@ function getAccountStatusTagStyle(status: string) {
 }
 
 export default function AdminUsersPage() {
+  const message = useAntdMessage();
   const { firebaseUser } = useAuth();
   const queryClient = useQueryClient();
   const screens = Grid.useBreakpoint();
@@ -139,7 +140,7 @@ export default function AdminUsersPage() {
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       api.patch(`/api/admin/residents/${id}/reactivate`, { reason }),
     onSuccess: async () => {
-      message.success('Resident account reactivated; current flagged-report count reset to zero');
+      message.success('Resident account reactivated. Their flagged-report count is now zero.');
       setReactivationTarget(null);
       reactivationForm.resetFields();
       await queryClient.invalidateQueries({ queryKey: ['admin-users'] });

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Form, Input, Button, Typography, message, Divider, Checkbox } from 'antd';
+import { Form, Input, Button, Typography, Divider, Checkbox } from 'antd';
 import { GoogleOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import {
+  getAuthErrorMessage,
   getGoogleAuthErrorMessage,
   loginWithEmail,
   loginWithGoogle,
@@ -12,6 +13,7 @@ import { api } from '../../lib/api';
 import { useAuth, getRedirectPath } from '../../contexts/AuthContext';
 import ServerStatus from '../../components/ServerStatus';
 import AuthLayout from './AuthLayout';
+import { useAntdMessage } from '../../lib/useAntdMessage';
 
 const { Text } = Typography;
 
@@ -22,6 +24,7 @@ interface LoginFormValues {
 }
 
 export default function LoginPage() {
+  const message = useAntdMessage();
   const navigate = useNavigate();
   const { refreshProfile } = useAuth();
   const [form] = Form.useForm<LoginFormValues>();
@@ -41,7 +44,7 @@ export default function LoginPage() {
       await loginWithEmail(values.email, values.password);
       await completeLogin();
     } catch (err: unknown) {
-      message.error(err instanceof Error ? err.message : 'Login failed');
+      message.error(getAuthErrorMessage(err, 'Could not sign in. Please try again.'));
     } finally {
       setLoading(false);
     }

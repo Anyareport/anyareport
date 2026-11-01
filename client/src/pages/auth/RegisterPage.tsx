@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Form, Input, Button, Typography, message, Divider, Checkbox } from 'antd';
+import { Form, Input, Button, Typography, Divider, Checkbox } from 'antd';
 import { GoogleOutlined } from '@ant-design/icons';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
+  getAuthErrorMessage,
   getGoogleAuthErrorMessage,
   registerWithEmail,
   loginWithGoogle,
@@ -11,6 +12,7 @@ import { api } from '../../lib/api';
 import { PH_MOBILE_REGEX } from '../../lib/phone';
 import { getRedirectPath, useAuth } from '../../contexts/AuthContext';
 import AuthLayout from './AuthLayout';
+import { useAntdMessage } from '../../lib/useAntdMessage';
 
 const { Text } = Typography;
 
@@ -48,6 +50,7 @@ async function getCaptchaToken(): Promise<string | null> {
 }
 
 export default function RegisterPage() {
+  const message = useAntdMessage();
   const location = useLocation();
   const navigate = useNavigate();
   const { firebaseUser, profile, loading: authLoading, refreshProfile } = useAuth();
@@ -95,7 +98,7 @@ export default function RegisterPage() {
     address: string;
   }) => {
     if (!privacyAcknowledged) {
-      message.warning('Please acknowledge the privacy notice before continuing.');
+      message.warning('Please accept the privacy notice before continuing.');
       return;
     }
 
@@ -124,7 +127,7 @@ export default function RegisterPage() {
       );
       navigate('/resident');
     } catch (err: unknown) {
-      message.error(err instanceof Error ? err.message : 'Registration failed');
+      message.error(getAuthErrorMessage(err, 'Could not create your account. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -132,7 +135,7 @@ export default function RegisterPage() {
 
   const handleGoogle = async () => {
     if (!privacyAcknowledged) {
-      message.warning('Please acknowledge the privacy notice before continuing.');
+      message.warning('Please accept the privacy notice before continuing.');
       return;
     }
 

@@ -7,7 +7,6 @@ import {
   Checkbox,
   Upload,
   Typography,
-  message,
   Alert,
   Steps,
   Segmented,
@@ -34,6 +33,7 @@ import SeverityTag from './SeverityTag';
 import AppTag from './AppTag';
 import barangayData from '../data/DMM.json';
 import { compressImage } from '../lib/imageCompressor';
+import { useAntdMessage } from '../lib/useAntdMessage';
 
 const { Title, Text } = Typography;
 
@@ -79,6 +79,7 @@ export default function SubmitReportForm({
   onPickLocation,
   onLocationChange,
 }: SubmitReportFormProps) {
+  const message = useAntdMessage();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { profile } = useAuth();
@@ -120,7 +121,7 @@ export default function SubmitReportForm({
   // Process multiple files for upload (max 3)
   const handleFileChange = async (files: File[]) => {
     if (files.length > 3) {
-      message.error('Maximum 3 photos allowed per report');
+      message.error('You can attach up to 3 photos per report.');
       files = files.slice(0, 3);
     }
 
@@ -144,7 +145,7 @@ export default function SubmitReportForm({
         processedFiles.push({ originFileObj: file, thumbUrl, compressedBlob });
       } catch (err) {
         console.error('Image compression failed for', file.name, err);
-        message.warning(`Failed to compress ${file.name}`);
+        message.warning(`Couldn't prepare ${file.name} for upload. Try another image.`);
       }
     }
 
@@ -183,7 +184,7 @@ export default function SubmitReportForm({
       classificationInProgressRef.current = false;
     },
     onError: () => {
-      message.warning('AI classification unavailable — please select a category manually.');
+      message.warning("We couldn't suggest a category. Please choose one manually.");
       classificationInProgressRef.current = false;
     },
   });
@@ -242,7 +243,7 @@ export default function SubmitReportForm({
     try {
       if (currentStep === 0) {
         if (!aiProcessingAcknowledged) {
-          message.warning('Please acknowledge how your report is processed before continuing.');
+          message.warning('Please review the AI-processing notice and check the box to continue.');
           return;
         }
 
@@ -251,7 +252,7 @@ export default function SubmitReportForm({
 
         // Validate max 3 photos
         if (reportType === 'photo' && fileList.length > 3) {
-          message.error('Maximum 3 photos allowed per report');
+          message.error('You can attach up to 3 photos per report.');
           return;
         }
 
@@ -280,6 +281,7 @@ export default function SubmitReportForm({
     form,
     fileList,
     aiProcessingAcknowledged,
+    message,
   ]);
 
   const goBack = () => setCurrentStep((s) => Math.max(0, s - 1));
@@ -298,7 +300,7 @@ export default function SubmitReportForm({
 
       if (step >= 1) {
         if (!aiProcessingAcknowledged) {
-          message.warning('Please acknowledge how your report is processed before continuing.');
+          message.warning('Please review the AI-processing notice and check the box to continue.');
           return;
         }
         if (!selectedLocation) {
@@ -314,7 +316,15 @@ export default function SubmitReportForm({
 
       setCurrentStep(step);
     },
-    [currentStep, maxStepReached, selectedLocation, ensureClassified, form, aiProcessingAcknowledged]
+    [
+      currentStep,
+      maxStepReached,
+      selectedLocation,
+      ensureClassified,
+      form,
+      aiProcessingAcknowledged,
+      message,
+    ]
   );
 
   const handleUseGPS = () => {
@@ -672,7 +682,7 @@ export default function SubmitReportForm({
                   const values = await form.validateFields(['category', 'subcategory', 'severity']);
                   submitMutation.mutate({ ...form.getFieldsValue(), ...values });
                 } catch {
-                  message.error('Please complete the category, subcategory, and severity fields.');
+                  message.error('Select a category, subcategory, and severity before submitting.');
                   setCurrentStep(1);
                 }
               }}

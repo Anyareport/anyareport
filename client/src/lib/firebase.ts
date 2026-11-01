@@ -86,8 +86,32 @@ export function getGoogleAuthErrorMessage(err: unknown): string {
     case 'auth/account-exists-with-different-credential':
       return 'An account already exists with this email. Sign in with your existing method.';
     default:
-      return err instanceof Error ? err.message : 'Google sign-in failed.';
+      return getAuthErrorMessage(err, 'Could not sign in with Google. Please try again.');
   }
+}
+
+const authErrorMessages: Record<string, string> = {
+  'auth/invalid-email': 'Enter a valid email address.',
+  'auth/email-already-in-use': 'An account with this email already exists. Sign in instead.',
+  'auth/weak-password': 'Choose a stronger password and try again.',
+  'auth/invalid-credential': 'The email or password is incorrect.',
+  'auth/user-not-found': 'The email or password is incorrect.',
+  'auth/wrong-password': 'The email or password is incorrect.',
+  'auth/user-disabled': 'This account is disabled. Contact your barangay administrator.',
+  'auth/too-many-requests': 'Too many attempts. Wait a while, then try again.',
+  'auth/network-request-failed': "Couldn't connect. Check your internet connection and try again.",
+  'auth/expired-action-code': 'This link has expired. Request a new password reset email.',
+  'auth/invalid-action-code': 'This link is invalid. Request a new password reset email.',
+};
+
+export function getAuthErrorMessage(err: unknown, fallback: string): string {
+  const code =
+    err && typeof err === 'object' && 'code' in err && typeof err.code === 'string'
+      ? err.code
+      : undefined;
+
+  if (code?.startsWith('auth/')) return authErrorMessages[code] ?? fallback;
+  return err instanceof Error && err.message ? err.message : fallback;
 }
 
 export async function linkGoogleAccount() {

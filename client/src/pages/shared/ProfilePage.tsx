@@ -11,15 +11,15 @@ import {
   Row,
   Space,
   Typography,
-  message,
 } from 'antd';
 import { api } from '../../lib/api';
 import { PH_MOBILE_REGEX } from '../../lib/phone';
 import { useAuth } from '../../contexts/AuthContext';
-import { sendVerificationEmail } from '../../lib/firebase';
+import { getAuthErrorMessage, sendVerificationEmail } from '../../lib/firebase';
 import { useLang } from '../../contexts/LanguageContext';
 import { getRoleLabel } from '../../lib/roles';
 import AppTag from '../../components/AppTag';
+import { useAntdMessage } from '../../lib/useAntdMessage';
 
 const { Text, Title } = Typography;
 
@@ -34,6 +34,7 @@ function getInitials(name: string) {
 }
 
 export default function ProfilePage() {
+  const message = useAntdMessage();
   const { profile, refreshProfile, role, firebaseUser } = useAuth();
   const { lang, t } = useLang();
   const translate = lang === 'fil' && ['tanod', 'responder'].includes(role || '');
@@ -73,7 +74,7 @@ export default function ProfilePage() {
         translate ? t('verificationSent') : 'Verification email sent. Check your inbox.'
       );
     } catch (error) {
-      message.error(error instanceof Error ? error.message : 'Could not send the email.');
+      message.error(getAuthErrorMessage(error, 'Could not send the email. Please try again.'));
     } finally {
       setVerifyBusy(false);
     }
@@ -92,7 +93,9 @@ export default function ProfilePage() {
         message.info(translate ? t('verificationPending') : 'Your email is not verified yet.');
       }
     } catch (error) {
-      message.error(error instanceof Error ? error.message : 'Could not check verification.');
+      message.error(
+        getAuthErrorMessage(error, 'Could not check your email verification. Please try again.')
+      );
     } finally {
       setVerifyBusy(false);
     }

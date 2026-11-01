@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { Alert, Button, Card, Space, Typography, message } from 'antd';
+import { Alert, Button, Card, Space, Typography } from 'antd';
 import { MailOutlined } from '@ant-design/icons';
 import { api } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
-import { logout, sendVerificationEmail } from '../lib/firebase';
+import { getAuthErrorMessage, logout, sendVerificationEmail } from '../lib/firebase';
+import { useAntdMessage } from '../lib/useAntdMessage';
 
 const { Paragraph, Text, Title } = Typography;
 
 // Shown instead of the app to a barangay official whose email is not verified yet.
 export default function VerifyEmailGate() {
+  const message = useAntdMessage();
   const { firebaseUser, profile, refreshProfile } = useAuth();
   const [busy, setBusy] = useState(false);
 
@@ -19,7 +21,7 @@ export default function VerifyEmailGate() {
       await sendVerificationEmail(firebaseUser);
       message.success('Verification email sent. Check your inbox.');
     } catch (error) {
-      message.error(error instanceof Error ? error.message : 'Could not send the email.');
+      message.error(getAuthErrorMessage(error, 'Could not send the email. Please try again.'));
     } finally {
       setBusy(false);
     }
@@ -36,7 +38,9 @@ export default function VerifyEmailGate() {
       await refreshProfile();
       if (!firebaseUser.emailVerified) message.info('Your email is not verified yet.');
     } catch (error) {
-      message.error(error instanceof Error ? error.message : 'Could not check verification.');
+      message.error(
+        getAuthErrorMessage(error, 'Could not check your email verification. Please try again.')
+      );
     } finally {
       setBusy(false);
     }

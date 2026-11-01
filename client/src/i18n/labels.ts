@@ -10,16 +10,31 @@ export const labels = {
   joinBackup: { en: 'Join as assisting responder', fil: 'Sumama sa Backup' },
   resolve: { en: 'Mark resolved', fil: 'Tapusin ang Kaso' },
   closeBackup: { en: 'Enough help', fil: 'Sapat na ang Tulong' },
-  acknowledgeSuccess: { en: 'Incident acknowledged', fil: 'Natanggap na ang report' },
-  startWorkSuccess: { en: 'Incident status updated', fil: 'Na-update na ang status ng report' },
-  resolutionSuccess: { en: 'Resolution submitted', fil: 'Naipasa na ang resulta ng aksyon' },
+  acknowledgeSuccess: {
+    en: 'This incident has been acknowledged.',
+    fil: 'Natanggap na ang report na ito.',
+  },
+  startWorkSuccess: {
+    en: 'Work has started on this report.',
+    fil: 'Nagsimula na ang pag-asikaso sa report na ito.',
+  },
+  resolutionSuccess: {
+    en: 'This report has been marked as resolved.',
+    fil: 'Namarkahan na bilang nalutas ang report na ito.',
+  },
   requestBackupSuccess: { en: 'Backup requested', fil: 'Humingi na ng backup' },
-  requestBackupAlready: { en: 'Backup is already requested', fil: 'May naka-request nang backup' },
+  requestBackupAlready: {
+    en: 'Backup has already been requested.',
+    fil: 'May naka-request na ng backup.',
+  },
   joinBackupSuccess: { en: 'You joined as backup', fil: 'Sumama ka na bilang backup' },
-  joinBackupAlready: { en: 'You are already assisting', fil: 'Tumutulong ka na' },
+  joinBackupAlready: {
+    en: "You're already helping with this incident.",
+    fil: 'Tumutulong ka na sa insidenteng ito.',
+  },
   closeBackupSuccess: {
-    en: 'No more backup needed',
-    fil: 'Hindi na kailangan ng dagdag na backup',
+    en: 'No additional backup is needed.',
+    fil: 'Hindi na kailangan ng dagdag na backup.',
   },
   closeBackupAlready: {
     en: 'Backup request is already closed',

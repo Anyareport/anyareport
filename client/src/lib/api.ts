@@ -1,6 +1,18 @@
 import { getIdToken } from './firebase';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
+const NETWORK_ERROR_MESSAGE =
+  "Couldn't connect to Anyareport. Check your internet connection and try again.";
+const SERVER_ERROR_MESSAGE = 'Something went wrong on our end. Please try again.';
+
+async function fetchApi(path: string, options?: RequestInit) {
+  try {
+    return await fetch(path, options);
+  } catch (error) {
+    if (error instanceof TypeError) throw new Error(NETWORK_ERROR_MESSAGE);
+    throw error;
+  }
+}
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = await getIdToken();
@@ -13,11 +25,13 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     headers['Content-Type'] = 'application/json';
   }
 
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  const res = await fetchApi(`${API_URL}${path}`, { ...options, headers });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || 'Request failed');
+    const body: { error?: unknown } | null = await res.json().catch(() => null);
+    if (res.status >= 500) throw new Error(SERVER_ERROR_MESSAGE);
+    const serverMessage = typeof body?.error === 'string' ? body.error : 'Request failed';
+    throw new Error(serverMessage);
   }
 
   const contentType = res.headers.get('content-type');
@@ -55,7 +69,7 @@ export const api = {
     }),
   download: async (path: string) => {
     const token = await getIdToken();
-    const res = await fetch(`${API_URL}${path}`, {
+    const res = await fetchApi(`${API_URL}${path}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) throw new Error('Download failed');

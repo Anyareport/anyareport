@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Form, Input, Modal, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Form, Input, Modal, Space, Table, Tag, Typography } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import { api } from '../../lib/api';
 import { getStatusTagStyle } from '../../lib/statusTagStyles';
+import { useAntdMessage } from '../../lib/useAntdMessage';
 
 interface ResidentAccount {
   _id: string;
@@ -15,6 +16,7 @@ interface ResidentAccount {
 }
 
 export default function ResidentAccountsPage() {
+  const message = useAntdMessage();
   const [search, setSearch] = useState('');
   const [selectedResident, setSelectedResident] = useState<ResidentAccount | null>(null);
   const [form] = Form.useForm<{ reason: string }>();
