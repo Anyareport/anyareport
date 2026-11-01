@@ -183,6 +183,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const [resolutionOpen, setResolutionOpen] = useState(false);
   const [resolutionViewOpen, setResolutionViewOpen] = useState(false);
   const [evidenceFiles, setEvidenceFiles] = useState<UploadFile[]>([]);
+  const [routeLocationUnavailable, setRouteLocationUnavailable] = useState(false);
 
   const { data: report, isLoading } = useQuery({
     queryKey: ['report', id],
@@ -270,6 +271,17 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   });
 
   const invalidateReportViews = () => invalidateReportQueries(queryClient, id);
+
+  const confirmResponderArrival = () => {
+    Modal.confirm({
+      title: "Confirm you've arrived",
+      content:
+        'Confirm that you have reached the incident location? The report status will change to In Progress.',
+      okText: "I've arrived",
+      cancelText: 'Cancel',
+      onOk: () => updateStatus.mutate('in_progress'),
+    });
+  };
 
   const updateStatus = useMutation({
     mutationFn: (status: 'in_progress' | 'resolved') =>
@@ -602,7 +614,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       type="primary"
       disabled={actionBusy}
       loading={updateStatus.isPending}
-      onClick={() => updateStatus.mutate('in_progress')}
+      onClick={confirmResponderArrival}
     >
       {t('startWork')}
     </Button>
@@ -933,13 +945,27 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     />
   );
 
+  const responderLocationAlert = routeLocationUnavailable ? (
+    <Alert
+      type="warning"
+      showIcon
+      message="Responder location unavailable"
+      description="The incident location remains visible, but your current position and route are unavailable without device location access."
+    />
+  ) : null;
+
   const responderRouteMap = (
     <div className="incident-hero-map">
       <section
         className="incident-route-section"
         aria-label={text('routeToIncident', 'Route to incident')}
       >
-        <RouteMap incidentLat={latitude} incidentLng={longitude} />
+        <RouteMap
+          incidentLat={latitude}
+          incidentLng={longitude}
+          hideAlert
+          onLocationUnavailableChange={setRouteLocationUnavailable}
+        />
         <Button
           block
           color="primary"
@@ -956,71 +982,72 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   );
 
   const reportHero = (
-    <section
-      className={photos.length ? 'incident-gallery' : 'incident-hero'}
-      aria-label={
-        photos.length
-          ? text('reportPhoto', 'Report photo')
-          : text('incidentLocation', 'Incident location')
-      }
-    >
-      {photos.length > 0 && activePhotoUrl ? (
-        <div
-          className="incident-gallery__stage"
-          role="group"
-          aria-label={`${text('reportPhoto', 'Photo')} ${activePhotoIndex + 1} / ${photos.length}`}
-          tabIndex={photos.length > 1 ? 0 : undefined}
-          onTouchStart={handleGalleryTouchStart}
-          onTouchEnd={handleGalleryTouchEnd}
-          onKeyDown={handleGalleryKeyDown}
-        >
-          <img
-            className="incident-gallery__backdrop"
-            src={activePhotoUrl}
-            alt=""
-            aria-hidden="true"
-          />
-          <Image.PreviewGroup>
-            <Image
-              className="incident-gallery__image"
+    <>
+      {variant === 'responder' && photos.length === 0 && responderLocationAlert}
+      <section
+        className={photos.length ? 'incident-gallery' : 'incident-hero'}
+        aria-label={
+          photos.length
+            ? text('reportPhoto', 'Report photo')
+            : text('incidentLocation', 'Incident location')
+        }
+      >
+        {photos.length > 0 && activePhotoUrl ? (
+          <div
+            className="incident-gallery__stage"
+            role="group"
+            aria-label={`${text('reportPhoto', 'Photo')} ${activePhotoIndex + 1} / ${photos.length}`}
+            tabIndex={photos.length > 1 ? 0 : undefined}
+            onTouchStart={handleGalleryTouchStart}
+            onTouchEnd={handleGalleryTouchEnd}
+            onKeyDown={handleGalleryKeyDown}
+          >
+            <img
+              className="incident-gallery__backdrop"
               src={activePhotoUrl}
-              alt={`${text('reportPhoto', 'Report photo')} ${activePhotoIndex + 1}`}
+              alt=""
+              aria-hidden="true"
             />
-          </Image.PreviewGroup>
-          {photos.length > 1 && (
-            <>
-              <Button
-                className="incident-gallery__control incident-gallery__control--previous"
-                shape="circle"
-                icon={<LeftOutlined />}
-                aria-label={text('previousPhoto', 'Previous photo')}
-                title={text('previousPhoto', 'Previous photo')}
-                onClick={showPreviousPhoto}
+            <Image.PreviewGroup>
+              <Image
+                className="incident-gallery__image"
+                src={activePhotoUrl}
+                alt={`${text('reportPhoto', 'Report photo')} ${activePhotoIndex + 1}`}
               />
-              <Button
-                className="incident-gallery__control incident-gallery__control--next"
-                shape="circle"
-                icon={<RightOutlined />}
-                aria-label={text('nextPhoto', 'Next photo')}
-                title={text('nextPhoto', 'Next photo')}
-                onClick={showNextPhoto}
-              />
-              <span className="incident-gallery__count" aria-live="polite">
-                {activePhotoIndex + 1} / {photos.length}
-              </span>
-            </>
-          )}
-        </div>
-      ) : (
-        variant === 'responder' ? (
+            </Image.PreviewGroup>
+            {photos.length > 1 && (
+              <>
+                <Button
+                  className="incident-gallery__control incident-gallery__control--previous"
+                  shape="circle"
+                  icon={<LeftOutlined />}
+                  aria-label={text('previousPhoto', 'Previous photo')}
+                  title={text('previousPhoto', 'Previous photo')}
+                  onClick={showPreviousPhoto}
+                />
+                <Button
+                  className="incident-gallery__control incident-gallery__control--next"
+                  shape="circle"
+                  icon={<RightOutlined />}
+                  aria-label={text('nextPhoto', 'Next photo')}
+                  title={text('nextPhoto', 'Next photo')}
+                  onClick={showNextPhoto}
+                />
+                <span className="incident-gallery__count" aria-live="polite">
+                  {activePhotoIndex + 1} / {photos.length}
+                </span>
+              </>
+            )}
+          </div>
+        ) : variant === 'responder' ? (
           responderRouteMap
         ) : (
           <div className="incident-hero-map">
             <StaticMap latitude={latitude} longitude={longitude} height={340} />
           </div>
-        )
-      )}
-    </section>
+        )}
+      </section>
+    </>
   );
 
   const resolutionDetails = report.resolution?.resolvedAt ? (
@@ -1320,21 +1347,23 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
               )}
             </section>
 
-            {photos.length > 0 && (
-              variant === 'responder' ? (
-                <section
-                  className="incident-hero"
-                  aria-label={text('incidentLocation', 'Incident location')}
-                >
-                  {responderRouteMap}
-                </section>
+            {photos.length > 0 &&
+              (variant === 'responder' ? (
+                <>
+                  {responderLocationAlert}
+                  <section
+                    className="incident-hero"
+                    aria-label={text('incidentLocation', 'Incident location')}
+                  >
+                    {responderRouteMap}
+                  </section>
+                </>
               ) : (
                 <section className="incident-location-section">
                   <h2>Location</h2>
                   <StaticMap latitude={latitude} longitude={longitude} height={250} />
                 </section>
-              )
-            )}
+              ))}
           </article>
         </Card>
 
@@ -1472,10 +1501,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
                         'describeFieldActions',
                         'For example: Called PNP, provided on-site help, or both.'
                       )
-                    : text(
-                        'describeActions',
-                        'Describe the actions or interventions performed.'
-                      )
+                    : text('describeActions', 'Describe the actions or interventions performed.')
                 }
               />
             </Form.Item>

@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { GeoJSON } from 'react-leaflet';
 import type { Feature, Geometry, FeatureCollection } from 'geojson';
 import type { Layer, PathOptions } from 'leaflet';
-import { theme } from 'antd';
+import { Alert, theme } from 'antd';
 import barangayData from '../../data/DMM.json';
 
 const defaultCenter: [number, number] = [16.482, 121.1557];
@@ -300,32 +300,54 @@ interface RouteMapProps {
   incidentLng: number;
   height?: number;
   zoom?: number;
+  hideAlert?: boolean;
+  onLocationUnavailableChange?: (unavailable: boolean) => void;
 }
 
-export function RouteMap({ incidentLat, incidentLng, height = 350, zoom = 17 }: RouteMapProps) {
+export function RouteMap({
+  incidentLat,
+  incidentLng,
+  height = 350,
+  zoom = 17,
+  hideAlert = false,
+  onLocationUnavailableChange,
+}: RouteMapProps) {
   const [responderPos, setResponderPos] = useState<[number, number] | null>(null);
   const [routeCoords, setRouteCoords] = useState<[number, number][] | null>(null);
+  const [locationUnavailable, setLocationUnavailable] = useState(false);
   const incidentPos: [number, number] = [incidentLat, incidentLng];
+  const geolocation = typeof navigator === 'undefined' ? null : navigator.geolocation;
   const { token } = theme.useToken();
 
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.watchPosition(
-        (p) => setResponderPos([p.coords.latitude, p.coords.longitude]),
-        () => setResponderPos(incidentPos)
-      );
-    }
-  }, [incidentLat, incidentLng]);
+    if (!geolocation) return;
+
+    const watchId = geolocation.watchPosition(
+      (position) => {
+        setResponderPos([position.coords.latitude, position.coords.longitude]);
+        setLocationUnavailable(false);
+      },
+      () => {
+        setResponderPos(null);
+        setRouteCoords(null);
+        setLocationUnavailable(true);
+      }
+    );
+
+    return () => geolocation.clearWatch(watchId);
+  }, [geolocation]);
 
   useEffect(() => {
     if (!responderPos) return;
 
+    let active = true;
     const [rLat, rLng] = responderPos;
     const url = `https://router.project-osrm.org/route/v1/driving/${rLng},${rLat};${incidentLng},${incidentLat}?overview=full&geometries=geojson`;
 
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
+        if (!active) return;
         if (data.routes && data.routes.length > 0) {
           const coords: [number, number][] = data.routes[0].geometry.coordinates.map(
             ([lng, lat]: [number, number]) => [lat, lng]
@@ -334,32 +356,52 @@ export function RouteMap({ incidentLat, incidentLng, height = 350, zoom = 17 }: 
         }
       })
       .catch(() => {
-        setRouteCoords([responderPos, incidentPos]);
+        if (active) setRouteCoords([responderPos, [incidentLat, incidentLng]]);
       });
+
+    return () => {
+      active = false;
+    };
   }, [responderPos, incidentLat, incidentLng]);
 
   const center = responderPos || incidentPos;
+  const isLocationUnavailable = !geolocation || locationUnavailable;
+
+  useEffect(() => {
+    onLocationUnavailableChange?.(isLocationUnavailable);
+  }, [isLocationUnavailable, onLocationUnavailableChange]);
 
   return (
-    <MapContainer
-      center={center}
-      zoom={zoom}
-      style={{ height, width: '100%', borderRadius: 8 }}
-      scrollWheelZoom
-    >
-      <MapResizeHandler />
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-      <GeoJSON
-        data={barangayData as FeatureCollection}
-        style={getBarangayStyle}
-        onEachFeature={onEachBarangayFeature}
-      />
-      <Marker position={incidentPos} icon={markerIcon} />
-      {responderPos && <Marker position={responderPos} icon={markerIcon} />}
-      {routeCoords && (
-        <Polyline positions={routeCoords} color={token.colorPrimary} weight={4} dashArray="8 8" />
+    <div>
+      {isLocationUnavailable && !hideAlert && (
+        <Alert
+          type="warning"
+          showIcon
+          message="Responder location unavailable"
+          description="The incident location remains visible, but your current position and route are unavailable without device location access."
+          style={{ marginBottom: 8 }}
+        />
       )}
-    </MapContainer>
+      <MapContainer
+        center={center}
+        zoom={zoom}
+        style={{ height, width: '100%', borderRadius: 8 }}
+        scrollWheelZoom
+      >
+        <MapResizeHandler />
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <GeoJSON
+          data={barangayData as FeatureCollection}
+          style={getBarangayStyle}
+          onEachFeature={onEachBarangayFeature}
+        />
+        <Marker position={incidentPos} icon={markerIcon} />
+        {responderPos && <Marker position={responderPos} icon={markerIcon} />}
+        {routeCoords && (
+          <Polyline positions={routeCoords} color={token.colorPrimary} weight={4} dashArray="8 8" />
+        )}
+      </MapContainer>
+    </div>
   );
 }
 
