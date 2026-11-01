@@ -12,7 +12,7 @@ export default defineConfig({
         name: 'Anyareport',
         short_name: 'Anyareport',
         description: 'Data Analytics-Enabled Complaint and Reporting System',
-        theme_color: '#E63333',
+        theme_color: '#18191d',
         background_color: '#FFFFFF',
         display: 'standalone',
         icons: [
