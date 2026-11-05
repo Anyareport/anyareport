@@ -1106,7 +1106,13 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       >
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
           <div
-            style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              gap: 12,
+              flexWrap: 'wrap',
+            }}
           >
             <Space direction="vertical" size={2}>
               <Text strong>{report.referenceNumber || referenceLabel}</Text>
