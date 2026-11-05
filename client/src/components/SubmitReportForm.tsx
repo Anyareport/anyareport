@@ -32,7 +32,7 @@ import { findContainingPurok, isInsideBarangayBoundary } from '../components/map
 import SeverityTag from './SeverityTag';
 import AppTag from './AppTag';
 import barangayData from '../data/DMM.json';
-import { compressImage } from '../lib/imageCompressor';
+import { compressImage, MAX_COMPRESSED_IMAGE_SIZE_BYTES } from '../lib/imageCompressor';
 import { useAntdMessage } from '../lib/useAntdMessage';
 
 const { Title, Text } = Typography;
@@ -93,6 +93,8 @@ export default function SubmitReportForm({
   const [fileList, setFileList] = useState<
     { originFileObj: File; thumbUrl?: string; compressedBlob?: Blob }[]
   >([]);
+  const [photoPreparationErrors, setPhotoPreparationErrors] = useState<File[]>([]);
+  const [isPreparingPhotos, setIsPreparingPhotos] = useState(false);
 
   const [classification, setClassification] = useState<ClassificationResult>();
   const [manuallyEdited, setManuallyEdited] = useState(false);
@@ -126,12 +128,12 @@ export default function SubmitReportForm({
     }
 
     const processedFiles = [];
+    const failedFiles = [];
+    setIsPreparingPhotos(true);
     for (const file of files) {
       try {
-        // Compress for Gemini
         const compressedBlob = await compressImage(file);
 
-        // Create a preview URL for the compressed version
         const compressedFile = new File([compressedBlob], 'compressed.jpg', { type: 'image/jpeg' });
         const thumbUrl = URL.createObjectURL(compressedFile);
 
@@ -145,11 +147,16 @@ export default function SubmitReportForm({
         processedFiles.push({ originFileObj: file, thumbUrl, compressedBlob });
       } catch (err) {
         console.error('Image compression failed for', file.name, err);
-        message.warning(`Couldn't prepare ${file.name} for upload. Try another image.`);
+        failedFiles.push(file);
       }
     }
 
     setFileList(processedFiles);
+    setPhotoPreparationErrors(failedFiles);
+    setIsPreparingPhotos(false);
+    if (failedFiles.length > 0) {
+      message.warning('Some photos could not be prepared. Remove or replace them before continuing.');
+    }
     resetClassificationState();
   };
 
@@ -198,6 +205,9 @@ export default function SubmitReportForm({
     retry: (failureCount, error) => error instanceof TypeError && failureCount < 2,
     retryDelay: 1500,
     mutationFn: async (values: ReportFormValues) => {
+      if (isPreparingPhotos || photoPreparationErrors.length > 0) {
+        throw new Error('Please finish preparing or remove the photos that could not be compressed.');
+      }
       if (!selectedLocation) {
         throw new Error('Please select a location before submitting.');
       }
@@ -250,6 +260,15 @@ export default function SubmitReportForm({
         const fieldsToCheck = reportType === 'text' ? ['description'] : [];
         await form.validateFields(fieldsToCheck);
 
+        if (isPreparingPhotos) {
+          message.warning('Please wait while your photos are prepared.');
+          return;
+        }
+        if (photoPreparationErrors.length > 0) {
+          message.error('Remove or replace photos that could not be prepared before continuing.');
+          return;
+        }
+
         // Validate max 3 photos
         if (reportType === 'photo' && fileList.length > 3) {
           message.error('You can attach up to 3 photos per report.');
@@ -282,6 +301,8 @@ export default function SubmitReportForm({
     fileList,
     aiProcessingAcknowledged,
     message,
+    isPreparingPhotos,
+    photoPreparationErrors.length,
   ]);
 
   const goBack = () => setCurrentStep((s) => Math.max(0, s - 1));
@@ -299,6 +320,14 @@ export default function SubmitReportForm({
       if (step > maxStepReached) return;
 
       if (step >= 1) {
+        if (isPreparingPhotos) {
+          message.warning('Please wait while your photos are prepared.');
+          return;
+        }
+        if (photoPreparationErrors.length > 0) {
+          message.error('Remove or replace photos that could not be prepared before continuing.');
+          return;
+        }
         if (!aiProcessingAcknowledged) {
           message.warning('Please review the AI-processing notice and check the box to continue.');
           return;
@@ -324,6 +353,8 @@ export default function SubmitReportForm({
       form,
       aiProcessingAcknowledged,
       message,
+      isPreparingPhotos,
+      photoPreparationErrors.length,
     ]
   );
 
@@ -453,6 +484,7 @@ export default function SubmitReportForm({
               <Upload
                 listType="picture-card"
                 beforeUpload={() => false} // Disable default upload
+                disabled={isPreparingPhotos}
                 maxCount={3}
                 accept="image/*"
                 capture="environment"
@@ -481,7 +513,39 @@ export default function SubmitReportForm({
                   </div>
                 )}
               </Upload>
+              {isPreparingPhotos && <Spin size="small" tip="Preparing photos..." />}
             </Form.Item>
+          )}
+          {photoPreparationErrors.length > 0 && (
+            <Alert
+              type="error"
+              showIcon
+              message="Some photos could not be prepared"
+              description={
+                <Space direction="vertical" size={8}>
+                  <Text>
+                    These photos could not be prepared for upload. Photos must compress to no more
+                    than {(MAX_COMPRESSED_IMAGE_SIZE_BYTES / (1024 * 1024)).toFixed(1)} MiB. Remove
+                    them or select replacements before continuing.
+                  </Text>
+                  {photoPreparationErrors.map((file, index) => (
+                    <Button
+                      key={`${file.name}-${index}`}
+                      size="small"
+                      onClick={() => {
+                        setPhotoPreparationErrors((failedFiles) =>
+                          failedFiles.filter((failedFile) => failedFile !== file)
+                        );
+                        resetClassificationState();
+                      }}
+                    >
+                      Remove {file.name}
+                    </Button>
+                  ))}
+                </Space>
+              }
+              style={{ marginBottom: 16 }}
+            />
           )}
 
           <Form.Item
