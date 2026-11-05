@@ -154,14 +154,14 @@ function IncidentDots({
                 {point.category || 'Incident'}
                 {point.status ? ` - ${point.status.replace(/_/g, ' ')}` : ''}
               </Tooltip>
-              {point.id === selectedPointId && renderPointPopup && (
+              {renderPointPopup && (
                 <Popup
                   closeButton={false}
                   closeOnClick={false}
                   autoClose
                   className="incident-map-popup"
                 >
-                  {renderPointPopup(point)}
+                  {point.id === selectedPointId ? renderPointPopup(point) : null}
                 </Popup>
               )}
             </CircleMarker>
