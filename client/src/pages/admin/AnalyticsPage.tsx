@@ -26,8 +26,8 @@ import { api, type Analytics } from '../../lib/api';
 import { sharedColors } from '../../theme/colorTokens';
 import LoadingState from '../../components/LoadingState';
 import { getStatusLabel, normalizeReportStatus } from '../../lib/reportWorkflow';
-import { downloadCsv, toCsv } from '../../lib/csv';
-import { getIncidentLabel, getLocationLabel } from '../../lib/incidentUtils';
+import { downloadCsv, toCsv, toIsoTimestamp } from '../../lib/csv';
+import { getCompactAddressLabel, getIncidentLabel } from '../../lib/incidentUtils';
 import KpiCard from '../../components/KpiCard';
 import PurokBreakdownCard from '../../components/PurokBreakdownCard';
 import { useAntdMessage } from '../../lib/useAntdMessage';
@@ -205,7 +205,7 @@ export default function AdminAnalyticsPage() {
       ...dailyData.map((e) => ['Reports per day', e.date, e.count, null]),
     ];
     downloadCsv(
-      `analytics-summary-${fileSuffix}.csv`,
+      `anyareport-analytics-summary-${fileSuffix}.csv`,
       toCsv(['Section', 'Item', 'Count', 'Share (%)'], rows)
     );
   };
@@ -223,14 +223,14 @@ export default function AdminAnalyticsPage() {
       report.subcategory,
       report.severity,
       report.status,
-      getLocationLabel(report),
+      getCompactAddressLabel(report.location?.address),
       report.description,
       report.submitterName,
-      new Date(report.createdAt).toLocaleString(),
-      report.resolution?.resolvedAt ? new Date(report.resolution.resolvedAt).toLocaleString() : '',
+      toIsoTimestamp(report.createdAt),
+      toIsoTimestamp(report.resolution?.resolvedAt),
     ]);
     downloadCsv(
-      `analytics-reports-${fileSuffix}.csv`,
+      `anyareport-reports-analytics-${fileSuffix}.csv`,
       toCsv(
         [
           'Reference Number',

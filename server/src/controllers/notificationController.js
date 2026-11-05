@@ -227,13 +227,19 @@ export async function exportReports(req, res) {
     if (format === 'pdf') {
       const pdf = await exportToPDF(reports);
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'attachment; filename=anyareport-export.pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=anyareport-reports-${exportScope}.pdf`
+      );
       return res.send(pdf);
     }
 
     const csv = await exportToCSV(reports);
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename=anyareport-export.csv');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=anyareport-reports-${exportScope}.csv`
+    );
     res.send(csv);
   } catch (err) {
     res.status(err.statusCode || 500).json({ error: err.message });

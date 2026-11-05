@@ -309,7 +309,7 @@ export default function IncidentHistoryPage({
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download = `anyareport-${scope}-${format}.${format}`;
+      anchor.download = `anyareport-reports-${scope}.${format}`;
       anchor.click();
       URL.revokeObjectURL(url);
       message.success(

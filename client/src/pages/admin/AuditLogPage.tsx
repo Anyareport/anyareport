@@ -15,7 +15,7 @@ import {
 import { ExportOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons';
 import AppTag from '../../components/AppTag';
 import { api, type AuditLog } from '../../lib/api';
-import { downloadCsv, toCsv } from '../../lib/csv';
+import { downloadCsv, toCsv, toIsoTimestamp } from '../../lib/csv';
 import {
   getAuditActorRole,
   getAuditLabel,
@@ -309,7 +309,7 @@ export default function AdminAuditLogPage() {
             icon={<ExportOutlined />}
             onClick={() => {
               const rows = filteredLogs.map((log) => [
-                log.timestamp,
+                toIsoTimestamp(log.timestamp),
                 getAuditLabel(log).label,
                 getActor(log),
                 getAuditActorRole(log.actorRole),
@@ -317,7 +317,7 @@ export default function AdminAuditLogPage() {
               ]);
               downloadCsv(
                 'anyareport-audit-loaded.csv',
-                toCsv(['Timestamp', 'Action', 'Actor', 'Actor role', 'Summary'], rows)
+                toCsv(['Timestamp', 'Action', 'Actor', 'Actor Role', 'Summary'], rows)
               );
             }}
           >

@@ -779,7 +779,11 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         icon={<DownloadOutlined />}
         disabled={!auditEntries.length}
         onClick={() =>
-          downloadFile(`/api/reports/${id}/audit?format=csv`, `report-${id}-audit.csv`, message)
+          downloadFile(
+            `/api/reports/${id}/audit?format=csv`,
+            `anyareport-report-${report.referenceNumber || id}-audit.csv`,
+            message
+          )
         }
       >
         Export case audit
@@ -851,7 +855,9 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       <Button
         block
         icon={<DownloadOutlined />}
-        onClick={() => downloadFile('/api/audit-logs?format=csv', 'anyareport-audit.csv', message)}
+        onClick={() =>
+          downloadFile('/api/audit-logs?format=csv', 'anyareport-audit-system.csv', message)
+        }
       >
         Export system log
       </Button>
@@ -893,7 +899,11 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
           icon={<DownloadOutlined />}
           disabled={!auditEntries.length}
           onClick={() =>
-            downloadFile(`/api/reports/${id}/audit?format=csv`, `report-${id}-audit.csv`, message)
+            downloadFile(
+              `/api/reports/${id}/audit?format=csv`,
+              `anyareport-report-${report.referenceNumber || id}-audit.csv`,
+              message
+            )
           }
         >
           Export case audit

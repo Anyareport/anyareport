@@ -1,7 +1,7 @@
-import { Parser } from 'json2csv';
 import AuditLog from '../models/AuditLog.js';
 import Report from '../models/Report.js';
 import User from '../models/User.js';
+import { toCsv, toIsoTimestamp } from '../services/csvExport.js';
 import { getAuditScope } from '../middleware/rbac.js';
 import {
   buildAuditFilter,
@@ -58,25 +58,26 @@ export async function getAuditLogs(req, res) {
     }));
 
     if (req.query.format === 'csv') {
-      const parser = new Parser({
-        fields: [
-          'timestamp',
-          'action',
-          'actorName',
-          'reportReferenceNumber',
-          'reportId',
-          'metadata',
-          'ip',
-          'userAgent',
-        ],
-      });
       const rows = result.map((entry) => ({
         ...entry,
+        actorName: entry.actorName || entry.actorUid || 'system',
+        timestamp: toIsoTimestamp(entry.timestamp),
         metadata: JSON.stringify(entry.metadata || {}),
       }));
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', 'attachment; filename=anyareport-audit.csv');
-      return res.send(`\uFEFF${parser.parse(rows)}`);
+      res.setHeader('Content-Disposition', 'attachment; filename=anyareport-audit-system.csv');
+      return res.send(
+        toCsv(rows, [
+          { label: 'Timestamp', value: 'timestamp' },
+          { label: 'Action', value: 'action' },
+          { label: 'Actor', value: 'actorName' },
+          { label: 'Report Reference Number', value: 'reportReferenceNumber' },
+          { label: 'Report ID', value: 'reportId' },
+          { label: 'Metadata', value: 'metadata' },
+          { label: 'IP Address', value: 'ip' },
+          { label: 'User Agent', value: 'userAgent' },
+        ])
+      );
     }
 
     res.json(result);

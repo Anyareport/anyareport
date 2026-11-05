@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-import { Parser } from 'json2csv';
 import Report from '../models/Report.js';
 import User from '../models/User.js';
 import AuditLog from '../models/AuditLog.js';
@@ -26,6 +25,7 @@ import { uploadImage } from '../services/cloudinary.js';
 import { getNextReportReference } from '../services/reportReference.js';
 import { isInsideBarangayBoundary } from '../services/barangayBoundary.js';
 import { getReportClassificationError } from '../services/reportClassification.js';
+import { toCsv, toIsoTimestamp } from '../services/csvExport.js';
 import {
   lockAndCheckResponders,
   RespondersUnavailableError,
@@ -798,15 +798,28 @@ export async function getReportAudit(req, res) {
     }));
 
     if (req.query.format === 'csv') {
-      const parser = new Parser({
-        fields: ['reportReferenceNumber', 'timestamp', 'action', 'actorName', 'metadata'],
-      });
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader(
         'Content-Disposition',
-        `attachment; filename=report-${report.referenceNumber || report._id}-audit.csv`
+        `attachment; filename=anyareport-report-${report.referenceNumber || report._id}-audit.csv`
       );
-      return res.send(`\uFEFF${parser.parse(rows)}`);
+      return res.send(
+        toCsv(
+          rows.map((entry) => ({
+            ...entry,
+            actorName: entry.actorName || entry.actorUid || 'system',
+            timestamp: toIsoTimestamp(entry.timestamp),
+            metadata: JSON.stringify(entry.metadata || {}),
+          })),
+          [
+            { label: 'Report Reference Number', value: 'reportReferenceNumber' },
+            { label: 'Timestamp', value: 'timestamp' },
+            { label: 'Action', value: 'action' },
+            { label: 'Actor', value: 'actorName' },
+            { label: 'Metadata', value: 'metadata' },
+          ]
+        )
+      );
     }
 
     res.json(rows);

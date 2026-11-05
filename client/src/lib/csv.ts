@@ -13,6 +13,12 @@ export function toCsv(headers: string[], rows: CsvCell[][]) {
   return [headers, ...rows].map((row) => row.map(escapeCell).join(',')).join('\r\n');
 }
 
+export function toIsoTimestamp(value: string | Date | null | undefined) {
+  if (!value) return '';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString();
+}
+
 export function downloadCsv(filename: string, csv: string) {
   // The BOM makes Excel read Filipino characters (ñ, etc.) correctly.
   const blob = new Blob(['﻿', csv], { type: 'text/csv;charset=utf-8' });

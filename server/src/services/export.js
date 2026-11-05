@@ -1,6 +1,6 @@
-import { Parser } from 'json2csv';
 import PDFDocument from 'pdfkit';
 import User from '../models/User.js';
+import { toCsv, toIsoTimestamp } from './csvExport.js';
 
 async function withSubmitterNames(reports) {
   const submitterUids = [...new Set(reports.map((report) => report.submittedBy).filter(Boolean))];
@@ -15,6 +15,22 @@ async function withSubmitterNames(reports) {
   }));
 }
 
+function getIncidentLabel(report) {
+  const aiTitle = report.aiTitle?.trim();
+  if (aiTitle) return aiTitle;
+
+  const description = report.description?.trim();
+  if (description) {
+    return description.length > 80 ? `${description.slice(0, 80).trimEnd()}…` : description;
+  }
+
+  return report.subcategory || report.category || '';
+}
+
+function getLocationLabel(report) {
+  return report.location?.address?.trim().replace(/,?\s*Don Mariano Marcos\s*$/i, '').trim() ?? '';
+}
+
 export async function exportToCSV(reports) {
   const reportsWithNames = await withSubmitterNames(reports);
   const rows = reportsWithNames.map((report) => ({
@@ -22,27 +38,28 @@ export async function exportToCSV(reports) {
     submittedBy: report.submittedByName,
     category: report.category ?? '',
     subcategory: report.subcategory ?? '',
+    severity: report.severity ?? '',
     status: report.status ?? '',
-    title: report.aiTitle ?? '',
+    incident: getIncidentLabel(report),
     description: report.description ?? '',
-    address: report.location?.address ?? '',
-    submittedAt: report.createdAt ? new Date(report.createdAt).toISOString() : '',
+    location: getLocationLabel(report),
+    submittedAt: toIsoTimestamp(report.createdAt),
+    resolvedAt: toIsoTimestamp(report.resolution?.resolvedAt),
   }));
 
-  const parser = new Parser({
-    fields: [
-      'referenceNumber',
-      'submittedBy',
-      'category',
-      'subcategory',
-      'status',
-      'title',
-      'description',
-      'address',
-      'submittedAt',
-    ],
-  });
-  return `\uFEFF${parser.parse(rows)}`;
+  return toCsv(rows, [
+    { label: 'Reference Number', value: 'referenceNumber' },
+    { label: 'Incident', value: 'incident' },
+    { label: 'Category', value: 'category' },
+    { label: 'Subcategory', value: 'subcategory' },
+    { label: 'Severity', value: 'severity' },
+    { label: 'Status', value: 'status' },
+    { label: 'Location', value: 'location' },
+    { label: 'Description', value: 'description' },
+    { label: 'Submitted By', value: 'submittedBy' },
+    { label: 'Submitted At', value: 'submittedAt' },
+    { label: 'Resolved At', value: 'resolvedAt' },
+  ]);
 }
 
 export function exportToPDF(reports) {
@@ -57,7 +74,7 @@ export function exportToPDF(reports) {
         doc.on('error', reject);
 
         doc.fontSize(16).text('Anyareport - Incident Export', { underline: true });
-        doc.fontSize(9).text(`Exported: ${new Date().toLocaleString()}`);
+        doc.fontSize(9).text(`Exported: ${toIsoTimestamp(new Date())}`);
         doc.moveDown();
 
         reportsWithNames.forEach((report, index) => {
@@ -68,16 +85,16 @@ export function exportToPDF(reports) {
               `${index + 1}.${reference} [${report.status}] ${report.category} (Submitted by: ${report.submittedByName})`
             );
           if (report.subcategory) doc.fontSize(9).text(`   Subcategory: ${report.subcategory}`);
-            if (report.aiTitle) doc.fontSize(9).text(`   Title: ${report.aiTitle}`);
-            if (report.description) doc.fontSize(9).text(`   Description: ${report.description}`);
-          if (report.location?.address) {
-            doc.fontSize(8).text(`   Location: ${report.location.address}`);
+          doc.fontSize(9).text(`   Incident: ${getIncidentLabel(report)}`);
+          if (report.severity) doc.fontSize(9).text(`   Severity: ${report.severity}`);
+          if (report.description) doc.fontSize(9).text(`   Description: ${report.description}`);
+          if (getLocationLabel(report)) {
+            doc.fontSize(8).text(`   Location: ${getLocationLabel(report)}`);
           }
-          doc
-            .fontSize(8)
-            .text(
-              `   ${report.createdAt ? new Date(report.createdAt).toLocaleString() : ''}`
-            );
+          doc.fontSize(8).text(`   Submitted At: ${toIsoTimestamp(report.createdAt)}`);
+          if (report.resolution?.resolvedAt) {
+            doc.fontSize(8).text(`   Resolved At: ${toIsoTimestamp(report.resolution.resolvedAt)}`);
+          }
           doc.moveDown(0.5);
         });
 
