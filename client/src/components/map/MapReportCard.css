@@ -46,6 +46,10 @@
   justify-content: space-between;
 }
 
+.map-report-card--no-photo .map-report-card__summary {
+  padding-right: 36px;
+}
+
 .map-report-card__tags {
   flex-wrap: wrap;
   min-width: 0;

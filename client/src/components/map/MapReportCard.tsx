@@ -26,7 +26,7 @@ export default function MapReportCard({
   const photo = showPhoto ? report.photos?.[0] : undefined;
 
   return (
-    <article className="map-report-card">
+    <article className={`map-report-card${photo ? '' : ' map-report-card--no-photo'}`}>
       <Button
         className="map-report-card__close"
         type="text"
