@@ -842,18 +842,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
         </Button>
       )}
     </Card>
-  ) : role === 'admin' ? (
-    <Card
-      className="soft-card incident-side-section incident-mobile-hide-panel"
-      role="region"
-      aria-label="Access"
-      title="Access"
-    >
-      <Text type="secondary">
-        Read-only. Admins manage accounts and system logs, not incident status.
-      </Text>
-    </Card>
-  ) : ['captain', 'secretary'].includes(role || '') ? (
+  ) : role === 'admin' ? null : ['captain', 'secretary'].includes(role || '') ? (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {captainResponseAction}
       {dispatchAction}
