@@ -198,6 +198,13 @@
   gap: 6px;
 }
 
+.app-shell-header__trailing {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+
 .app-shell-header__title {
   flex: 1;
   min-width: 0;
@@ -224,7 +231,7 @@
   display: none;
 }
 
-.app-shell-header.is-map .app-shell-user-trigger {
+.app-shell-header.is-map .app-shell-header__trailing {
   margin-inline-start: auto;
 }
 
@@ -360,6 +367,28 @@
 
   .app-shell-header__title {
     text-align: center;
+  }
+
+  .app-shell-header.has-header-action.ant-layout-header {
+    display: grid;
+    grid-template-columns: minmax(76px, 1fr) minmax(0, auto) minmax(76px, 1fr);
+  }
+
+  .app-shell-header.has-header-action .app-shell-header__leading {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .app-shell-header.has-header-action .app-shell-header__title {
+    grid-column: 2;
+    grid-row: 1;
+    max-width: 100%;
+  }
+
+  .app-shell-header.has-header-action .app-shell-header__trailing {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
   }
 
   .app-shell-user-trigger {

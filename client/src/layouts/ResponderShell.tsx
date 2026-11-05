@@ -8,6 +8,7 @@ import {
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import AppShell from './AppShell';
+import EmergencyHotline from '../components/EmergencyHotline';
 import { api, type Report } from '../lib/api';
 import { useNotificationFeed } from '../lib/notificationFeed';
 import { useLang } from '../contexts/LanguageContext';
@@ -53,6 +54,7 @@ export default function ResponderShell() {
       quietBadgeKeys={['/responder/notifications']}
       siderWidth={200}
       mobileNavigation
+      headerAction={<EmergencyHotline compact />}
     />
   );
 }

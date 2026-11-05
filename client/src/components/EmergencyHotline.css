@@ -5,6 +5,17 @@
   gap: 10px;
 }
 
+.emergency-hotline__header-trigger.ant-btn {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 16px;
+}
+
 .emergency-hotline__popover-title,
 .emergency-hotline__drawer-title {
   display: flex;

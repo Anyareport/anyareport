@@ -12,7 +12,7 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import Logo from '../components/Logo';
 import MobileBottomNavigation from '../components/MobileBottomNavigation';
 import { logout } from '../lib/firebase';
@@ -35,6 +35,7 @@ interface AppShellProps {
   mobileNavigation?: boolean;
   mobilePrimaryAction?: string;
   quietBadgeKeys?: string[];
+  headerAction?: ReactNode;
 }
 
 interface NavigationEntry {
@@ -91,6 +92,7 @@ export default function AppShell({
   mobileNavigation = false,
   mobilePrimaryAction,
   quietBadgeKeys = [],
+  headerAction,
 }: AppShellProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -219,7 +221,7 @@ export default function AppShell({
 
       <Layout className={`app-shell-main${fullWidthContent ? ' is-full-width' : ''}`}>
         <Header
-          className={`app-shell-header${fullWidthContent ? ' is-overlay' : ''}${isResidentMapPage ? ' is-map' : ''}`}
+          className={`app-shell-header${fullWidthContent ? ' is-overlay' : ''}${isResidentMapPage ? ' is-map' : ''}${headerAction ? ' has-header-action' : ''}`}
         >
           <div className="app-shell-header__leading">
             {!screens.md && !mobileNavigation && (
@@ -238,31 +240,34 @@ export default function AppShell({
             )}
           </div>
           <h1 className="app-shell-header__title">{pageTitle}</h1>
-          <Dropdown
-            trigger={['click']}
-            menu={{
-              className: `app-shell-account-menu${showLanguageToggle ? ' app-shell-account-menu--language' : ''}`,
-              items: accountMenuItems,
-              onClick: ({ key }) => {
-                if (key === 'profile') navigate(profilePath);
-                if (key === 'theme') toggleTheme();
-                if (key === 'logout') void handleLogout();
-              },
-            }}
-          >
-            <button
-              className={`app-shell-user-trigger${isResidentMapPage ? ' is-map' : ''}`}
-              type="button"
-              aria-label="Open account menu"
+          <div className="app-shell-header__trailing">
+            {headerAction}
+            <Dropdown
+              trigger={['click']}
+              menu={{
+                className: `app-shell-account-menu${showLanguageToggle ? ' app-shell-account-menu--language' : ''}`,
+                items: accountMenuItems,
+                onClick: ({ key }) => {
+                  if (key === 'profile') navigate(profilePath);
+                  if (key === 'theme') toggleTheme();
+                  if (key === 'logout') void handleLogout();
+                },
+              }}
             >
-              <Avatar size={32}>{initials || 'U'}</Avatar>
-              <span className="app-shell-user-trigger__identity">
-                <strong>{displayName}</strong>
-                <small>{roleName}</small>
-              </span>
-              <DownOutlined className="app-shell-user-trigger__chevron" />
-            </button>
-          </Dropdown>
+              <button
+                className={`app-shell-user-trigger${isResidentMapPage ? ' is-map' : ''}`}
+                type="button"
+                aria-label="Open account menu"
+              >
+                <Avatar size={32}>{initials || 'U'}</Avatar>
+                <span className="app-shell-user-trigger__identity">
+                  <strong>{displayName}</strong>
+                  <small>{roleName}</small>
+                </span>
+                <DownOutlined className="app-shell-user-trigger__chevron" />
+              </button>
+            </Dropdown>
+          </div>
         </Header>
 
         <Content

@@ -19,6 +19,7 @@ interface EmergencyHotlineProps {
   category?: string;
   subcategory?: string | null;
   referenceNumber?: string | null;
+  compact?: boolean;
 }
 
 interface HotlineContact {
@@ -89,6 +90,7 @@ export default function EmergencyHotline({
   category,
   subcategory,
   referenceNumber,
+  compact = false,
 }: EmergencyHotlineProps) {
   const screens = Grid.useBreakpoint();
   const { role } = useAuth();
@@ -174,13 +176,16 @@ export default function EmergencyHotline({
 
   const trigger = (
     <Button
+      className={compact ? 'emergency-hotline__header-trigger' : undefined}
       color="primary"
-      variant="outlined"
-      size="large"
+      variant={compact ? 'text' : 'outlined'}
+      size={compact ? 'middle' : 'large'}
       icon={<PhoneOutlined />}
+      aria-label={compact ? text('hotlines', 'Hotlines') : undefined}
+      title={text('hotlines', 'Hotlines')}
       onClick={() => setOpen(true)}
     >
-      {text('hotlines', 'Hotlines')}
+      {!compact && text('hotlines', 'Hotlines')}
     </Button>
   );
 
