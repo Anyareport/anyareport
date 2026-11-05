@@ -852,15 +852,6 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
       <Text type="secondary">
         Read-only. Admins manage accounts and system logs, not incident status.
       </Text>
-      <Button
-        block
-        icon={<DownloadOutlined />}
-        onClick={() =>
-          downloadFile('/api/audit-logs?format=csv', 'anyareport-audit-system.csv', message)
-        }
-      >
-        Export system log
-      </Button>
     </Card>
   ) : ['captain', 'secretary'].includes(role || '') ? (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
