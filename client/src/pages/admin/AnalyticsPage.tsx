@@ -47,7 +47,7 @@ const periodDays: Record<Exclude<AnalyticsPeriod, 'all'>, number> = {
   year: 365,
 };
 
-const workflowOrder = ['pending', 'coordinating', 'in_progress', 'resolved'];
+const workflowOrder = ['pending', 'coordinating', 'in_progress', 'resolved', 'flagged'];
 const severityColors: Record<string, string> = {
   Critical: 'var(--severity-critical-tag)',
   High: 'var(--severity-high-tag)',
@@ -167,7 +167,7 @@ export default function AdminAnalyticsPage() {
   const hourData = analytics?.byHour || [];
   const purokData = analytics?.byPurok || [];
   const openCount = statusData
-    .filter((entry) => entry.name !== 'Resolved')
+    .filter((entry) => !['Resolved', 'Flagged'].includes(entry.name))
     .reduce((total, entry) => total + entry.count, 0);
   const hasData = Boolean(analytics && analytics.total > 0);
 
@@ -437,6 +437,7 @@ export default function AdminAnalyticsPage() {
                     'var(--status-coordinating-border)',
                     'var(--status-on-scene-border)',
                     'var(--status-resolved-border)',
+                    'var(--status-flagged-tag)',
                   ][index],
                   display: 'flex',
                   alignItems: 'center',
@@ -487,6 +488,7 @@ export default function AdminAnalyticsPage() {
                       'var(--status-coordinating-border)',
                       'var(--status-on-scene-border)',
                       'var(--status-resolved-border)',
+                      'var(--status-flagged-tag)',
                     ][index],
                   }}
                 />
