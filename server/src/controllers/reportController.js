@@ -541,6 +541,16 @@ export async function dispatchReport(req, res) {
       notifyRespondersDispatched(updatedReport, responderUids, dispatcherName),
       'Responder dispatch'
     );
+    if (
+      !isAdditionalDispatch &&
+      updatedReport.category === 'Emergency Situations' &&
+      updatedReport.subcategory === 'Public'
+    ) {
+      await notifyBestEffort(
+        notifyResidentsOfAcknowledgedPublicEmergency(updatedReport),
+        'Public emergency resident alert'
+      );
+    }
     res.json({ report: serializeReport(updatedReport) });
   } catch (err) {
     res.status(500).json({ error: err.message });

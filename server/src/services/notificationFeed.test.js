@@ -113,7 +113,7 @@ test('only public emergency reports create a privacy-safe resident alert', () =>
   assert.deepEqual(publicAlert, {
     type: 'public_emergency_alert',
     message:
-      'A public emergency has been reported near Purok 7. Please follow official guidance.',
+      'A public emergency has been reported near Purok 7. Avoid the area and keep access routes clear for emergency responders. Check this app for updates.',
     urgent: true,
     recipientRole: 'resident',
   });
@@ -126,7 +126,7 @@ test('only public emergency reports create a privacy-safe resident alert', () =>
       subcategory: 'Public',
       location: { coordinates: [121.154424, 16.485316] },
     }).message,
-    'A public emergency has been reported near Barangay Don Mariano Marcos. Please follow official guidance.'
+    'A public emergency has been reported near Barangay Don Mariano Marcos. Avoid the area and keep access routes clear for emergency responders. Check this app for updates.'
   );
 
   assert.equal(
@@ -167,7 +167,7 @@ test('public emergency resolution creates a separate announcement without incide
   assert.deepEqual(announcement, {
     type: 'public_emergency_resolved',
     message:
-      'The public emergency reported near Purok 7 has been marked resolved. Please continue to follow official guidance.',
+      'The public emergency reported near Purok 7 has been marked resolved.',
     urgent: false,
     recipientRole: 'resident',
   });

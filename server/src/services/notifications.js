@@ -39,7 +39,7 @@ export function buildPublicEmergencyAlert(report) {
 
   return {
     type: 'public_emergency_alert',
-    message: `A public emergency has been reported near ${area}. Please follow official guidance.`,
+    message: `A public emergency has been reported near ${area}. Avoid the area and keep access routes clear for emergency responders. Check this app for updates.`,
     urgent: true,
     recipientRole: 'resident',
   };
@@ -51,7 +51,7 @@ export function buildPublicEmergencyResolvedAnnouncement(report) {
 
   return {
     type: 'public_emergency_resolved',
-    message: `The public emergency reported near ${area} has been marked resolved. Please continue to follow official guidance.`,
+    message: `The public emergency reported near ${area} has been marked resolved.`,
     urgent: false,
     recipientRole: 'resident',
   };
@@ -260,10 +260,18 @@ export async function notifyResidentsOfAcknowledgedPublicEmergency(report) {
     .lean();
   const notifications = [];
   for (const resident of residents) {
-    const notification = await Notification.create({
-      ...alert,
-      recipientUid: resident.firebaseUid,
-    });
+    const dedupeKey = `${report._id}:public-emergency-alert:${resident.firebaseUid}`;
+    let notification;
+    try {
+      notification = await Notification.create({
+        ...alert,
+        recipientUid: resident.firebaseUid,
+        dedupeKey,
+      });
+    } catch (error) {
+      if (error.code === 11000) continue;
+      throw error;
+    }
     notifications.push(notification);
     if (ioInstance) {
       ioInstance.to('role:resident').emit('notification', notification);
