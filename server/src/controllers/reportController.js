@@ -282,7 +282,28 @@ export async function createReport(req, res) {
       });
     }
 
-    const { category, subcategory, description, latitude, longitude, address, severity } = req.body;
+    const {
+      category,
+      subcategory,
+      description,
+      latitude,
+      longitude,
+      address,
+      severity,
+      reportedBy,
+      reportedByContact,
+    } = req.body;
+    const trimmedReportedBy = typeof reportedBy === 'string' ? reportedBy.trim() : '';
+    const trimmedReportedByContact =
+      typeof reportedByContact === 'string' ? reportedByContact.trim() : '';
+    if (req.userRole === 'secretary' && !trimmedReportedBy) {
+      return res.status(400).json({ error: 'Please enter who reported this incident' });
+    }
+    if (req.userRole === 'secretary' && !GUEST_PHONE_PATTERN.test(trimmedReportedByContact)) {
+      return res
+        .status(400)
+        .json({ error: 'Enter a valid reporter mobile number (09XXXXXXXXX)' });
+    }
     const trimmedDescription = (description || '').trim();
     const hasPhoto = Array.isArray(req.files) && req.files.length > 0;
     const parsedLatitude =
@@ -338,6 +359,8 @@ export async function createReport(req, res) {
     try {
       report = await Report.create({
         submittedBy: submitterUid,
+        reportedBy: req.userRole === 'secretary' ? trimmedReportedBy : null,
+        reportedByContact: req.userRole === 'secretary' ? trimmedReportedByContact || null : null,
         isGuest: Boolean(guest),
         guestContactPhone: guest?.phone || null,
         referenceNumber,

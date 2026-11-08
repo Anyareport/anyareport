@@ -268,6 +268,7 @@ export default function MapPage({
       >
         <SubmitReportForm
           guest={guest} // GUEST
+          staff={staff}
           onGuestDone={guest ? finishGuestReport : closeReportDrawer} // GUEST
           successPath={staff ? '/admin/incidents' : '/resident/reports'}
           selectedLocation={selectedLocation}

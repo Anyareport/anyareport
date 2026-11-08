@@ -36,6 +36,7 @@ export async function exportToCSV(reports) {
   const rows = reportsWithNames.map((report) => ({
     referenceNumber: report.referenceNumber ?? '',
     submittedBy: report.submittedByName,
+    reportedBy: report.reportedBy ?? '',
     category: report.category ?? '',
     subcategory: report.subcategory ?? '',
     severity: report.severity ?? '',
@@ -57,6 +58,7 @@ export async function exportToCSV(reports) {
     { label: 'Location', value: 'location' },
     { label: 'Description', value: 'description' },
     { label: 'Submitted By', value: 'submittedBy' },
+    { label: 'Reported By', value: 'reportedBy' },
     { label: 'Submitted At', value: 'submittedAt' },
     { label: 'Resolved At', value: 'resolvedAt' },
   ]);

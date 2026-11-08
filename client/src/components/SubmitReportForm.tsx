@@ -36,6 +36,7 @@ import { compressImage, MAX_COMPRESSED_IMAGE_SIZE_BYTES } from '../lib/imageComp
 import { useAntdMessage } from '../lib/useAntdMessage';
 import { getCaptchaToken } from '../lib/captcha';
 import { rememberGuestReport } from '../lib/guestReports';
+import { PH_MOBILE_REGEX } from '../lib/phone';
 
 const { Title, Text } = Typography;
 
@@ -55,6 +56,7 @@ const barangaySuffixPattern = /,?\s*Don Mariano Marcos\s*$/i;
 
 interface SubmitReportFormProps {
   guest?: boolean;
+  staff?: boolean;
   onGuestDone?: () => void;
   successPath?: string;
   selectedLocation: [number, number] | null;
@@ -71,6 +73,8 @@ interface ClassificationResult {
 
 interface ReportFormValues {
   reportType: ReportType;
+  reportedBy?: string;
+  reportedByContact?: string;
   description?: string;
   address?: string;
   category: string;
@@ -80,6 +84,7 @@ interface ReportFormValues {
 
 export default function SubmitReportForm({
   guest = false,
+  staff = false,
   onGuestDone,
   successPath = '/resident/reports',
   selectedLocation,
@@ -229,6 +234,10 @@ export default function SubmitReportForm({
       formData.append('subcategory', values.subcategory);
       formData.append('severity', values.severity);
       formData.append('description', values.description || '');
+      if (staff) {
+        formData.append('reportedBy', values.reportedBy?.trim() || '');
+        formData.append('reportedByContact', values.reportedByContact?.trim() || '');
+      }
       formData.append('address', values.address || '');
       formData.append('latitude', String(selectedLocation[0]));
       formData.append('longitude', String(selectedLocation[1]));
@@ -283,7 +292,10 @@ export default function SubmitReportForm({
           return;
         }
 
-        const fieldsToCheck = reportType === 'text' ? ['description'] : [];
+        const fieldsToCheck = [
+          ...(reportType === 'text' ? ['description'] : []),
+          ...(staff ? ['reportedBy', 'reportedByContact'] : []),
+        ];
         await form.validateFields(fieldsToCheck);
 
         if (isPreparingPhotos) {
@@ -321,6 +333,7 @@ export default function SubmitReportForm({
   }, [
     currentStep,
     reportType,
+    staff,
     selectedLocation,
     ensureClassified,
     form,
@@ -358,6 +371,9 @@ export default function SubmitReportForm({
           message.warning('Please review the AI-processing notice and check the box to continue.');
           return;
         }
+        if (staff) {
+          await form.validateFields(['reportedBy', 'reportedByContact']);
+        }
         if (!selectedLocation) {
           message.error('Please select a location on the map or use GPS.');
           return;
@@ -374,6 +390,7 @@ export default function SubmitReportForm({
     [
       currentStep,
       maxStepReached,
+      staff,
       selectedLocation,
       ensureClassified,
       form,
@@ -443,6 +460,36 @@ export default function SubmitReportForm({
       {/* STEP 1: Incident details and location */}
       <Form form={form} layout="vertical" initialValues={{ reportType: 'text' }}>
         <div style={{ display: currentStep === 0 ? 'block' : 'none' }}>
+          {staff && (
+            <>
+              <Form.Item
+                name="reportedBy"
+                label="Reported by"
+                rules={[
+                  {
+                    required: true,
+                    whitespace: true,
+                    message: 'Please enter who reported this incident.',
+                  },
+                ]}
+              >
+                <Input placeholder="Name of the person who reported the incident" />
+              </Form.Item>
+              <Form.Item
+                name="reportedByContact"
+                label="Reporter mobile number"
+                rules={[
+                  { required: true, message: 'Please enter the reporter mobile number.' },
+                  {
+                    pattern: PH_MOBILE_REGEX,
+                    message: 'Enter a valid PH mobile number (09XXXXXXXXX).',
+                  },
+                ]}
+              >
+                <Input placeholder="09XXXXXXXXX" inputMode="tel" maxLength={11} />
+              </Form.Item>
+            </>
+          )}
           <Form.Item>
             <Space direction="vertical" size={8} style={{ width: '100%' }}>
               {selectedLocation ? (

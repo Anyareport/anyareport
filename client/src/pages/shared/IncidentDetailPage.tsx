@@ -499,9 +499,10 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
     (variant === 'responder' && isParticipant) || (variant === 'admin' && role === 'secretary');
   const canExportIncidentSummary =
     variant === 'admin' && ['captain', 'secretary'].includes(role || '');
-  const submitterDialNumber = report.submitterPhone
-    ? getDialablePhone(report.submitterPhone)
-    : null;
+  const reporterContact = report.reportedBy
+    ? report.reportedByContact
+    : report.submitterPhone;
+  const reporterDialNumber = reporterContact ? getDialablePhone(reporterContact) : null;
   const canJoinBackup =
     isResponder &&
     !!openBackupRequest &&
@@ -1266,8 +1267,8 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
               printIncidentSummary(
                 message,
                 report,
-                canViewReporter ? report.submitterName : null,
-                canViewReporterContact ? report.submitterPhone : null,
+                canViewReporter ? report.reportedBy || report.submitterName : null,
+                canViewReporterContact ? reporterContact : null,
                 profile?.name,
                 role
               )
@@ -1338,33 +1339,33 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
                   <UserOutlined />
                   {report.isGuest ? (
                     <Text>Reporter: Anonymous account</Text>
-                  ) : report.submitterName ? (
+                  ) : report.reportedBy || report.submitterName ? (
                     <div className="incident-reporter">
                       <Text>
-                        {text('reporterLabel', 'Reporter')}: {report.submitterName}
+                        {text('reporterLabel', 'Reporter')}: {report.reportedBy || report.submitterName}
                       </Text>
                       {canViewReporterContact &&
-                        (report.submitterPhone ? (
+                        (reporterContact ? (
                           <>
                             <span className="incident-reporter__separator" aria-hidden="true">
                               ·
                             </span>
-                            {submitterDialNumber ? (
+                            {reporterDialNumber ? (
                               <a
                                 className="incident-reporter__phone"
-                                href={`tel:${submitterDialNumber}`}
-                                aria-label={`${text('call', 'Call')} ${report.submitterName} at ${report.submitterPhone}`}
+                                href={`tel:${reporterDialNumber}`}
+                                aria-label={`${text('call', 'Call')} ${report.reportedBy || report.submitterName} at ${reporterContact}`}
                               >
                                 <PhoneOutlined aria-hidden="true" />
-                                <span>{report.submitterPhone}</span>
+                                <span>{reporterContact}</span>
                               </a>
                             ) : (
                               <span
                                 className="incident-reporter__phone"
-                                aria-label={`${text('phoneNumber', 'Phone number')}: ${report.submitterPhone}`}
+                                aria-label={`${text('phoneNumber', 'Phone number')}: ${reporterContact}`}
                               >
                                 <PhoneOutlined aria-hidden="true" />
-                                <span>{report.submitterPhone}</span>
+                                <span>{reporterContact}</span>
                               </span>
                             )}
                           </>

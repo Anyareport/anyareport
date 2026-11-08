@@ -103,6 +103,8 @@ export interface Report {
   referenceNumber?: string | null;
   submittedBy: string | null;
   submitterName: string | null;
+  reportedBy?: string | null;
+  reportedByContact?: string | null;
   submitterPhone?: string | null;
   category: string;
   description: string;
