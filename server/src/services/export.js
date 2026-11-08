@@ -11,7 +11,7 @@ async function withSubmitterNames(reports) {
 
   return reports.map((report) => ({
     ...report,
-    submittedByName: namesByUid.get(report.submittedBy) ?? '',
+    submittedByName: report.isGuest ? 'Anonymous account' : namesByUid.get(report.submittedBy) ?? '',
   }));
 }
 
