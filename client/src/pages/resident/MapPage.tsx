@@ -17,14 +17,20 @@ import { getIncidentLabel } from '../../lib/incidentUtils';
 import { useAntdMessage } from '../../lib/useAntdMessage';
 import { getGuestReportIds } from '../../lib/guestReports';
 
-export default function MapPage({ guest = false }: { guest?: boolean }) {
+export default function MapPage({
+  guest = false,
+  staff = false,
+}: {
+  guest?: boolean;
+  staff?: boolean;
+}) {
   const message = useAntdMessage();
   const navigate = useNavigate();
   const location = useLocation();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
-  const reportPath = guest ? '/report' : '/resident/report'; // GUEST
-  const mapPath = guest ? '/report/map' : '/resident/map'; // GUEST
+  const reportPath = guest ? '/report' : staff ? '/admin/report' : '/resident/report';
+  const mapPath = guest ? '/report/map' : staff ? '/admin/report/map' : '/resident/map';
   const reportDrawerOpen = location.pathname === reportPath; // GUEST
   const guestReportIds = guest ? getGuestReportIds() : [];
   const { data: reports = [] } = useQuery({
@@ -100,7 +106,9 @@ export default function MapPage({ guest = false }: { guest?: boolean }) {
       <MapDashboard
         points={mapPoints}
         height={
-          isMobile && !guest ? 'calc(100dvh - var(--mobile-navigation-height))' : '100vh' // GUEST: no bottom nav for guests
+          isMobile && !guest && !staff
+            ? 'calc(100dvh - var(--mobile-navigation-height))'
+            : '100vh'
         }
         onPointClick={(point) => setSelectedPointId(point.id)}
         onMapClick={() => setSelectedPointId(null)}
@@ -117,7 +125,9 @@ export default function MapPage({ guest = false }: { guest?: boolean }) {
                 navigate(
                   guest
                     ? `/report/reports/${report._id}?requestId=${encodeURIComponent(report.guestAccessKey || '')}`
-                    : `/resident/reports/${report._id}`
+                    : staff
+                      ? `/admin/incidents/${report._id}`
+                      : `/resident/reports/${report._id}`
                 )
               }
               onDismiss={() => setSelectedPointId(null)}
@@ -154,7 +164,9 @@ export default function MapPage({ guest = false }: { guest?: boolean }) {
               navigate(
                 guest
                   ? `/report/reports/${selectedReport._id}?requestId=${encodeURIComponent(selectedReport.guestAccessKey || '')}`
-                  : `/resident/reports/${selectedReport._id}`
+                  : staff
+                    ? `/admin/incidents/${selectedReport._id}`
+                    : `/resident/reports/${selectedReport._id}`
               )
             }
             onDismiss={() => setSelectedPointId(null)}
@@ -257,6 +269,7 @@ export default function MapPage({ guest = false }: { guest?: boolean }) {
         <SubmitReportForm
           guest={guest} // GUEST
           onGuestDone={guest ? finishGuestReport : closeReportDrawer} // GUEST
+          successPath={staff ? '/admin/incidents' : '/resident/reports'}
           selectedLocation={selectedLocation}
           selectedLocationMethod={selectedLocationMethod}
           onPickLocation={() => {

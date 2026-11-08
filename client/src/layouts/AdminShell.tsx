@@ -8,6 +8,7 @@ import {
   InboxOutlined,
   BellOutlined,
   UserOutlined,
+  FileAddOutlined,
 } from '@ant-design/icons';
 import { useMemo } from 'react';
 import type { ItemType } from 'antd/es/menu/interface';
@@ -46,7 +47,10 @@ export default function AdminShell() {
     ];
 
     if (role === 'secretary') {
-      workItems.push({ key: '/admin/intake', icon: <InboxOutlined />, label: 'Intake Queue' });
+      workItems.push(
+        { key: '/admin/intake', icon: <InboxOutlined />, label: 'Intake Queue' },
+        { key: '/admin/report', icon: <FileAddOutlined />, label: 'Add Report' }
+      );
     }
 
     if (role === 'captain' || role === 'secretary') {

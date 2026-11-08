@@ -56,6 +56,7 @@ const barangaySuffixPattern = /,?\s*Don Mariano Marcos\s*$/i;
 interface SubmitReportFormProps {
   guest?: boolean;
   onGuestDone?: () => void;
+  successPath?: string;
   selectedLocation: [number, number] | null;
   selectedLocationMethod: 'map' | 'gps' | null;
   onPickLocation: () => void;
@@ -80,6 +81,7 @@ interface ReportFormValues {
 export default function SubmitReportForm({
   guest = false,
   onGuestDone,
+  successPath = '/resident/reports',
   selectedLocation,
   selectedLocationMethod,
   onPickLocation,
@@ -255,7 +257,7 @@ export default function SubmitReportForm({
       }
       message.success('Report submitted successfully!');
       queryClient.invalidateQueries({ queryKey: ['my-reports'] });
-      navigate('/resident/reports');
+      navigate(successPath);
     },
     onError: (err: Error) => message.error(err.message),
   });

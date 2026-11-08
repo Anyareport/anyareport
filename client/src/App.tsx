@@ -26,6 +26,7 @@ import AdminAnalyticsPage from './pages/admin/AnalyticsPage';
 import AdminAuditLogPage from './pages/admin/AuditLogPage';
 import AdminUsersPage from './pages/admin/UsersPage';
 import ResidentAccountsPage from './pages/admin/ResidentAccountsPage';
+import SecretaryReportPage from './pages/admin/SecretaryReportPage';
 import SecretaryIntakePage from './pages/admin/IntakeQueuePage';
 import { getProfilePath } from './lib/roles';
 function HomeRedirect() {
@@ -111,6 +112,10 @@ function App() {
             <Route path="/admin/audit" element={<AdminAuditLogPage />} />
           </Route>
           <Route path="/admin/intake" element={<SecretaryIntakePage />} />
+          <Route element={<ProtectedRoute allowedRoles={['secretary']} />}>
+            <Route path="/admin/report" element={<SecretaryReportPage />} />
+            <Route path="/admin/report/map" element={<SecretaryReportPage />} />
+          </Route>
           <Route
             element={<ProtectedRoute allowedRoles={['captain', 'secretary']} />}
           >
