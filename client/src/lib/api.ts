@@ -98,6 +98,8 @@ export interface DispatchResponder {
 
 export interface Report {
   _id: string;
+  isGuest?: boolean;
+  guestAccessKey?: string | null;
   referenceNumber?: string | null;
   submittedBy: string | null;
   submitterName: string | null;

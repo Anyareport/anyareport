@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { randomUUID } from 'node:crypto';
 import Report from '../models/Report.js';
 import User from '../models/User.js';
 import AuditLog from '../models/AuditLog.js';
@@ -185,28 +186,96 @@ async function notifyBestEffort(notification, context) {
     return null;
   }
 }
+
 const CLIENT_REQUEST_ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
+const GUEST_PHONE_PATTERN = /^09\d{9}$/;
+
+function guestReceipt(report) {
+  return {
+    referenceNumber: report.referenceNumber,
+    status: normalizeReportStatus(report.status),
+    createdAt: report.createdAt,
+  };
+}
+
+function guestReportView(report) {
+  return {
+    _id: report._id,
+    isGuest: true,
+    guestAccessKey: report.clientRequestId || null,
+    referenceNumber: report.referenceNumber || null,
+    category: report.category,
+    subcategory: report.subcategory || null,
+    severity: report.severity || null,
+    description: report.description || '',
+    photos: report.photos || [],
+    location: report.location,
+    status: normalizeReportStatus(report.status),
+    aiTitle: report.aiTitle || null,
+    aiSuggestedCategory: report.aiSuggestedCategory || null,
+    aiSummary: report.aiSummary || null,
+    submittedBy: null,
+    submitterName: null,
+    statusHistory: report.statusHistory || [],
+    createdAt: report.createdAt,
+    updatedAt: report.updatedAt,
+  };
+}
+
+// Each guest report gets its own throwaway identity, derived from the client request id
+// when present so retries of the same submission stay idempotent.
+function buildGuestIdentity(req) {
+  const rawRequestId =
+    typeof req.body?.clientRequestId === 'string' ? req.body.clientRequestId : '';
+  const suffix = CLIENT_REQUEST_ID_PATTERN.test(rawRequestId) ? rawRequestId : randomUUID();
+  const rawPhone = typeof req.body?.contactPhone === 'string' ? req.body.contactPhone.trim() : '';
+  return {
+    uid: `guest:${suffix}`,
+    phone: GUEST_PHONE_PATTERN.test(rawPhone) ? rawPhone : null,
+    invalidPhone: rawPhone !== '' && !GUEST_PHONE_PATTERN.test(rawPhone),
+  };
+}
+
+export async function createGuestReport(req, res) {
+  const guest = buildGuestIdentity(req);
+  if (guest.invalidPhone) {
+    return res
+      .status(400)
+      .json({ error: 'Enter a valid mobile number (09XXXXXXXXX) or leave it blank' });
+  }
+  req.guest = guest;
+  return createReport(req, res);
+}
+
 export async function createReport(req, res) {
   try {
+    const guest = req.guest || null;
+    const submitterUid = guest ? guest.uid : req.firebaseUser.uid;
+
     if (req.userProfile?.status === 'suspended') {
       return res.status(403).json({ error: 'Account suspended — cannot submit reports' });
     }
+
     const rawRequestId =
       typeof req.body?.clientRequestId === 'string' ? req.body.clientRequestId : '';
     const clientRequestId = CLIENT_REQUEST_ID_PATTERN.test(rawRequestId) ? rawRequestId : null;
+    const respondWithExisting = (r) =>
+      res.status(200).json(guest ? guestReceipt(r) : serializeReport(r));
     const findExisting = () =>
-      clientRequestId
-        ? Report.findOne({ submittedBy: req.firebaseUser.uid, clientRequestId })
-        : null;
-    const existing = await findExisting();
-    if (existing) return res.status(200).json(serializeReport(existing));
+      clientRequestId ? Report.findOne({ submittedBy: submitterUid, clientRequestId }) : null;
 
+    const existing = await findExisting();
+    if (existing) return respondWithExisting(existing);
+
+    // Guests skip the per-account daily cap; the per-IP rate limiter covers them.
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
-    const reportCount = await Report.countDocuments({
-      submittedBy: req.firebaseUser.uid,
-      createdAt: { $gte: startOfDay },
-    });
+    const reportCount = guest
+      ? 0
+      : await Report.countDocuments({
+          submittedBy: submitterUid,
+          createdAt: { $gte: startOfDay },
+        });
     if (reportCount >= antiAbuseConfig.maxReportsPerDay) {
       return res.status(429).json({
         error: `Daily report limit reached (${antiAbuseConfig.maxReportsPerDay} per day)`,
@@ -227,11 +296,7 @@ export async function createReport(req, res) {
     if (!category || !Number.isFinite(parsedLatitude) || !Number.isFinite(parsedLongitude)) {
       return res.status(400).json({ error: 'Category and location are required' });
     }
-    const classificationError = getReportClassificationError({
-      category,
-      subcategory,
-      severity,
-    });
+    const classificationError = getReportClassificationError({ category, subcategory, severity });
     if (classificationError) {
       return res.status(400).json({ error: classificationError });
     }
@@ -250,6 +315,7 @@ export async function createReport(req, res) {
       (req.files || []).map((file) => uploadImage(file.buffer, file.mimetype))
     );
     const photos = uploadedPhotos.map((photo) => photo.secure_url);
+
     let aiSuggestedCategory = null;
     let aiTitle = null;
     let aiSummary = null;
@@ -265,13 +331,15 @@ export async function createReport(req, res) {
     }
 
     const concurrent = await findExisting();
-    if (concurrent) return res.status(200).json(serializeReport(concurrent));
+    if (concurrent) return respondWithExisting(concurrent);
 
     const referenceNumber = await getNextReportReference();
     let report;
     try {
       report = await Report.create({
-        submittedBy: req.firebaseUser.uid,
+        submittedBy: submitterUid,
+        isGuest: Boolean(guest),
+        guestContactPhone: guest?.phone || null,
         referenceNumber,
         clientRequestId: clientRequestId || undefined,
         category,
@@ -289,22 +357,32 @@ export async function createReport(req, res) {
         aiSummary,
         status: 'pending',
         statusHistory: [
-          { status: 'pending', updatedBy: await resolveActorName(req.firebaseUser.uid) },
+          {
+            status: 'pending',
+            updatedBy: guest ? 'Guest' : await resolveActorName(submitterUid),
+          },
         ],
       });
     } catch (createErr) {
       if (createErr.code === 11000 && clientRequestId) {
         const winner = await findExisting();
-        if (winner) return res.status(200).json(serializeReport(winner));
+        if (winner) return respondWithExisting(winner);
       }
       throw createErr;
     }
-    await logAudit('report_submitted', req, report._id, { category });
+
+    await logAudit(
+      'report_submitted',
+      req,
+      report._id,
+      guest ? { category, guest: true } : { category }
+    );
     if (aiSuggestedCategory) {
       await logSystemAudit('report_classified', report._id, {
         suggestedCategory: aiSuggestedCategory,
       });
     }
+
     const notifications = await notifyBestEffort(notifyOnNewReport(report), 'Report intake');
     if (notifications?.length) {
       await logSystemAudit('report_recipients_notified', report._id, {
@@ -314,7 +392,11 @@ export async function createReport(req, res) {
         ],
       });
     }
+
     emitReportChanged(report, 'created');
+
+    // Guests only get a receipt; they have no account to view the full report from.
+    if (guest) return res.status(201).json(guestReceipt(report));
     res.status(201).json(serializeReport(report));
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -332,6 +414,42 @@ export async function getMyReports(req, res) {
         return safe;
       })
     );
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export async function getGuestReports(req, res) {
+  try {
+    const rawIds = typeof req.query.ids === 'string' ? req.query.ids.split(',') : [];
+    const ids = rawIds.filter((id) => CLIENT_REQUEST_ID_PATTERN.test(id)).slice(0, 50);
+    if (ids.length === 0) return res.json([]);
+
+    const reports = await Report.find({
+      isGuest: true,
+      submittedBy: { $in: ids.map((id) => `guest:${id}`) },
+    }).sort({ createdAt: -1 });
+    res.json(reports.map(guestReportView));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export async function getGuestReportById(req, res) {
+  try {
+    const requestId = typeof req.query.requestId === 'string' ? req.query.requestId : '';
+    if (!mongoose.isValidObjectId(req.params.id) || !CLIENT_REQUEST_ID_PATTERN.test(requestId)) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    const report = await Report.findOne({
+      _id: req.params.id,
+      isGuest: true,
+      submittedBy: `guest:${requestId}`,
+      clientRequestId: requestId,
+    });
+    if (!report) return res.status(404).json({ error: 'Report not found' });
+    res.json(guestReportView(report));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -669,7 +787,11 @@ export async function getReports(req, res) {
         return {
           ...serializeReport(report),
           submittedBy: null,
-          submitterName: canSeeReporter ? nameByUid[report.submittedBy] || null : null,
+          submitterName: canSeeReporter
+            ? report.isGuest
+              ? 'Guest (no account)'
+              : nameByUid[report.submittedBy] || null
+            : null,
         };
       })
     );
@@ -730,8 +852,16 @@ export async function getReportById(req, res) {
     const result = {
       ...reportData,
       submittedBy: req.userRole === 'resident' ? report.submittedBy : null,
-      submitterName: canSeeReporter ? nameByUid[report.submittedBy] || null : null,
-      submitterPhone: canSeeReporterContact ? phoneByUid[report.submittedBy] || null : null,
+           submitterName: canSeeReporter
+        ? report.isGuest
+          ? 'Guest (no account)'
+          : nameByUid[report.submittedBy] || null
+        : null,
+      submitterPhone: canSeeReporterContact
+        ? report.isGuest
+          ? report.guestContactPhone || null
+          : phoneByUid[report.submittedBy] || null
+        : null,
       acknowledgedByName: report.acknowledgedBy ? nameByUid[report.acknowledgedBy] || null : null,
       backupRequests: reportData.backupRequests.map((request) => ({
         ...request,

@@ -117,9 +117,13 @@ export default function LandingPage() {
                 <Link className="landing-button landing-button--primary" to="/login">
                   Log in to report <ArrowRightOutlined aria-hidden="true" />
                 </Link>
+                <Link className="landing-button" to="/report">
+                  Continue as Guest <ArrowRightOutlined aria-hidden="true" />
+                </Link>
               </div>
               <p className="landing-note">
-                Sign in with your account to submit a report. Email verification is required.
+                Sign in with your account to submit and track reports. Email verification is
+                required.
               </p>
             </div>
 

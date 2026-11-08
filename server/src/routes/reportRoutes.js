@@ -6,9 +6,14 @@ import {
   classificationLimiter,
   reportSubmitLimiter,
   translateLimiter,
+  guestClassificationLimiter,
+  guestReportLimiter,
 } from '../middleware/rateLimiters.js';
 import upload from '../middleware/upload.js';
 import {
+  createGuestReport,
+  getGuestReports,
+  getGuestReportById,
   createReport,
   getMyReports,
   getReports,
@@ -35,9 +40,26 @@ import {
 } from '../controllers/reportController.js';
 import { translateHandler } from '../controllers/translateController.js';
 import { requireVerifiedOfficial } from '../middleware/requireVerifiedOfficial.js';
+import { verifyCaptcha } from '../middleware/captcha.js';
 const router = Router();
 
 router.get('/categories', getCategories);
+
+router.post(
+  '/guest/classify',
+  guestClassificationLimiter,
+  upload.array('photos', 3),
+  classifyReportHandler
+);
+router.post(
+  '/guest',
+  guestReportLimiter,
+  upload.array('photos', 3),
+  verifyCaptcha,
+  createGuestReport
+);
+router.get('/guest/mine', guestReportLimiter, getGuestReports);
+router.get('/guest/:id', guestReportLimiter, getGuestReportById);
 
 router.use(verifyToken, requireActiveUser(), requireVerifiedOfficial);
 

@@ -50,6 +50,7 @@ function corsOrigin(origin, callback) {
 }
 
 const app = express();
+app.set("trust proxy", Number(process.env.TRUST_PROXY ?? 1));
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: { origin: corsOrigin, credentials: true },

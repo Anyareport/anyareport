@@ -1,8 +1,9 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { ProtectedRoute, PublicRoute } from './routes/ProtectedRoute';
+import { ProtectedRoute, PublicRoute, GuestReportRoute } from './routes/ProtectedRoute';
 import LoadingState from './components/LoadingState';
 import { useAuth, getRedirectPath } from './contexts/AuthContext';
 import ResidentShell from './layouts/ResidentShell';
+import GuestShell from './layouts/GuestShell';
 import ResponderShell from './layouts/ResponderShell';
 import AdminShell from './layouts/AdminShell';
 import LoginPage from './pages/auth/LoginPage';
@@ -27,7 +28,6 @@ import AdminUsersPage from './pages/admin/UsersPage';
 import ResidentAccountsPage from './pages/admin/ResidentAccountsPage';
 import SecretaryIntakePage from './pages/admin/IntakeQueuePage';
 import { getProfilePath } from './lib/roles';
-
 function HomeRedirect() {
   const { firebaseUser, loading, role, profile } = useAuth();
 
@@ -59,6 +59,17 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      </Route>
+      <Route element={<GuestReportRoute />}>
+        <Route element={<GuestShell />}>
+          <Route path="/report" element={<MapPage guest />} />
+          <Route path="/report/map" element={<MapPage guest />} />
+          <Route path="/report/reports" element={<MyReportsPage guest />} />
+          <Route
+            path="/report/reports/:id"
+            element={<IncidentDetailPage variant="resident" guest />}
+          />
+        </Route>
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['resident']} />}>

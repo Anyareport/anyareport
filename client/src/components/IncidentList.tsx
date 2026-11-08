@@ -18,6 +18,7 @@ import { useLang } from '../contexts/LanguageContext';
 import { getLocalizedCategory } from '../i18n/labels';
 import { useTranslatedTexts } from '../lib/translation';
 import LoadingState from './LoadingState';
+import AppTag from './AppTag';
 
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
@@ -74,6 +75,7 @@ export default function IncidentList({
   const screens = useBreakpoint();
   const navigate = useNavigate();
   const { role } = useAuth();
+  const isOfficial = ['admin', 'captain', 'secretary', 'tanod', 'responder'].includes(role || '');
   const { lang, t } = useLang();
   const translate = lang === 'fil' && ['tanod', 'responder'].includes(role || '');
   const isMobile = !screens.md;
@@ -111,10 +113,10 @@ export default function IncidentList({
           reports.map((r) => (
             <IncidentCard
               key={r._id}
-              report={r}
-              onClick={() => handleClick(r._id)}
-              showSubmitter={showSubmitter}
-            />
+                report={r}
+                onClick={() => handleClick(r._id)}
+                showSubmitter={showSubmitter}
+              />
           ))
         )}
       </div>
@@ -132,6 +134,7 @@ export default function IncidentList({
             translatable={!!report.aiTitle?.trim() || !!report.description.trim()}
             description={report.description}
           />
+          {isOfficial && report.isGuest && <AppTag tone="info">Anonymous report</AppTag>}
           <Text type="secondary" style={{ fontSize: 11 }}>
             {getListMeta(report)}
           </Text>
@@ -198,7 +201,7 @@ export default function IncidentList({
                 <Text type="secondary" title={new Date(report.createdAt).toLocaleString()}>
                   {formatRelativeDate(report.createdAt)}
                 </Text>
-                <Text>{report.submitterName || '—'}</Text>
+                <Text>{report.isGuest ? 'Anonymous account' : report.submitterName || '—'}</Text>
               </Space>
             ),
           },

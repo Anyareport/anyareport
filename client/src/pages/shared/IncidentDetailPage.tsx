@@ -1,6 +1,6 @@
 import { useRef, useState, type TouchEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   Alert,
   Avatar,
@@ -74,6 +74,7 @@ function getDialablePhone(value: string) {
 
 interface IncidentDetailPageProps {
   variant: 'admin' | 'responder' | 'resident';
+  guest?: boolean;
 }
 
 interface BackupRequestResponse {
@@ -202,11 +203,12 @@ function printIncidentSummary(
   printWindow.print();
 }
 
-export default function IncidentDetailPage({ variant }: IncidentDetailPageProps) {
+export default function IncidentDetailPage({ variant, guest = false }: IncidentDetailPageProps) {
   const message = useAntdMessage();
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const galleryTouchStart = useRef<{ x: number; y: number } | null>(null);
   const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { profile, role } = useAuth();
@@ -220,9 +222,17 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   const [routeLocationUnavailable, setRouteLocationUnavailable] = useState(false);
 
   const { data: report, isLoading } = useQuery({
-    queryKey: ['report', id],
-    queryFn: () => api.get<Report>(`/api/reports/${id}`),
-    enabled: !!id,
+    queryKey: ['report', id, guest, location.search],
+    queryFn: () => {
+      if (guest) {
+        const requestId = new URLSearchParams(location.search).get('requestId');
+        return api.get<Report>(
+          `/api/reports/guest/${id}?requestId=${encodeURIComponent(requestId || '')}`
+        );
+      }
+      return api.get<Report>(`/api/reports/${id}`);
+    },
+    enabled: !!id && (!guest || new URLSearchParams(location.search).has('requestId')),
     // Stop polling once the report is closed (resolved or flagged). TanStack Query v5 signature.
     refetchInterval: (query) => {
       const current = query.state.data;
@@ -297,6 +307,7 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   });
 
   const canViewReportAudit =
+    !guest &&
     variant === 'admin' && ['admin', 'captain', 'secretary'].includes(role || '');
   const showStatusTimeline = variant !== 'admin' || role !== 'admin';
   const { data: auditEntries = [] } = useQuery({
@@ -426,8 +437,8 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
     return <Alert type="error" showIcon message={text('reportNotFound', 'Report not found')} />;
   }
 
-  const isResident = variant === 'resident';
-  const isResponder = variant === 'responder' && ['tanod', 'responder'].includes(role || '');
+  const isResident = variant === 'resident' && !guest;
+  const isResponder = !guest && variant === 'responder' && ['tanod', 'responder'].includes(role || '');
   const canViewSuggestedNextSteps =
     variant !== 'resident' && ['tanod', 'responder', 'captain', 'secretary'].includes(role || '');
   const isBlotter = report.category === BLOTTER_REPORT_CATEGORY;
@@ -1239,7 +1250,10 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
   return (
     <main className={`incident-detail incident-detail--${variant}`}>
       <header className="incident-detail-header">
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
+        <Button
+          icon={<ArrowLeftOutlined />}
+          onClick={() => (guest ? navigate('/report/reports') : navigate(-1))}
+        >
           {text('back', 'Back')}
         </Button>
         {canExportIncidentSummary && (
@@ -1322,7 +1336,9 @@ export default function IncidentDetailPage({ variant }: IncidentDetailPageProps)
               {!isResident && canViewReporter && (
                 <div className="incident-fact incident-fact--reporter">
                   <UserOutlined />
-                  {report.submitterName ? (
+                  {report.isGuest ? (
+                    <Text>Reporter: Anonymous account</Text>
+                  ) : report.submitterName ? (
                     <div className="incident-reporter">
                       <Text>
                         {text('reporterLabel', 'Reporter')}: {report.submitterName}

@@ -11,7 +11,7 @@ import {
   SunOutlined,
   UserOutlined,
 } from '@ant-design/icons';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState, type ReactNode } from 'react';
 import Logo from '../components/Logo';
 import MobileBottomNavigation from '../components/MobileBottomNavigation';
@@ -36,6 +36,7 @@ interface AppShellProps {
   mobilePrimaryAction?: string;
   quietBadgeKeys?: string[];
   headerAction?: ReactNode;
+  guest?: boolean;
 }
 
 interface NavigationEntry {
@@ -93,6 +94,7 @@ export default function AppShell({
   mobilePrimaryAction,
   quietBadgeKeys = [],
   headerAction,
+  guest = false,
 }: AppShellProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -106,8 +108,9 @@ export default function AppShell({
   const navigationEntries = getNavigationEntries(menuItems);
   const normalizedPath = location.pathname.replace(/\/$/, '') || '/';
   const isResidentMapPage =
-    role === 'resident' &&
-    ['/resident/map', '/resident/report', '/resident/submit'].includes(normalizedPath);
+    (role === 'resident' &&
+      ['/resident/map', '/resident/report', '/resident/submit'].includes(normalizedPath)) ||
+    (guest && ['/report', '/report/map'].includes(normalizedPath));
   const menuPath =
     normalizedPath === '/resident/report' || normalizedPath === '/resident/submit'
       ? '/resident/map'
@@ -116,7 +119,9 @@ export default function AppShell({
     .filter(({ key }) => menuPath === key || menuPath.startsWith(`${key}/`))
     .sort((first, second) => second.key.length - first.key.length)[0];
   const pageTitle =
-    normalizedPath === '/resident/report' || normalizedPath === '/resident/submit'
+    normalizedPath === '/resident/report' ||
+    normalizedPath === '/resident/submit' ||
+    normalizedPath === '/report'
       ? 'Report an incident'
       : /\/(incidents|reports)\/[^/]+$/.test(normalizedPath)
         ? 'Incident details'
@@ -242,31 +247,37 @@ export default function AppShell({
           <h1 className="app-shell-header__title">{pageTitle}</h1>
           <div className="app-shell-header__trailing">
             {headerAction}
-            <Dropdown
-              trigger={['click']}
-              menu={{
-                className: `app-shell-account-menu${showLanguageToggle ? ' app-shell-account-menu--language' : ''}`,
-                items: accountMenuItems,
-                onClick: ({ key }) => {
-                  if (key === 'profile') navigate(profilePath);
-                  if (key === 'theme') toggleTheme();
-                  if (key === 'logout') void handleLogout();
-                },
-              }}
-            >
-              <button
-                className={`app-shell-user-trigger${isResidentMapPage ? ' is-map' : ''}`}
-                type="button"
-                aria-label="Open account menu"
+            {guest ? (
+              <Link to="/login">
+                <Button>Log in</Button>
+              </Link>
+            ) : (
+              <Dropdown
+                trigger={['click']}
+                menu={{
+                  className: `app-shell-account-menu${showLanguageToggle ? ' app-shell-account-menu--language' : ''}`,
+                  items: accountMenuItems,
+                  onClick: ({ key }) => {
+                    if (key === 'profile') navigate(profilePath);
+                    if (key === 'theme') toggleTheme();
+                    if (key === 'logout') void handleLogout();
+                  },
+                }}
               >
-                <Avatar size={32}>{initials || 'U'}</Avatar>
-                <span className="app-shell-user-trigger__identity">
-                  <strong>{displayName}</strong>
-                  <small>{roleName}</small>
-                </span>
-                <DownOutlined className="app-shell-user-trigger__chevron" />
-              </button>
-            </Dropdown>
+                <button
+                  className={`app-shell-user-trigger${isResidentMapPage ? ' is-map' : ''}`}
+                  type="button"
+                  aria-label="Open account menu"
+                >
+                  <Avatar size={32}>{initials || 'U'}</Avatar>
+                  <span className="app-shell-user-trigger__identity">
+                    <strong>{displayName}</strong>
+                    <small>{roleName}</small>
+                  </span>
+                  <DownOutlined className="app-shell-user-trigger__chevron" />
+                </button>
+              </Dropdown>
+            )}
           </div>
         </Header>
 
@@ -301,8 +312,8 @@ export default function AppShell({
           <div className="app-shell-drawer__account">
             <Avatar size={34}>{initials || 'U'}</Avatar>
             <span className="app-shell-drawer__identity">
-              <strong>{displayName}</strong>
-              <small>{roleName}</small>
+              <strong>{guest ? 'Guest' : displayName}</strong>
+              <small>{guest ? 'Guest access' : roleName}</small>
             </span>
             <Button
               type="text"
@@ -310,12 +321,18 @@ export default function AppShell({
               icon={theme === 'light' ? <MoonOutlined /> : <SunOutlined />}
               onClick={toggleTheme}
             />
-            <Button
-              type="text"
-              aria-label="Log out"
-              icon={<LogoutOutlined />}
-              onClick={() => void handleLogout()}
-            />
+            {guest ? (
+              <Link to="/login">
+                <Button type="text">Log in</Button>
+              </Link>
+            ) : (
+              <Button
+                type="text"
+                aria-label="Log out"
+                icon={<LogoutOutlined />}
+                onClick={() => void handleLogout()}
+              />
+            )}
           </div>
         </div>
       </Drawer>

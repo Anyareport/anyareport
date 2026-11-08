@@ -16,6 +16,7 @@ import { useLang } from '../contexts/LanguageContext';
 import { useTranslatedTexts } from '../lib/translation';
 
 import { getLocalizedCategory } from '../i18n/labels';
+import AppTag from './AppTag';
 
 const { Text } = Typography;
 
@@ -55,6 +56,7 @@ export default function IncidentCard({
   className,
 }: IncidentCardProps) {
   const { role } = useAuth();
+  const isOfficial = ['admin', 'captain', 'secretary', 'tanod', 'responder'].includes(role || '');
   const { lang, t } = useLang();
   const translate = lang === 'fil' && ['tanod', 'responder'].includes(role || '');
   const categoryLabels = getLocalizedCategory(report.category, report.subcategory, t);
@@ -102,6 +104,7 @@ export default function IncidentCard({
           <SeverityTag severity={report.severity} />
           {showStatus && <StatusTag status={report.status} />}
           {badges}
+          {isOfficial && report.isGuest && <AppTag tone="info">Anonymous report</AppTag>}
         </Space>
         <Space size={8}>
           {extra}
@@ -150,10 +153,10 @@ export default function IncidentCard({
       {children}
       <Text type="secondary" style={{ overflowWrap: 'anywhere' }}>
         <EnvironmentOutlined /> {getLocationLabel(report)}
-        {showSubmitter && report.submitterName && (
+        {showSubmitter && (report.isGuest || report.submitterName) && (
           <>
             {' · '}
-            <UserOutlined /> {report.submitterName}
+            <UserOutlined /> {report.isGuest ? 'Anonymous account' : report.submitterName}
           </>
         )}
       </Text>

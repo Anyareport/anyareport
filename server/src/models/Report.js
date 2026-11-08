@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 const reportSchema = new mongoose.Schema(
   {
     submittedBy: { type: String, required: true, index: true },
+    isGuest: { type: Boolean, default: false },
+    guestContactPhone: { type: String, default: null },
     referenceNumber: { type: String },
     clientRequestId: { type: String, default: undefined },
     category: { type: String, required: true },

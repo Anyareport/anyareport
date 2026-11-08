@@ -34,6 +34,8 @@ import AppTag from './AppTag';
 import barangayData from '../data/DMM.json';
 import { compressImage, MAX_COMPRESSED_IMAGE_SIZE_BYTES } from '../lib/imageCompressor';
 import { useAntdMessage } from '../lib/useAntdMessage';
+import { getCaptchaToken } from '../lib/captcha';
+import { rememberGuestReport } from '../lib/guestReports';
 
 const { Title, Text } = Typography;
 
@@ -52,6 +54,8 @@ const barangaySuffix = 'Don Mariano Marcos';
 const barangaySuffixPattern = /,?\s*Don Mariano Marcos\s*$/i;
 
 interface SubmitReportFormProps {
+  guest?: boolean;
+  onGuestDone?: () => void;
   selectedLocation: [number, number] | null;
   selectedLocationMethod: 'map' | 'gps' | null;
   onPickLocation: () => void;
@@ -74,6 +78,8 @@ interface ReportFormValues {
 }
 
 export default function SubmitReportForm({
+  guest = false,
+  onGuestDone,
   selectedLocation,
   selectedLocationMethod,
   onPickLocation,
@@ -177,7 +183,10 @@ export default function SubmitReportForm({
         }
       });
 
-      return api.post<ClassificationResult>('/api/reports/classify', formData);
+      return api.post<ClassificationResult>(
+        guest ? '/api/reports/guest/classify' : '/api/reports/classify',
+        formData
+      );
     },
     onSuccess: (result) => {
       setClassification(result);
@@ -226,9 +235,24 @@ export default function SubmitReportForm({
         if (f.compressedBlob) formData.append('photos', f.compressedBlob, 'photo.jpg');
         else formData.append('photos', f.originFileObj);
       });
-      return api.post('/api/reports', formData);
+      if (guest) {
+        const captchaToken = await getCaptchaToken('guest_report');
+        if (captchaToken) formData.append('captchaToken', captchaToken);
+      }
+      return api.post(guest ? '/api/reports/guest' : '/api/reports', formData);
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (guest) {
+        rememberGuestReport(clientRequestIdRef.current);
+        const receipt = result as { referenceNumber?: string };
+        message.success(
+          receipt.referenceNumber
+            ? `Report submitted successfully. Reference: ${receipt.referenceNumber}`
+            : 'Report submitted successfully!'
+        );
+        onGuestDone?.();
+        return;
+      }
       message.success('Report submitted successfully!');
       queryClient.invalidateQueries({ queryKey: ['my-reports'] });
       navigate('/resident/reports');
@@ -383,7 +407,7 @@ export default function SubmitReportForm({
 
   const selectedCategory = Form.useWatch('category', form);
 
-  if (!profile?.emailVerified) {
+  if (!guest && !profile?.emailVerified) {
     return (
       <Alert
         type="warning"

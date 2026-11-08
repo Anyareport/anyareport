@@ -246,6 +246,15 @@
   text-align: center;
 }
 
+.auth-guest-report {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.auth-guest-report a {
+  display: block;
+}
+
 .auth-officials-note {
   margin-top: 1.25rem;
   padding: 0.875rem 1rem;

@@ -65,3 +65,31 @@ export function PublicRoute() {
 
   return <Outlet />;
 }
+// Guest reporting is open to anyone who isn't signed in. Signed-in users are sent to their own
+// experience (residents land on the report form) so they report under their account.
+export function GuestReportRoute() {
+  const { firebaseUser, profile, loading, role } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return <LoadingState minHeight="100vh" />;
+  }
+
+  if (firebaseUser && role) {
+    if (profile?.status === 'suspended') {
+      return <Navigate to={getProfilePath(role)} replace />;
+    }
+    if (role === 'resident') {
+      return (
+        <Navigate
+          to={location.pathname === '/report' ? '/resident/report' : '/resident/map'}
+          replace
+        />
+      );
+    }
+    const path = ['tanod', 'responder'].includes(role) ? '/responder' : '/admin';
+    return <Navigate to={path} replace />;
+  }
+
+  return <Outlet />;
+}

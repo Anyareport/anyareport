@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Drawer, Grid } from 'antd';
+import { Alert, Button, Drawer, Grid } from 'antd';
 import { CloseOutlined, EnvironmentOutlined, FileAddOutlined } from '@ant-design/icons';
 import { api, type Report } from '../../lib/api';
 import MapDashboard, { type IncidentMarker } from '../../components/map/MapDashboard';
@@ -15,17 +15,26 @@ import { isInsideBarangayBoundary } from '../../components/map/MapPicker';
 import barangayData from '../../data/DMM.json';
 import { getIncidentLabel } from '../../lib/incidentUtils';
 import { useAntdMessage } from '../../lib/useAntdMessage';
+import { getGuestReportIds } from '../../lib/guestReports';
 
-export default function MapPage() {
+export default function MapPage({ guest = false }: { guest?: boolean }) {
   const message = useAntdMessage();
   const navigate = useNavigate();
   const location = useLocation();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
-  const reportDrawerOpen = location.pathname === '/resident/report';
+  const reportPath = guest ? '/report' : '/resident/report'; // GUEST
+  const mapPath = guest ? '/report/map' : '/resident/map'; // GUEST
+  const reportDrawerOpen = location.pathname === reportPath; // GUEST
+  const guestReportIds = guest ? getGuestReportIds() : [];
   const { data: reports = [] } = useQuery({
-    queryKey: ['my-reports'],
-    queryFn: () => api.get<Report[]>('/api/reports/mine'),
+    queryKey: guest ? ['guest-reports', guestReportIds] : ['my-reports'],
+    queryFn: () =>
+      guest
+        ? guestReportIds.length
+          ? api.get<Report[]>(`/api/reports/guest/mine?ids=${guestReportIds.join(',')}`)
+          : Promise.resolve([])
+        : api.get<Report[]>('/api/reports/mine'),
     refetchInterval: 30000,
   });
 
@@ -73,19 +82,26 @@ export default function MapPage() {
     if (!handleLocationChange(position, 'map')) return;
 
     setIsPickingLocation(false);
-    navigate('/resident/report');
+    navigate(reportPath); // GUEST
   };
 
   const closeReportDrawer = () => {
     setIsPickingLocation(false);
-    navigate('/resident/map', { replace: true });
+    navigate(mapPath, { replace: true }); // GUEST
+  };
+
+  const finishGuestReport = () => {
+    setIsPickingLocation(false);
+    navigate('/report/reports', { replace: true });
   };
 
   return (
     <div className="resident-map-page">
       <MapDashboard
         points={mapPoints}
-        height={isMobile ? 'calc(100dvh - var(--mobile-navigation-height))' : '100vh'}
+        height={
+          isMobile && !guest ? 'calc(100dvh - var(--mobile-navigation-height))' : '100vh' // GUEST: no bottom nav for guests
+        }
         onPointClick={(point) => setSelectedPointId(point.id)}
         onMapClick={() => setSelectedPointId(null)}
         selectedPointId={selectedPointId}
@@ -97,7 +113,13 @@ export default function MapPage() {
           return (
             <MapReportCard
               report={report}
-              onViewDetails={() => navigate(`/resident/reports/${report._id}`)}
+              onViewDetails={() =>
+                navigate(
+                  guest
+                    ? `/report/reports/${report._id}?requestId=${encodeURIComponent(report.guestAccessKey || '')}`
+                    : `/resident/reports/${report._id}`
+                )
+              }
               onDismiss={() => setSelectedPointId(null)}
             />
           );
@@ -128,7 +150,13 @@ export default function MapPage() {
           <div className="map-report-sheet__handle" aria-hidden="true" />
           <MapReportCard
             report={selectedReport}
-            onViewDetails={() => navigate(`/resident/reports/${selectedReport._id}`)}
+            onViewDetails={() =>
+              navigate(
+                guest
+                  ? `/report/reports/${selectedReport._id}?requestId=${encodeURIComponent(selectedReport.guestAccessKey || '')}`
+                  : `/resident/reports/${selectedReport._id}`
+              )
+            }
             onDismiss={() => setSelectedPointId(null)}
           />
         </div>
@@ -147,20 +175,52 @@ export default function MapPage() {
             pointerEvents: 'none',
           }}
         >
+          {guest && (
+            <Alert
+              type="info"
+              showIcon
+              message="Sign in to receive notifications and add your contact information."
+              style={{
+                position: 'fixed',
+                right: 16,
+                bottom: isMobile ? 'calc(var(--mobile-navigation-height) + 16px)' : 16,
+                zIndex: 1102,
+                pointerEvents: 'auto',
+                maxWidth: 430,
+              }}
+            />
+          )}
           {!isMobile && (
             <Button
               type="primary"
               size="large"
               style={{ pointerEvents: 'auto' }}
               icon={<FileAddOutlined />}
-              onClick={() => navigate('/resident/report')}
+              onClick={() => navigate(reportPath)} // GUEST
             >
               Report an incident
+            </Button>
+          )}
+          {/* GUEST: mobile report button (guests have no bottom navigation) */}
+          {isMobile && guest && (
+            <Button
+              type="primary"
+              style={{ pointerEvents: 'auto' }}
+              icon={<FileAddOutlined />}
+              onClick={() => navigate(reportPath)}
+            >
+              Report
             </Button>
           )}
           <div style={{ pointerEvents: 'auto' }}>
             <EmergencyHotline />
           </div>
+          {/* GUEST: login shortcut */}
+          {guest && (
+            <Link to="/login" style={{ pointerEvents: 'auto', marginLeft: 'auto' }}>
+              <Button>Log in</Button>
+            </Link>
+          )}
         </div>
       )}
       {isPickingLocation && (
@@ -175,7 +235,7 @@ export default function MapPage() {
             icon={<CloseOutlined />}
             onClick={() => {
               setIsPickingLocation(false);
-              navigate('/resident/report');
+              navigate(reportPath); // GUEST
             }}
           >
             Cancel
@@ -195,10 +255,12 @@ export default function MapPage() {
         styles={{ body: { padding: '16px 20px', overflowY: 'auto' } }}
       >
         <SubmitReportForm
+          guest={guest} // GUEST
+          onGuestDone={guest ? finishGuestReport : closeReportDrawer} // GUEST
           selectedLocation={selectedLocation}
           selectedLocationMethod={selectedLocationMethod}
           onPickLocation={() => {
-            navigate('/resident/map', { replace: true });
+            navigate(mapPath, { replace: true }); // GUEST
             setIsPickingLocation(true);
           }}
           onLocationChange={handleLocationChange}
