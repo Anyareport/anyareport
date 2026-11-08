@@ -115,6 +115,10 @@ export function getAuditLabel(log: Pick<AuditLog, 'action' | 'metadata'>): Audit
     return { label: sentenceCase(log.action), category: 'system', tone: 'gray', icon: 'system' };
   }
 
+  if (log.action === 'report_submitted' && log.metadata?.anonymous === true) {
+    return { ...known, label: 'Anonymous report' };
+  }
+
   if (log.action === 'status_updated' && log.metadata?.status === 'resolved') {
     return { ...known, category: 'resolved', tone: 'green', icon: 'check' };
   }
@@ -151,7 +155,13 @@ export function getAuditSummary(log: AuditLog) {
         ? `${reference} status updated to ${sentenceCase(String(metadata.status))}`
         : `${reference} status updated`;
     case 'report_submitted':
-      return metadata.category ? `${reference} submitted in ${metadata.category}` : `${reference} submitted`;
+      return metadata.anonymous === true
+        ? metadata.category
+          ? `${reference} submitted as an anonymous report in ${metadata.category}`
+          : `${reference} submitted as an anonymous report`
+        : metadata.category
+          ? `${reference} submitted in ${metadata.category}`
+          : `${reference} submitted`;
     case 'report_acknowledged':
       return `${reference} acknowledged`;
     case 'resolution_submitted':

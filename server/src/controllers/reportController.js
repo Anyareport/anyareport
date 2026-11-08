@@ -398,7 +398,11 @@ export async function createReport(req, res) {
       'report_submitted',
       req,
       report._id,
-      guest ? { category, guest: true } : { category }
+      {
+        category,
+        ...(guest ? { guest: true } : {}),
+        anonymous: Boolean(guest || req.userRole === 'secretary'),
+      }
     );
     if (aiSuggestedCategory) {
       await logSystemAudit('report_classified', report._id, {
