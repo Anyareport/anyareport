@@ -801,7 +801,7 @@ export default function SubmitReportForm({
               size="large"
               style={{ flex: 1, minWidth: 0 }}
               onClick={goNext}
-              disabled={classifyMutation.isPending}
+              disabled={classifyMutation.isPending || !aiProcessingAcknowledged}
             >
               Next
             </Button>
@@ -813,6 +813,7 @@ export default function SubmitReportForm({
               size="large"
               style={{ flex: 1, minWidth: 0 }}
               loading={submitMutation.isPending}
+              disabled={!aiProcessingAcknowledged}
               onClick={async () => {
                 try {
                   // fallback for incomplete classification
