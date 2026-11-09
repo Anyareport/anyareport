@@ -5,7 +5,7 @@ import User from '../models/User.js';
 import AuditLog from '../models/AuditLog.js';
 import Notification from '../models/Notification.js';
 import Category from '../models/Category.js';
-import { classifyReport } from '../services/gemini.js';
+import { analyzeHeatmapRisk, classifyReport } from '../services/gemini.js';
 import {
   disconnectUserSockets,
   emitReportChanged,
@@ -1727,6 +1727,50 @@ export async function getHeatmapData(req, res) {
         severity: p.severity,
       }))
     );
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export async function getHeatmapRiskAnalysis(req, res) {
+  try {
+    const match = { 'location.address': { $exists: true, $ne: '' } };
+    if (typeof req.query.category === 'string' && req.query.category) {
+      match.category = req.query.category;
+    }
+    if (typeof req.query.severity === 'string' && req.query.severity) {
+      match.severity = req.query.severity;
+    }
+    const reports = await Report.find(match)
+      .select('location.address category severity status')
+      .lean();
+    const zones = new Map();
+    for (const report of reports) {
+      const match = report.location?.address?.match(
+        /purok\s+\d+(?:\s+(?:upper|lower)(?:\s+[ab])?)?/i
+      );
+      if (!match) continue;
+      const purok = match[0].replace(/\s+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+      const zone = zones.get(purok) || {
+        purok,
+        incidents: 0,
+        categories: {},
+        severities: {},
+        statuses: {},
+      };
+      zone.incidents += 1;
+      zone.categories[report.category] = (zone.categories[report.category] || 0) + 1;
+      if (report.severity) {
+        zone.severities[report.severity] = (zone.severities[report.severity] || 0) + 1;
+      }
+      const status = normalizeReportStatus(report.status);
+      zone.statuses[status] = (zone.statuses[status] || 0) + 1;
+      zones.set(purok, zone);
+    }
+
+    const analysis = await analyzeHeatmapRisk([...zones.values()]);
+    if (analysis.error) return res.status(503).json({ error: analysis.error });
+    res.json(analysis);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

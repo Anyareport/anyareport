@@ -31,6 +31,7 @@ import {
   getCategories,
   getAnalytics,
   getHeatmapData,
+  getHeatmapRiskAnalysis,
   classifyReportHandler,
   getDispatchOptions,
   dispatchReport,
@@ -74,6 +75,7 @@ router.post(
 router.get('/mine', getMyReports);
 router.get('/analytics', requireRole('admin', 'captain', 'secretary'), getAnalytics);
 router.get('/heatmap', requireRole('admin', 'captain', 'secretary'), getHeatmapData);
+router.get('/heatmap/risk-analysis', requireRole('admin', 'captain', 'secretary'), getHeatmapRiskAnalysis);
 router.get('/captain/inactive', requireRole('captain'), getCaptainInactiveReports);
 router.get(
   '/count',
