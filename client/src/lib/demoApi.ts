@@ -98,7 +98,9 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
 
     if (searchParams.get('handledByMe') === 'true' && ['tanod', 'responder'].includes(role)) {
       reports = reports.filter(
-        (report) => report.acknowledgedBy === (session?.firebaseUid || getDemoProfile()?.firebaseUid)
+        (report) =>
+          report.acknowledgedBy === (session?.firebaseUid || getDemoProfile()?.firebaseUid) &&
+          report.status !== 'endorsed'
       );
     }
 
@@ -283,7 +285,7 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
       if (!['tanod', 'responder'].includes(demoProfile?.role || '')) {
         throw new Error('Only responders can request backup');
       }
-      if (report.status === 'resolved') {
+      if (['resolved', 'endorsed'].includes(report.status)) {
         throw new Error('Resolved incidents cannot request backup');
       }
       if (report.acknowledgedBy !== demoUid) {

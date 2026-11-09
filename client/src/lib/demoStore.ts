@@ -359,7 +359,15 @@ export function getDemoAnalytics(period: 'all' | 'week' | 'month' | 'year' = 'mo
     ? db.reports
     : db.reports.filter((report) => new Date(report.createdAt).getTime() >= since);
   const total = reports.length;
-  const resolved = reports.filter((report) => report.status === 'resolved').length;
+  const resolved = reports.filter(
+    (report) =>
+      report.status === 'resolved' && report.resolution?.endorsedToOtherEmergencyDepartment !== true
+  ).length;
+  const endorsed = reports.filter(
+    (report) =>
+      report.status === 'endorsed' ||
+      report.resolution?.endorsedToOtherEmergencyDepartment === true
+  ).length;
   const pending = reports.filter((report) => report.status === 'pending').length;
 
   const byCategoryMap = new Map<string, number>();
@@ -376,8 +384,11 @@ export function getDemoAnalytics(period: 'all' | 'week' | 'month' | 'year' = 'mo
   return {
     total,
     resolved,
+    endorsed,
+    resolvedWithinBarangay: resolved,
+    resolvedExternally: endorsed,
     pending,
-    resolutionRate: total > 0 ? Math.round((resolved / total) * 100) : 0,
+    resolutionRate: total > 0 ? Math.round(((resolved + endorsed) / total) * 100) : 0,
     byCategory: Array.from(byCategoryMap.entries()).map(([key, value]) => ({
       _id: key,
       count: value,

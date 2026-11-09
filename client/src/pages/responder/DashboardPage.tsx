@@ -26,7 +26,7 @@ export default function ResponderDashboardPage() {
   });
 
   const myActiveReports = useMemo(
-    () => handledReports.filter((report) => report.status !== 'resolved'),
+    () => handledReports.filter((report) => !['resolved', 'endorsed'].includes(report.status)),
     [handledReports]
   );
 

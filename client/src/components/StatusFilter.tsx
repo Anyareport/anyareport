@@ -10,6 +10,7 @@ const statusOptions: FilterOption[] = [
   { value: 'coordinating', label: formatStatus('coordinating') },
   { value: 'in_progress', label: formatStatus('in_progress') },
   { value: 'resolved', label: formatStatus('resolved') },
+  { value: 'endorsed', label: formatStatus('endorsed') },
   { value: 'flagged', label: formatStatus('flagged') },
 ];
 

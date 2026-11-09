@@ -112,7 +112,7 @@ function getIconKind(item: NotificationFeedItem) {
   if (item.type === 'backup_requested') return 'backup-requested';
   if (item.type === 'backup_joined') return 'backup-joined';
   if (item.kind === 'status_group') {
-    if (item.status === 'resolved') return 'resolved';
+    if (item.status === 'resolved' || item.status === 'endorsed') return item.status;
     if (item.status === 'flagged') return 'flagged';
     if (item.status === 'coordinating' || item.status === 'in_progress') return 'in-progress';
     return 'pending';

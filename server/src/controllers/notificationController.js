@@ -153,7 +153,7 @@ export async function exportReports(req, res) {
       if (scope && !['open', 'inactive'].includes(scope)) {
         return res.status(400).json({ error: 'Invalid scope filter' });
       }
-      if (scope) conditions.push({ status: { $nin: ['resolved', 'flagged'] } });
+      if (scope) conditions.push({ status: { $nin: ['resolved', 'endorsed', 'flagged'] } });
 
       const verification = getQueryString(req, 'verification');
       if (verification) {

@@ -133,6 +133,7 @@ export function buildReportQuery({ userRole, firebaseUserUid, status, handledByM
     query.$and.push({
       $or: [{ acknowledgedBy: firebaseUserUid }, { 'backupRequests.joinedBy': firebaseUserUid }],
     });
+    query.$and.push({ status: { $ne: 'endorsed' } });
   }
 
   return query;
@@ -494,7 +495,7 @@ async function getAvailableResponders(reportId) {
 
   const activeReports = await Report.find({
     _id: { $ne: reportId },
-    status: { $nin: ['resolved', 'flagged'] },
+    status: { $nin: ['resolved', 'endorsed', 'flagged'] },
     $or: [
       { acknowledgedBy: { $in: responders.map((responder) => responder.firebaseUid) } },
       { 'backupRequests.joinedBy': { $in: responders.map((responder) => responder.firebaseUid) } },
@@ -997,7 +998,7 @@ export async function getReportAudit(req, res) {
 
 export async function getCaptainInactiveReports(req, res) {
   try {
-    const openReports = await Report.find({ status: { $nin: ['resolved', 'flagged'] } })
+    const openReports = await Report.find({ status: { $nin: ['resolved', 'endorsed', 'flagged'] } })
       .sort({ createdAt: -1 })
       .limit(200);
     if (openReports.length === 0) {
@@ -1043,7 +1044,7 @@ export async function flagReport(req, res) {
 
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ error: 'Report not found' });
-    if (['resolved', 'flagged'].includes(report.status)) {
+    if (['resolved', 'endorsed', 'flagged'].includes(report.status)) {
       return res.status(400).json({ error: 'This report is already closed' });
     }
 
@@ -1143,12 +1144,12 @@ async function applyReportTransition(
     (request) => request.status === 'pending'
   );
 
-  if (decision.update.status === 'resolved' && hasOpenBackupRequest) {
+  if (['resolved', 'endorsed'].includes(decision.update.status) && hasOpenBackupRequest) {
     const closedAt = new Date();
     update.$set['backupRequests.$[request].status'] = 'closed';
     update.$set['backupRequests.$[request].closedBy'] = actorUid;
     update.$set['backupRequests.$[request].closedAt'] = closedAt;
-    update.$set['backupRequests.$[request].closeReason'] = 'resolved';
+    update.$set['backupRequests.$[request].closeReason'] = decision.update.status;
     options.arrayFilters = [{ 'request.status': 'pending' }];
   }
 
@@ -1174,7 +1175,7 @@ async function applyReportTransition(
     'Report status update'
   );
   if (
-    decision.update.status === 'resolved' &&
+    ['resolved', 'endorsed'].includes(decision.update.status) &&
     updatedReport.category === 'Emergency Situations' &&
     updatedReport.subcategory === 'Public'
   ) {
@@ -1284,7 +1285,8 @@ export async function submitResolution(req, res) {
       verificationStatus: 'pending',
     };
 
-    const result = await applyReportTransition(req, report, 'resolved', {
+    const targetStatus = endorsedToOtherEmergencyDepartment ? 'endorsed' : 'resolved';
+    const result = await applyReportTransition(req, report, targetStatus, {
       extraSet: { resolution },
       action: 'resolution_submitted',
       auditMetadata: { evidenceCount: resolution.supportingEvidence.length },
@@ -1414,7 +1416,7 @@ export async function requestBackup(req, res) {
           {
             _id: report._id,
             ...responderReportFilter(report),
-            status: { $nin: ['resolved', 'flagged'] },
+            status: { $nin: ['resolved', 'endorsed', 'flagged'] },
             acknowledgedBy: req.firebaseUser.uid,
             backupRequests: { $not: { $elemMatch: { status: 'pending' } } },
           },
@@ -1560,7 +1562,7 @@ export async function closeBackupRequest(req, res) {
           {
             _id: report._id,
             ...responderReportFilter(report),
-            status: { $nin: ['resolved', 'flagged'] },
+            status: { $nin: ['resolved', 'endorsed', 'flagged'] },
             acknowledgedBy: req.firebaseUser.uid,
             backupRequests: {
               $elemMatch: { requestedBy: req.firebaseUser.uid, status: 'pending' },
@@ -1645,7 +1647,21 @@ export async function getAnalytics(req, res) {
     const byStatus = [...statusCounts].map(([_id, count]) => ({ _id, count }));
 
     const total = await Report.countDocuments(match);
-    const resolved = await Report.countDocuments({ ...match, status: 'resolved' });
+    const resolved = await Report.countDocuments({
+      ...match,
+      status: 'resolved',
+      $or: [
+        { 'resolution.endorsedToOtherEmergencyDepartment': { $ne: true } },
+        { 'resolution.endorsedToOtherEmergencyDepartment': null },
+      ],
+    });
+    const endorsed = await Report.countDocuments({
+      ...match,
+      $or: [
+        { status: 'endorsed' },
+        { 'resolution.endorsedToOtherEmergencyDepartment': true },
+      ],
+    });
     const pending = await Report.countDocuments({
       ...match,
       status: { $in: ['pending', 'verified'] },
@@ -1709,8 +1725,11 @@ export async function getAnalytics(req, res) {
     res.json({
       total,
       resolved,
+      endorsed,
+      resolvedWithinBarangay: resolved,
+      resolvedExternally: endorsed,
       pending,
-      resolutionRate: total > 0 ? Math.round((resolved / total) * 100) : 0,
+      resolutionRate: total > 0 ? Math.round(((resolved + endorsed) / total) * 100) : 0,
       byCategory,
       byStatus,
       last30Days,

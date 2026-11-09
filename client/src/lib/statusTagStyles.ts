@@ -42,6 +42,10 @@ const statusStyles: Record<string, CSSProperties> = {
     backgroundColor: 'color-mix(in srgb, var(--status-resolved-tag) 14%, transparent)',
     color: 'var(--status-resolved-tag)',
   },
+  endorsed: {
+    backgroundColor: 'color-mix(in srgb, var(--status-coordinating-tag) 14%, transparent)',
+    color: 'var(--status-coordinating-tag)',
+  },
   flagged: {
     backgroundColor: 'color-mix(in srgb, var(--status-flagged-tag) 14%, transparent)',
     color: 'var(--status-flagged-tag)',

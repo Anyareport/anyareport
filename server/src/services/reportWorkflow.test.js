@@ -76,7 +76,7 @@ test('resolved and flagged reports are terminal for backup actions', () => {
   assert.equal(isTerminalReportStatus('flagged'), true);
   assert.equal(isTerminalReportStatus('in_progress'), false);
 
-  for (const status of ['resolved', 'flagged']) {
+  for (const status of ['resolved', 'endorsed', 'flagged']) {
     const decision = getJoinDecision({
       category: 'Emergency Situations',
       status,

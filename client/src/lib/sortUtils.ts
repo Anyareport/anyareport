@@ -18,7 +18,7 @@ export const SEVERITY_ORDER: Record<string, number> = {
   Low: 3,
 };
 
-export const TERMINAL_STATUSES = new Set(['resolved', 'flagged']);
+export const TERMINAL_STATUSES = new Set(['resolved', 'endorsed', 'flagged']);
 
 export function getPriorityTier(r: Report): number {
   const status = normalizeReportStatus(r.status);

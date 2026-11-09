@@ -89,6 +89,7 @@ interface DispatchOptionsResponse {
 }
 
 interface ResolutionFormValues {
+  closureType: 'resolved' | 'endorsed';
   summary?: string;
   actionsTaken: string;
   outcome: string;
@@ -241,7 +242,7 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
     refetchInterval: (query) => {
       const current = query.state.data;
       const s = normalizeReportStatus(current?.status || current?.workflowStatus || '');
-      return s === 'flagged' || s === 'resolved' ? false : 15000;
+      return ['flagged', 'resolved', 'endorsed'].includes(s) ? false : 15000;
     },
   });
 
@@ -266,6 +267,10 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
           String(values.endorsedToOtherEmergencyDepartment)
         );
       }
+      formData.set(
+        'endorsedToOtherEmergencyDepartment',
+        String(values.closureType === 'endorsed')
+      );
       if (values.endorsedToDepartment) {
         formData.append('endorsedToDepartment', values.endorsedToDepartment);
       }
@@ -344,7 +349,7 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
   };
 
   const updateStatus = useMutation({
-    mutationFn: (status: 'in_progress' | 'resolved') =>
+    mutationFn: (status: 'in_progress' | 'resolved' | 'endorsed') =>
       api.patch<Report>(`/api/reports/${id}/status`, { status }),
     onSuccess: async (_report, status) => {
       await invalidateReportViews();
@@ -457,7 +462,7 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
   const isBlotter = report.category === BLOTTER_REPORT_CATEGORY;
   const isSimpleFieldCloseout = FIELD_REPORT_CATEGORIES.includes(report.category);
   const status = dispatchStatus;
-  const isTerminalStatus = status === 'resolved' || status === 'flagged';
+  const isTerminalStatus = ['resolved', 'endorsed', 'flagged'].includes(status);
   const suggestedNextSteps = getSuggestedNextSteps(report.category);
 
   // Must be declared after `status` (const is not usable before its declaration).
@@ -759,7 +764,7 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
     >
       {oversightAction || (
         <Text type="secondary">
-          {status === 'resolved'
+          {status === 'resolved' || status === 'endorsed'
             ? 'This blotter case is resolved.'
             : status === 'flagged'
               ? 'This blotter case was flagged and is closed to further action.'
@@ -872,7 +877,7 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
     >
       {responderAction || (
         <Text type="secondary">
-          {status === 'resolved'
+          {status === 'resolved' || status === 'endorsed'
             ? text('incidentResolvedNotice', 'This incident is resolved.')
             : status === 'flagged'
               ? text('reportFlaggedNotice', 'This report was flagged and requires no response.')
@@ -915,12 +920,12 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
       {oversightAction || (
         <Text type="secondary">
           {role === 'captain'
-            ? status === 'resolved'
+            ? ['resolved', 'endorsed'].includes(status)
               ? 'This blotter case is resolved.'
               : status === 'flagged'
                 ? 'This blotter case was flagged and is closed to further action.'
                 : 'Blotter cases can be resolved by the Captain or Secretary.'
-            : status === 'resolved'
+            : ['resolved', 'endorsed'].includes(status)
               ? 'This blotter case is resolved.'
               : status === 'flagged'
                 ? 'This blotter case was flagged and is closed to further action.'
@@ -1621,11 +1626,63 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
             layout="vertical"
             initialValues={
               isSimpleFieldCloseout
-                ? undefined
-                : { furtherActionRequired: false, assistanceRequested: false }
+                ? { closureType: 'resolved' }
+                : {
+                    closureType: 'resolved',
+                    furtherActionRequired: false,
+                    assistanceRequested: false,
+                  }
             }
             onFinish={(values: ResolutionFormValues) => resolutionMutation.mutate(values)}
           >
+            <Form.Item
+              name="closureType"
+              label={text('closureType', 'How should this report be closed?')}
+              rules={[{ required: true }]}
+            >
+              <Radio.Group
+                buttonStyle="solid"
+                optionType="button"
+                style={{ display: 'flex', width: '100%' }}
+              >
+                <Radio.Button value="resolved" style={{ flex: 1, textAlign: 'center' }}>
+                  {text('resolveWithinBarangay', 'Resolve within barangay')}
+                </Radio.Button>
+                <Radio.Button value="endorsed" style={{ flex: 1, textAlign: 'center' }}>
+                  {text('endorseExternalAgency', 'Endorse to external agency')}
+                </Radio.Button>
+              </Radio.Group>
+            </Form.Item>
+            <Form.Item
+              noStyle
+              shouldUpdate={(previous, current) => previous.closureType !== current.closureType}
+            >
+              {({ getFieldValue }) =>
+                getFieldValue('closureType') === 'endorsed' ? (
+                  <Form.Item
+                    name="endorsedToDepartment"
+                    label={text('endorsedToDepartment', 'Which external agency?')}
+                    rules={[
+                      {
+                        required: true,
+                        message: text(
+                          'provideEndorsedDepartment',
+                          'Provide the external agency name.'
+                        ),
+                      },
+                    ]}
+                  >
+                    <Select
+                      placeholder={text('selectEmergencyHotline', 'Select an external agency')}
+                      options={EMERGENCY_HOTLINE_OPTIONS.map(({ name }) => ({
+                        value: name,
+                        label: name,
+                      }))}
+                    />
+                  </Form.Item>
+                ) : null
+              }
+            </Form.Item>
             <Title level={5} style={{ margin: '0 0 12px' }}>
               {text('whatHappened', 'What happened')}
             </Title>
@@ -1670,10 +1727,16 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
               />
             </Form.Item>
 
-            <Collapse
-              size="small"
-              defaultActiveKey={isSimpleFieldCloseout ? [] : ['additional-details']}
-              items={[
+            <Form.Item
+              noStyle
+              shouldUpdate={(previous, current) => previous.closureType !== current.closureType}
+            >
+              {({ getFieldValue }) =>
+                getFieldValue('closureType') === 'endorsed' ? null : (
+                  <Collapse
+                    size="small"
+                    defaultActiveKey={isSimpleFieldCloseout ? [] : ['additional-details']}
+                    items={[
                 {
                   key: 'additional-details',
                   label: isSimpleFieldCloseout
@@ -1795,79 +1858,6 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
                             </Radio.Group>
                           </Form.Item>
                         </Col>
-                        <Col xs={24} sm={12}>
-                          <Form.Item
-                            name="endorsedToOtherEmergencyDepartment"
-                            label={text(
-                              'endorsedToOtherEmergencyDepartment',
-                              'Endorsed to another emergency department'
-                            )}
-                            rules={
-                              isSimpleFieldCloseout
-                                ? undefined
-                                : [
-                                    {
-                                      required: true,
-                                      message: text('selectYesNo', 'Select Yes or No.'),
-                                    },
-                                  ]
-                            }
-                          >
-                            <Radio.Group
-                              buttonStyle="solid"
-                              optionType="button"
-                              style={{ display: 'flex', width: '100%' }}
-                            >
-                              <Radio.Button value={true} style={{ flex: 1, textAlign: 'center' }}>
-                                {text('yes', 'Yes')}
-                              </Radio.Button>
-                              <Radio.Button value={false} style={{ flex: 1, textAlign: 'center' }}>
-                                {text('no', 'No')}
-                              </Radio.Button>
-                            </Radio.Group>
-                          </Form.Item>
-                          <Form.Item
-                            noStyle
-                            shouldUpdate={(previous, current) =>
-                              previous.endorsedToOtherEmergencyDepartment !==
-                              current.endorsedToOtherEmergencyDepartment
-                            }
-                          >
-                            {({ getFieldValue }) =>
-                              getFieldValue('endorsedToOtherEmergencyDepartment') ? (
-                                <Form.Item
-                                  name="endorsedToDepartment"
-                                  label={text('endorsedToDepartment', 'Which emergency hotline?')}
-                                  rules={
-                                    isSimpleFieldCloseout
-                                      ? undefined
-                                      : [
-                                          {
-                                            required: true,
-                                            whitespace: true,
-                                            message: text(
-                                              'provideEndorsedDepartment',
-                                              'Provide the emergency department name.'
-                                            ),
-                                          },
-                                        ]
-                                  }
-                                >
-                                  <Select
-                                    placeholder={text(
-                                      'selectEmergencyHotline',
-                                      'Select an emergency hotline'
-                                    )}
-                                    options={EMERGENCY_HOTLINE_OPTIONS.map(({ name }) => ({
-                                      value: name,
-                                      label: name,
-                                    }))}
-                                  />
-                                </Form.Item>
-                              ) : null
-                            }
-                          </Form.Item>
-                        </Col>
                       </Row>
                       <Title level={5} style={{ margin: '0 0 12px' }}>
                         {text('evidence', 'Evidence')}
@@ -1902,8 +1892,11 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
                     </>
                   ),
                 },
-              ]}
-            />
+                    ]}
+                  />
+                )
+              }
+            </Form.Item>
             <Divider />
             <Row gutter={[16, 12]} align="middle">
               <Col xs={24} sm={12}>

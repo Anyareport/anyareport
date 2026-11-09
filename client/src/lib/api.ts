@@ -150,7 +150,7 @@ export interface Report {
     joinedByNames?: string[];
     closedBy?: string | null;
     closedAt?: string | null;
-    closeReason?: 'enough_help' | 'resolved' | 'flagged' | null;
+    closeReason?: 'enough_help' | 'resolved' | 'endorsed' | 'flagged' | null;
   }[];
   statusHistory: { status: string; updatedBy: string; timestamp: string }[];
   createdAt: string;
@@ -252,6 +252,9 @@ export interface AuditLog {
 export interface Analytics {
   total: number;
   resolved: number;
+  endorsed: number;
+  resolvedWithinBarangay: number;
+  resolvedExternally: number;
   pending: number;
   resolutionRate: number;
   byCategory: { _id: string; count: number }[];

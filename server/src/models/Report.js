@@ -28,6 +28,7 @@ const reportSchema = new mongoose.Schema(
         'en_route',
         'on_scene',
         'resolved',
+        'endorsed',
         'flagged',
       ],
       default: 'pending',
@@ -69,7 +70,7 @@ const reportSchema = new mongoose.Schema(
         joinedBy: [{ type: String }],
         closedBy: { type: String, default: null },
         closedAt: { type: Date, default: null },
-        closeReason: { type: String, enum: ['enough_help', 'resolved', 'flagged'], default: null },
+        closeReason: { type: String, enum: ['enough_help', 'resolved', 'endorsed', 'flagged'], default: null },
       },
     ],
     dispatchInvites: [

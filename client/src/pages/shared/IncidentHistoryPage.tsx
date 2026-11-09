@@ -82,7 +82,7 @@ export default function IncidentHistoryPage({
     const matchesFilters = (report: Report) =>
       matchesIncidentSearch(report, search) &&
       (status === 'all' || report.status === status) &&
-      (paramScope !== 'open' || !['resolved', 'flagged'].includes(report.status)) &&
+      (paramScope !== 'open' || !['resolved', 'endorsed', 'flagged'].includes(report.status)) &&
       (!paramVerification || report.resolution?.verificationStatus === paramVerification) &&
       (paramVerifiedPeriod !== 'week' ||
         (report.resolution?.verificationStatus === 'verified' &&
@@ -102,7 +102,7 @@ export default function IncidentHistoryPage({
 
     if (variant === 'responder') {
       return sorted
-        .filter((report) => report.status === 'resolved' || report.status === 'flagged')
+        .filter((report) => ['resolved', 'endorsed', 'flagged'].includes(report.status))
         .filter(matchesFilters);
     }
 

@@ -38,7 +38,6 @@ export function validateResolutionDetails(details, { allowShortCloseout = false 
     return 'Whether the report was endorsed to another emergency department must be specified';
   }
   if (
-    !allowShortCloseout &&
     details.endorsedToOtherEmergencyDepartment &&
     (typeof details.endorsedToDepartment !== 'string' || !details.endorsedToDepartment.trim())
   ) {
@@ -80,7 +79,7 @@ export function normalizeReportStatus(status) {
 
 export function isTerminalReportStatus(status) {
   const normalizedStatus = normalizeReportStatus(status);
-  return normalizedStatus === 'resolved' || normalizedStatus === 'flagged';
+  return ['resolved', 'endorsed', 'flagged'].includes(normalizedStatus);
 }
 
 export function normalizeHistoryStatus(status) {
@@ -228,10 +227,10 @@ export function getTransitionDecision({
       };
     }
 
-    if (toStatus === 'resolved') {
+    if (['resolved', 'endorsed'].includes(toStatus)) {
       if (category === 'Public Concerns' && role === 'secretary') {
         if (currentStatus !== 'in_progress') {
-          return reject(409, 'A field report can only be resolved from In Progress');
+          return reject(409, 'A field report can only be closed from In Progress');
         }
         return {
           allowed: true,
@@ -239,15 +238,15 @@ export function getTransitionDecision({
             ...responderCategoryFilter(category),
             status: 'in_progress',
           },
-          update: { status: 'resolved' },
+          update: { status: toStatus },
           action: 'resolution_submitted',
         };
       }
       if (!isResponder || (actorUid !== ownerUid && !helperUids.includes(actorUid))) {
-        return reject(403, 'Only a responder on this incident can resolve it');
+        return reject(403, 'Only a responder on this incident can close it');
       }
       if (currentStatus !== 'in_progress') {
-        return reject(409, 'A field report can only be resolved from In Progress');
+        return reject(409, 'A field report can only be closed from In Progress');
       }
       return {
         allowed: true,
@@ -256,7 +255,7 @@ export function getTransitionDecision({
           status: { $in: ['in_progress', 'en_route', 'on_scene'] },
           $or: [{ acknowledgedBy: actorUid }, { 'backupRequests.joinedBy': actorUid }],
         },
-        update: { status: 'resolved' },
+        update: { status: toStatus },
         action: 'status_updated',
       };
     }
@@ -292,12 +291,12 @@ export function getTransitionDecision({
       };
     }
 
-    if (toStatus === 'resolved') {
+    if (['resolved', 'endorsed'].includes(toStatus)) {
       if (!['captain', 'secretary'].includes(role)) {
-        return reject(403, 'Only the Captain or Secretary can resolve blotter cases');
+        return reject(403, 'Only the Captain or Secretary can close blotter cases');
       }
       if (currentStatus !== 'in_progress') {
-        return reject(409, 'A blotter case can only be resolved from In Progress');
+        return reject(409, 'A blotter case can only be closed from In Progress');
       }
       return {
         allowed: true,
@@ -305,7 +304,7 @@ export function getTransitionDecision({
           category: BLOTTER_REPORT_CATEGORY,
           status: { $in: ['in_progress', 'en_route', 'on_scene'] },
         },
-        update: { status: 'resolved' },
+        update: { status: toStatus },
         action: 'status_updated',
       };
     }
@@ -349,7 +348,7 @@ export function getJoinDecision({
     alreadyJoined: false,
     filter: {
       ...responderCategoryFilter(category),
-      status: { $nin: ['resolved', 'flagged'] },
+      status: { $nin: ['resolved', 'endorsed', 'flagged'] },
       acknowledgedBy: ownerUid,
       backupRequests: {
         $elemMatch: {

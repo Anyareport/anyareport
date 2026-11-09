@@ -47,7 +47,7 @@ const periodDays: Record<Exclude<AnalyticsPeriod, 'all'>, number> = {
   year: 365,
 };
 
-const workflowOrder = ['pending', 'coordinating', 'in_progress', 'resolved', 'flagged'];
+const workflowOrder = ['pending', 'coordinating', 'in_progress', 'resolved', 'endorsed', 'flagged'];
 const severityColors: Record<string, string> = {
   Critical: 'var(--severity-critical-tag)',
   High: 'var(--severity-high-tag)',
@@ -194,7 +194,8 @@ export default function AdminAnalyticsPage() {
       ['Overview', 'From', from, null],
       ['Overview', 'To', today, null],
       ['Overview', 'Total reports', analytics?.total || 0, null],
-      ['Overview', 'Resolved', analytics?.resolved || 0, analytics?.resolutionRate || 0],
+      ['Overview', 'Resolved within barangay', analytics?.resolvedWithinBarangay || 0, percentOfTotal(analytics?.resolvedWithinBarangay || 0)],
+      ['Overview', 'Endorsed to external agency', analytics?.resolvedExternally || 0, percentOfTotal(analytics?.resolvedExternally || 0)],
       ['Overview', 'Still open', openCount, percentOfTotal(openCount)],
       ['Overview', 'Avg. time to resolve', avgResolutionDays ?? 'n/a', null],
       ...categoryData.map((e) => ['By category', e.name, e.count, percentOfTotal(e.count)]),
@@ -304,6 +305,27 @@ export default function AdminAnalyticsPage() {
               </Button>
             </Dropdown>
           </Space>
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12}>
+          <KpiCard
+            label="Resolved within barangay"
+            value={analytics?.resolvedWithinBarangay || 0}
+            icon={<CheckCircleOutlined />}
+            tone="success"
+            helper="Closed by the barangay response team"
+          />
+        </Col>
+        <Col xs={24} sm={12}>
+          <KpiCard
+            label="Endorsed to external agencies"
+            value={analytics?.resolvedExternally || 0}
+            icon={<FolderOpenOutlined />}
+            tone="accent"
+            helper="Sent to PNP, BFP, Red Cross, or another agency"
+          />
         </Col>
       </Row>
 
@@ -437,6 +459,7 @@ export default function AdminAnalyticsPage() {
                     'var(--status-coordinating-border)',
                     'var(--status-on-scene-border)',
                     'var(--status-resolved-border)',
+                    'var(--status-coordinating-border)',
                     'var(--status-flagged-tag)',
                   ][index],
                   display: 'flex',

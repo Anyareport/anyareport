@@ -31,7 +31,7 @@ export async function lockAndCheckResponders({
   const activeReports = await reportModel
     .find({
       _id: { $ne: reportId },
-      status: { $nin: ['resolved', 'flagged'] },
+      status: { $nin: ['resolved', 'endorsed', 'flagged'] },
       $or: [
         { acknowledgedBy: { $in: responderUids } },
         { 'backupRequests.joinedBy': { $in: responderUids } },

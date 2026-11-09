@@ -24,18 +24,21 @@ export default function IncidentStatusSteps({
   const steps = getReportSteps(category, subcategory);
   const canonicalStatus = normalizeReportStatus(status);
   const currentStep = getActiveStep(category, canonicalStatus, subcategory);
-  const isTerminal = canonicalStatus === 'resolved';
+  const isTerminal = ['resolved', 'endorsed'].includes(canonicalStatus);
 
   
 
   return (
     <ol
-      className={`incident-steps incident-steps--${steps.length}`}
+      className={`incident-steps incident-steps--${steps.length} ${
+        canonicalStatus === 'endorsed' ? 'incident-steps--endorsed' : ''
+      }`}
       aria-label={translate ? t('reportProgress') : 'Report progress'}
     >
       {steps.map((step, index) => {
         const isComplete = isTerminal || index < currentStep;
         const isCurrent = !isTerminal && index === currentStep;
+        const isEndorsed = canonicalStatus === 'endorsed' && step === 'resolved';
         return (
           <li
             key={step}
@@ -43,6 +46,7 @@ export default function IncidentStatusSteps({
               'incident-steps__item',
               isComplete ? 'is-complete' : '',
               isCurrent ? 'is-current' : '',
+              isEndorsed ? 'is-endorsed' : '',
             ]
               .filter(Boolean)
               .join(' ')}
@@ -50,7 +54,14 @@ export default function IncidentStatusSteps({
           >
             <span className="incident-steps__dot" aria-hidden="true" />
             <span className="incident-steps__label">
-              {translate ? getLocalizedStatus(step, t) : getStatusLabel(step)}
+              {translate
+                ? getLocalizedStatus(
+                    canonicalStatus === 'endorsed' && step === 'resolved' ? 'endorsed' : step,
+                    t
+                  )
+                : getStatusLabel(
+                    canonicalStatus === 'endorsed' && step === 'resolved' ? 'endorsed' : step
+                  )}
             </span>
           </li>
         );

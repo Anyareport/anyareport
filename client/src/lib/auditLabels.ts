@@ -123,6 +123,16 @@ export function getAuditLabel(log: Pick<AuditLog, 'action' | 'metadata'>): Audit
     return { ...known, category: 'resolved', tone: 'green', icon: 'check' };
   }
 
+  if (
+    ['status_updated', 'resolution_submitted'].includes(log.action) &&
+    log.metadata?.status === 'endorsed'
+  ) {
+    return {
+      ...known,
+      label: log.action === 'resolution_submitted' ? 'Endorsement submitted' : 'Endorsed',
+    };
+  }
+
   return known;
 }
 
@@ -165,7 +175,9 @@ export function getAuditSummary(log: AuditLog) {
     case 'report_acknowledged':
       return `${reference} acknowledged`;
     case 'resolution_submitted':
-      return `Resolution submitted for ${reference.toLowerCase()}`;
+      return metadata.status === 'endorsed'
+        ? `Endorsement submitted for ${reference.toLowerCase()}`
+        : `Resolution submitted for ${reference.toLowerCase()}`;
     case 'report_classified':
       return metadata.category
         ? `${reference} classified as ${metadata.category}`

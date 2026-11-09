@@ -129,6 +129,26 @@
   background: var(--status-resolved-tag);
 }
 
+.incident-steps__item.is-endorsed .incident-steps__dot {
+  border-color: var(--status-resolved-tag);
+  background: var(--status-resolved-tag);
+}
+
+.incident-steps__item.is-endorsed .incident-steps__label {
+  color: var(--status-resolved-tag);
+}
+
+.incident-steps--endorsed .incident-steps__item.is-complete:not(:last-child)::after,
+.incident-steps--endorsed .incident-steps__item.is-complete .incident-steps__dot,
+.incident-steps--endorsed .incident-steps__item.is-endorsed .incident-steps__dot {
+  border-color: var(--status-resolved-tag);
+  background: var(--status-resolved-tag);
+}
+
+.incident-steps--endorsed .incident-steps__label {
+  color: var(--status-resolved-tag);
+}
+
 .incident-steps__item.is-current {
   color: var(--text-primary);
   font-weight: 700;

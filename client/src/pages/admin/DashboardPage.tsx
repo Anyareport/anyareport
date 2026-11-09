@@ -63,7 +63,7 @@ function formatAuditTime(timestamp: string, now: number) {
   return new Date(timestamp).toLocaleDateString();
 }
 
-const isOpenReport = (report: Report) => !['resolved', 'flagged'].includes(report.status);
+const isOpenReport = (report: Report) => !['resolved', 'endorsed', 'flagged'].includes(report.status);
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
@@ -127,7 +127,7 @@ export default function AdminDashboardPage() {
     () =>
       reports.filter(
         (report) =>
-          report.status === 'resolved' && report.resolution?.verificationStatus === 'pending'
+          ['resolved', 'endorsed'].includes(report.status) && report.resolution?.verificationStatus === 'pending'
       ),
     [reports]
   );
@@ -144,7 +144,7 @@ export default function AdminDashboardPage() {
   const resolvedThisMonth = useMemo(
     () =>
       reportsThisMonth.filter(
-        (report) => report.status === 'resolved' && report.resolution?.resolvedAt
+        (report) => ['resolved', 'endorsed'].includes(report.status) && report.resolution?.resolvedAt
       ).length,
     [reportsThisMonth]
   );
