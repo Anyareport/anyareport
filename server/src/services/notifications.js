@@ -93,6 +93,7 @@ function serializeEvent(event) {
     type: event.type,
     message: event.message,
     announcementTitle: event.announcementTitle || null,
+    announcementImages: event.announcementImages || [],
     read: Boolean(event.read),
     urgent: Boolean(event.urgent),
     createdAt: new Date(event.createdAt).toISOString(),
@@ -154,6 +155,7 @@ export function disconnectUserSockets(firebaseUid) {
 
 export async function notifyBarangayAnnouncement({
   announcementId,
+  announcementImages = [],
   category,
   title,
   message,
@@ -172,6 +174,7 @@ export async function notifyBarangayAnnouncement({
         announcementTitle: title,
         announcementId,
         announcementAuthorUid: actorUid,
+        announcementImages,
         message: notificationMessage,
         actorRole: 'secretary',
         actorUid,
@@ -620,6 +623,7 @@ export async function getNotificationsForUser(
       latestEventId: latest.id,
       message: latest.message,
       announcementTitle: latest.announcementTitle,
+      announcementImages: latest.announcementImages,
       reportId,
       report: mergeReportSnapshot(item.latest.reportSnapshot, report),
       status: latest.status,

@@ -273,7 +273,7 @@ export async function getAnnouncements(req, res) {
     })
       .sort({ createdAt: -1 })
       .limit(200)
-      .select('_id announcementCategory announcementTitle message read actorName createdAt')
+      .select('_id announcementCategory announcementTitle announcementImages message read actorName createdAt')
       .lean();
 
     res.json(
@@ -287,6 +287,7 @@ export async function getAnnouncements(req, res) {
         message: announcement.announcementTitle
           ? announcement.message.replace(`${announcement.announcementTitle}: `, '')
           : announcement.message.replace(/^[^:]+:\s*/, ''),
+        images: announcement.announcementImages || [],
         read: Boolean(announcement.read),
         actorName: announcement.actorName || 'Barangay Secretary',
         createdAt: announcement.createdAt,

@@ -12,6 +12,7 @@ import {
 } from '../controllers/notificationController.js';
 import { registerPushToken, removePushToken } from '../controllers/pushController.js';
 import { requireVerifiedOfficial } from '../middleware/requireVerifiedOfficial.js';
+import upload from '../middleware/upload.js';
 import {
   createAnnouncement,
   deleteAnnouncement,
@@ -31,8 +32,8 @@ router.get('/announcements', requireRole('resident'), getAnnouncements);
 router.patch('/read-all', markAllRead);
 router.patch('/reports/:reportId/status-updates/read', markGroupRead);
 router.patch('/:id/read', markRead);
-router.post('/announcements', requireRole('secretary'), createAnnouncement);
-router.patch('/announcements/:id', requireRole('secretary'), updateAnnouncement);
+router.post('/announcements', requireRole('secretary'), upload.array('images', 3), createAnnouncement);
+router.patch('/announcements/:id', requireRole('secretary'), upload.array('images', 3), updateAnnouncement);
 router.delete('/announcements/:id', requireRole('secretary'), deleteAnnouncement);
 
 const exportRouter = Router();

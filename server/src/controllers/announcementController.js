@@ -3,6 +3,7 @@ import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { writeAudit } from '../services/auditLog.js';
 import { notifyBarangayAnnouncement } from '../services/notifications.js';
+import { uploadImage } from '../services/cloudinary.js';
 
 const ANNOUNCEMENT_CATEGORIES = ['SK Programs', 'TUPAD Payout', 'Other'];
 
@@ -25,6 +26,19 @@ function validateAnnouncement({ category, title, message }) {
   return null;
 }
 
+async function uploadAnnouncementImages(files) {
+  if (!Array.isArray(files) || files.length === 0) return [];
+  if (files.length > 3) {
+    const error = new Error('You can upload up to 3 images per announcement.');
+    error.statusCode = 400;
+    throw error;
+  }
+  const uploaded = await Promise.all(
+    files.map((file) => uploadImage(file.buffer, file.mimetype, 'anyareport/announcements'))
+  );
+  return uploaded.map((image) => image.secure_url);
+}
+
 export async function createAnnouncement(req, res) {
   const { category, title, message } = getAnnouncementValues(req.body);
   const validationError = validateAnnouncement({ category, title, message });
@@ -32,6 +46,7 @@ export async function createAnnouncement(req, res) {
 
   try {
     const announcementId = new mongoose.Types.ObjectId().toString();
+    const announcementImages = await uploadAnnouncementImages(req.files);
     const secretary = await User.findOne({ firebaseUid: req.firebaseUser.uid })
       .select('name')
       .lean();
@@ -40,6 +55,7 @@ export async function createAnnouncement(req, res) {
       .lean();
     const notifications = await notifyBarangayAnnouncement({
       announcementId,
+      announcementImages,
       category,
       title,
       message,
@@ -63,6 +79,7 @@ export async function createAnnouncement(req, res) {
       title,
       message,
       announcementId,
+      announcementImages,
       recipientCount: notifications.length,
       createdAt: new Date().toISOString(),
     });
@@ -87,6 +104,7 @@ export async function listSecretaryAnnouncements(req, res) {
           category: { $first: '$announcementCategory' },
           title: { $first: '$announcementTitle' },
           message: { $first: '$message' },
+          announcementImages: { $first: '$announcementImages' },
           createdAt: { $first: '$createdAt' },
           recipientCount: { $sum: 1 },
         },
@@ -100,6 +118,7 @@ export async function listSecretaryAnnouncements(req, res) {
         category: record.category,
         title: record.title,
         message: record.message.replace(`${record.title}: `, ''),
+        images: record.announcementImages || [],
         createdAt: record.createdAt,
         recipientCount: record.recipientCount,
       }))
@@ -115,6 +134,13 @@ export async function updateAnnouncement(req, res) {
   if (validationError) return res.status(400).json({ error: validationError });
 
   try {
+    const announcementImages = await uploadAnnouncementImages(req.files);
+    const updateFields = {
+      announcementCategory: category,
+      announcementTitle: title,
+      message: `${title}: ${message}`,
+    };
+    if (announcementImages.length) updateFields.announcementImages = announcementImages;
     const result = await Notification.updateMany(
       {
         type: 'barangay_announcement',
@@ -122,11 +148,7 @@ export async function updateAnnouncement(req, res) {
         announcementAuthorUid: req.firebaseUser.uid,
       },
       {
-        $set: {
-          announcementCategory: category,
-          announcementTitle: title,
-          message: `${title}: ${message}`,
-        },
+        $set: updateFields,
       }
     );
     if (!result.matchedCount) return res.status(404).json({ error: 'Announcement not found' });

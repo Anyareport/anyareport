@@ -61,7 +61,10 @@ export const api = {
       body: body instanceof FormData ? body : JSON.stringify(body),
     }),
   patch: <T>(path: string, body?: unknown) =>
-    request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
+    request<T>(path, {
+      method: 'PATCH',
+      body: body instanceof FormData ? body : JSON.stringify(body),
+    }),
   delete: <T>(path: string, body?: unknown) =>
     request<T>(path, {
       method: 'DELETE',
@@ -184,6 +187,7 @@ export interface NotificationEvent {
   type: string;
   message: string;
   announcementTitle: string | null;
+  announcementImages: string[];
   read: boolean;
   urgent: boolean;
   createdAt: string;
@@ -203,6 +207,7 @@ export interface BarangayAnnouncement {
   read: boolean;
   actorName: string;
   createdAt: string;
+  images: string[];
 }
 
 export interface SecretaryAnnouncement extends BarangayAnnouncement {
@@ -217,6 +222,7 @@ export interface NotificationFeedItem {
   latestEventId: string;
   message: string;
   announcementTitle: string | null;
+  announcementImages: string[];
   reportId: string | null;
   report: {
     referenceNumber: string | null;

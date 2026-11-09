@@ -6,11 +6,11 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export function uploadImage(buffer, mimeType) {
+export function uploadImage(buffer, mimeType, folder = "anyareport/reports") {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
-        folder: "anyareport/reports",
+        folder,
         resource_type: "image",
         format: mimeType.split("/")[1],
       },

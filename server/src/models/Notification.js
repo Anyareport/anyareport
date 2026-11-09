@@ -11,6 +11,7 @@ const notificationSchema = new mongoose.Schema(
     announcementTitle: { type: String, default: null },
     announcementId: { type: String, default: null, index: true },
     announcementAuthorUid: { type: String, default: null, index: true },
+    announcementImages: { type: [String], default: [] },
     message: { type: String, required: true },
     read: { type: Boolean, default: false },
     urgent: { type: Boolean, default: false },
