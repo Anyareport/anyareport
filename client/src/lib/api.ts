@@ -183,6 +183,7 @@ export interface NotificationEvent {
   id: string;
   type: string;
   message: string;
+  announcementTitle: string | null;
   read: boolean;
   urgent: boolean;
   createdAt: string;
@@ -192,6 +193,22 @@ export interface NotificationEvent {
   dispatchResponse: 'accepted' | 'declined' | null;
 }
 
+export type AnnouncementCategory = 'SK Programs' | 'TUPAD Payout' | 'Other';
+
+export interface BarangayAnnouncement {
+  id: string;
+  category: AnnouncementCategory;
+  title: string;
+  message: string;
+  read: boolean;
+  actorName: string;
+  createdAt: string;
+}
+
+export interface SecretaryAnnouncement extends BarangayAnnouncement {
+  recipientCount: number;
+}
+
 export interface NotificationFeedItem {
   id: string;
   kind: 'event' | 'status_group';
@@ -199,6 +216,7 @@ export interface NotificationFeedItem {
   type: string;
   latestEventId: string;
   message: string;
+  announcementTitle: string | null;
   reportId: string | null;
   report: {
     referenceNumber: string | null;

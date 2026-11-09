@@ -323,7 +323,9 @@ export default function NotificationsPage() {
                   item={item}
                   role={role}
                   to={
-                    item.reportId &&
+                    item.type === 'barangay_announcement' && role === 'resident'
+                      ? `/resident/announcements/${encodeURIComponent(item.latestEventId)}`
+                      : item.reportId &&
                     !(
                       role &&
                       ['tanod', 'responder'].includes(role) &&

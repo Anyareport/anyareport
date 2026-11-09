@@ -6,6 +6,7 @@ import {
   ClockCircleOutlined,
   DownOutlined,
   FileTextOutlined,
+  NotificationOutlined,
   TeamOutlined,
   SafetyOutlined,
   SyncOutlined,
@@ -54,6 +55,10 @@ function getItemActorLabel(item: NotificationFeedItem, role: string | null) {
 }
 
 function getHeadline(item: NotificationFeedItem, role: string | null) {
+  if (item.type === 'barangay_announcement') {
+    return `Announcement: ${item.announcementTitle || 'New barangay announcement'}`;
+  }
+
   const reference = item.report.referenceNumber;
   const title = item.report.title;
   const category = item.report.category;
@@ -94,6 +99,7 @@ function isAdminEvent(item: NotificationFeedItem) {
 }
 
 function getIconKind(item: NotificationFeedItem) {
+  if (item.type === 'barangay_announcement') return 'announcement';
   if (item.type === 'public_emergency_alert') return 'public-emergency';
   if (item.type === 'public_emergency_resolved') return 'resolved';
   if (item.type === 'admin_report_flagged') return 'flagged';
@@ -137,6 +143,8 @@ function getIcon(kind: string) {
       return <CloseCircleOutlined />;
     case 'new-report':
       return <FileTextOutlined />;
+    case 'announcement':
+      return <NotificationOutlined />;
     case 'resolved':
       return <CheckCircleOutlined />;
     case 'flagged':

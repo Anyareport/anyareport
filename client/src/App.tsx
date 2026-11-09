@@ -13,6 +13,7 @@ import LandingPage from './pages/resident/LandingPage';
 import MapPage from './pages/resident/MapPage';
 import MyReportsPage from './pages/resident/MyReportsPage';
 import NotificationsPage from './pages/shared/NotificationsPage';
+import AnnouncementsPage from './pages/resident/AnnouncementsPage';
 import ProfilePage from './pages/shared/ProfilePage';
 import ResponderDashboardPage from './pages/responder/DashboardPage';
 import ResponderAlertsPage from './pages/responder/AlertsPage';
@@ -28,6 +29,7 @@ import AdminUsersPage from './pages/admin/UsersPage';
 import ResidentAccountsPage from './pages/admin/ResidentAccountsPage';
 import SecretaryReportPage from './pages/admin/SecretaryReportPage';
 import SecretaryIntakePage from './pages/admin/IntakeQueuePage';
+import AnnouncementPage from './pages/admin/AnnouncementPage';
 import { getProfilePath } from './lib/roles';
 function HomeRedirect() {
   const { firebaseUser, loading, role, profile } = useAuth();
@@ -82,6 +84,8 @@ function App() {
           <Route path="/resident/reports" element={<MyReportsPage />} />
           <Route path="/resident/reports/:id" element={<IncidentDetailPage variant="resident" />} />
           <Route path="/resident/notifications" element={<NotificationsPage />} />
+          <Route path="/resident/announcements" element={<AnnouncementsPage />} />
+          <Route path="/resident/announcements/:id" element={<AnnouncementsPage />} />
           <Route path="/resident/profile" element={<ProfilePage />} />
         </Route>
       </Route>
@@ -115,6 +119,7 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={['secretary']} />}>
             <Route path="/admin/report" element={<SecretaryReportPage />} />
             <Route path="/admin/report/map" element={<SecretaryReportPage />} />
+            <Route path="/admin/announcements" element={<AnnouncementPage />} />
           </Route>
           <Route
             element={<ProtectedRoute allowedRoles={['captain', 'secretary']} />}

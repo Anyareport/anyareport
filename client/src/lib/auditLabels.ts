@@ -32,6 +32,24 @@ const AUDIT_LABELS: Record<string, AuditLabel> = {
     tone: 'blue',
     icon: 'file',
   },
+  barangay_announcement_sent: {
+    label: 'Barangay announcement sent',
+    category: 'incident',
+    tone: 'blue',
+    icon: 'file',
+  },
+  barangay_announcement_updated: {
+    label: 'Barangay announcement updated',
+    category: 'incident',
+    tone: 'blue',
+    icon: 'file',
+  },
+  barangay_announcement_deleted: {
+    label: 'Barangay announcement deleted',
+    category: 'incident',
+    tone: 'blue',
+    icon: 'file',
+  },
   status_updated: { label: 'Status updated', category: 'incident', tone: 'blue', icon: 'file' },
   user_role_changed: {
     label: 'Role changed',
@@ -160,6 +178,8 @@ export function getAuditSummary(log: AuditLog) {
       return `Marked ${metadata.count ?? 0} notifications as read`;
     case 'report_recipients_notified':
       return `${metadata.recipientCount ?? 0} responder(s) notified`;
+    case 'barangay_announcement_sent':
+      return `${metadata.title ?? 'Barangay announcement'} sent to ${metadata.recipientCount ?? 0} resident(s)`;
     case 'status_updated':
       return metadata.status
         ? `${reference} status updated to ${sentenceCase(String(metadata.status))}`

@@ -1,6 +1,7 @@
 import {
   UnorderedListOutlined,
   BellOutlined,
+  NotificationOutlined,
   UserOutlined,
   EnvironmentOutlined,
   PlusOutlined,
@@ -30,6 +31,11 @@ export default function ResidentShell() {
               key: '/resident/notifications',
               icon: <BellOutlined />,
               label: 'Notifications',
+            },
+            {
+              key: '/resident/announcements',
+              icon: <NotificationOutlined />,
+              label: 'Announcements',
             },
             { key: '/resident/profile', icon: <UserOutlined />, label: 'Profile' },
           ],

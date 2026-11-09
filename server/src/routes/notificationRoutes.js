@@ -8,9 +8,16 @@ import {
   markAllRead,
   markGroupRead,
   markRead,
+  getAnnouncements,
 } from '../controllers/notificationController.js';
 import { registerPushToken, removePushToken } from '../controllers/pushController.js';
 import { requireVerifiedOfficial } from '../middleware/requireVerifiedOfficial.js';
+import {
+  createAnnouncement,
+  deleteAnnouncement,
+  listSecretaryAnnouncements,
+  updateAnnouncement,
+} from '../controllers/announcementController.js';
 
 const router = Router();
 
@@ -19,9 +26,14 @@ router.use(verifyToken, requireActiveUser(), requireVerifiedOfficial);
 router.post('/push-tokens', registerPushToken);
 router.delete('/push-tokens', removePushToken);
 router.get('/', getNotifications);
+router.get('/announcements/manage', requireRole('secretary'), listSecretaryAnnouncements);
+router.get('/announcements', requireRole('resident'), getAnnouncements);
 router.patch('/read-all', markAllRead);
 router.patch('/reports/:reportId/status-updates/read', markGroupRead);
 router.patch('/:id/read', markRead);
+router.post('/announcements', requireRole('secretary'), createAnnouncement);
+router.patch('/announcements/:id', requireRole('secretary'), updateAnnouncement);
+router.delete('/announcements/:id', requireRole('secretary'), deleteAnnouncement);
 
 const exportRouter = Router();
 exportRouter.use(verifyToken, requireActiveUser(), requireVerifiedOfficial);

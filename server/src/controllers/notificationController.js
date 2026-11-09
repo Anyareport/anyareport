@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import AuditLog from '../models/AuditLog.js';
+import Notification from '../models/Notification.js';
 import Report from '../models/Report.js';
 import User from '../models/User.js';
 import { workflowConfig } from '../config/workflow.js';
@@ -22,6 +23,7 @@ const reportStatuses = [
   'coordinating',
   'in_progress',
   'resolved',
+  'endorsed',
   'flagged',
   'acknowledged',
   'en_route',
@@ -260,6 +262,38 @@ export async function getNotifications(req, res) {
     res.json(feed);
   } catch (err) {
     res.status(err.statusCode || 500).json({ error: err.message });
+  }
+}
+
+export async function getAnnouncements(req, res) {
+  try {
+    const announcements = await Notification.find({
+      recipientUid: req.firebaseUser.uid,
+      type: 'barangay_announcement',
+    })
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .select('_id announcementCategory announcementTitle message read actorName createdAt')
+      .lean();
+
+    res.json(
+      announcements.map((announcement) => ({
+        id: String(announcement._id),
+        category: announcement.announcementCategory || 'Other',
+        title:
+          announcement.announcementTitle ||
+          announcement.message.split(':')[0] ||
+          'Barangay announcement',
+        message: announcement.announcementTitle
+          ? announcement.message.replace(`${announcement.announcementTitle}: `, '')
+          : announcement.message.replace(/^[^:]+:\s*/, ''),
+        read: Boolean(announcement.read),
+        actorName: announcement.actorName || 'Barangay Secretary',
+        createdAt: announcement.createdAt,
+      }))
+    );
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 }
 

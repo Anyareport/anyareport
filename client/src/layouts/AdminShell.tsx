@@ -49,7 +49,8 @@ export default function AdminShell() {
     if (role === 'secretary') {
       workItems.push(
         { key: '/admin/intake', icon: <InboxOutlined />, label: 'Intake Queue' },
-        { key: '/admin/report', icon: <FileAddOutlined />, label: 'Add Report' }
+        { key: '/admin/report', icon: <FileAddOutlined />, label: 'Add Report' },
+        { key: '/admin/announcements', icon: <BellOutlined />, label: 'Announcements' }
       );
     }
 

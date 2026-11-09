@@ -92,6 +92,7 @@ function serializeEvent(event) {
     id: String(event._id),
     type: event.type,
     message: event.message,
+    announcementTitle: event.announcementTitle || null,
     read: Boolean(event.read),
     urgent: Boolean(event.urgent),
     createdAt: new Date(event.createdAt).toISOString(),
@@ -151,6 +152,43 @@ export function disconnectUserSockets(firebaseUid) {
   ioInstance?.in(`user:${firebaseUid}`).disconnectSockets(true);
 }
 
+export async function notifyBarangayAnnouncement({
+  announcementId,
+  category,
+  title,
+  message,
+  actorUid,
+  actorName,
+  residents,
+}) {
+  const notificationMessage = `${title}: ${message}`;
+  const notifications = await Promise.all(
+    residents.map((resident) =>
+      Notification.create({
+        recipientUid: resident.firebaseUid,
+        recipientRole: resident.role,
+        type: 'barangay_announcement',
+        announcementCategory: category,
+        announcementTitle: title,
+        announcementId,
+        announcementAuthorUid: actorUid,
+        message: notificationMessage,
+        actorRole: 'secretary',
+        actorUid,
+        actorName,
+      })
+    )
+  );
+
+  if (ioInstance) {
+    notifications.forEach((notification) => {
+      ioInstance.to(`user:${notification.recipientUid}`).emit('notification', notification);
+    });
+  }
+  await deliverPushNotifications(notifications);
+  return notifications;
+}
+
 async function sendPushNotifications(notifications) {
   const admin = getFirebaseAdmin();
   if (!admin) return;
@@ -169,10 +207,15 @@ async function sendPushNotifications(notifications) {
           title:
             item.type === 'public_emergency_resolved'
               ? 'Public emergency update'
+              : item.type === 'barangay_announcement'
+                ? item.announcementTitle || 'New barangay announcement'
               : item.urgent
                 ? 'Urgent Anyareport alert'
                 : 'New Anyareport notification',
-          body: item.message,
+          body:
+            item.type === 'barangay_announcement'
+              ? `Check the Announcements page for ${item.announcementTitle || 'the latest update'}.`
+              : item.message,
         },
         data: {
           notificationId: String(item._id),
@@ -576,6 +619,7 @@ export async function getNotificationsForUser(
       type: latest.type,
       latestEventId: latest.id,
       message: latest.message,
+      announcementTitle: latest.announcementTitle,
       reportId,
       report: mergeReportSnapshot(item.latest.reportSnapshot, report),
       status: latest.status,
