@@ -578,6 +578,16 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
     isResponder && isOwner && status === 'coordinating' && (!isBlotter || isCriminalBlotter);
   const canResolveFieldWork =
     isResponder && isOwner && status === 'in_progress' && (!isBlotter || isCriminalBlotter);
+  const canResolvePublicConcern =
+    variant === 'admin' &&
+    role === 'secretary' &&
+    report.category === 'Public Concerns' &&
+    status === 'in_progress';
+  const canStartPublicConcern =
+    variant === 'admin' &&
+    role === 'secretary' &&
+    report.category === 'Public Concerns' &&
+    ['pending', 'verified'].includes(status);
   const canUseResponderBackup = !isBlotter || isCriminalBlotter;
   const canReviewResolution =
     variant === 'admin' && ['captain', 'secretary'].includes((role || '').toLowerCase());
@@ -694,7 +704,29 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
     </Button>
   ) : null;
 
-  const oversightAction = canStartBlotter ? (
+  const oversightAction = canStartPublicConcern ? (
+    <Button
+      block
+      size="large"
+      type="primary"
+      disabled={actionBusy}
+      loading={updateStatus.isPending}
+      onClick={() => updateStatus.mutate('in_progress')}
+    >
+      Start processing
+    </Button>
+  ) : canResolvePublicConcern ? (
+    <Button
+      block
+      size="large"
+      type="primary"
+      disabled={actionBusy}
+      loading={resolutionMutation.isPending}
+      onClick={() => setResolutionOpen(true)}
+    >
+      Mark resolved
+    </Button>
+  ) : canStartBlotter ? (
     <Button
       block
       size="large"
@@ -718,6 +750,40 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
     </Button>
   ) : null;
 
+  const secretaryAction = isBlotter || report.category === 'Public Concerns' ? (
+    <Card
+      className="soft-card incident-side-section incident-mobile-hide-panel"
+      role="region"
+      aria-label={text('actionsHeading', 'Actions')}
+      title={text('actionsHeading', 'Actions')}
+    >
+      {oversightAction || (
+        <Text type="secondary">
+          {status === 'resolved'
+            ? 'This blotter case is resolved.'
+            : status === 'flagged'
+              ? 'This blotter case was flagged and is closed to further action.'
+              : isCriminalBlotter
+                ? 'Criminal cases are worked by the dispatched tanod or responder. Dispatch a responder, then verify the resolution.'
+                : 'Blotter processing is managed by the Captain and Secretary.'}
+        </Text>
+      )}
+      <Button
+        block
+        icon={<DownloadOutlined />}
+        disabled={!auditEntries.length}
+        onClick={() =>
+          downloadFile(
+            `/api/reports/${id}/audit?format=csv`,
+            `anyareport-report-${report.referenceNumber || id}-audit.csv`,
+            message
+          )
+        }
+      >
+        Export case audit
+      </Button>
+    </Card>
+  ) : null;
   const dispatchAction = canDispatch ? (
     <Card
       className="soft-card incident-side-section incident-mobile-hide-panel"
@@ -781,41 +847,6 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
     </Card>
   ) : null;
 
-  const secretaryAction = isBlotter ? (
-    <Card
-      className="soft-card incident-side-section incident-mobile-hide-panel"
-      role="region"
-      aria-label={text('actionsHeading', 'Actions')}
-      title={text('actionsHeading', 'Actions')}
-    >
-      {oversightAction || (
-        <Text type="secondary">
-          {status === 'resolved'
-            ? 'This blotter case is resolved.'
-            : status === 'flagged'
-              ? 'This blotter case was flagged and is closed to further action.'
-              : isCriminalBlotter
-                ? 'Criminal cases are worked by the dispatched tanod or responder. Dispatch a responder, then verify the resolution.'
-                : 'Blotter processing is managed by the Captain and Secretary.'}
-        </Text>
-      )}
-      <Button
-        block
-        icon={<DownloadOutlined />}
-        disabled={!auditEntries.length}
-        onClick={() =>
-          downloadFile(
-            `/api/reports/${id}/audit?format=csv`,
-            `anyareport-report-${report.referenceNumber || id}-audit.csv`,
-            message
-          )
-        }
-      >
-        Export case audit
-      </Button>
-    </Card>
-  ) : null;
-
   const flagAction =
     role === 'secretary' && !isTerminalStatus ? (
       <Card
@@ -870,8 +901,8 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
   ) : role === 'admin' ? null : ['captain', 'secretary'].includes(role || '') ? (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {captainResponseAction}
-      {dispatchAction}
       {secretaryAction}
+      {dispatchAction}
       {flagAction}
     </Space>
   ) : isBlotter ? (

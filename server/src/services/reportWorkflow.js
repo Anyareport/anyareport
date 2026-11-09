@@ -196,6 +196,20 @@ export function getTransitionDecision({
     }
 
     if (toStatus === 'in_progress') {
+      if (category === 'Public Concerns' && role === 'secretary') {
+        if (!['pending', 'verified'].includes(currentStatus)) {
+          return reject(409, 'Only pending public concerns can start processing');
+        }
+        return {
+          allowed: true,
+          filter: {
+            ...responderCategoryFilter(category),
+            status: { $in: ['pending', 'verified'] },
+          },
+          update: { status: 'in_progress' },
+          action: 'status_updated',
+        };
+      }
       if (!isResponder || actorUid !== ownerUid) {
         return reject(403, 'Only the lead responder can start field work');
       }
@@ -215,6 +229,20 @@ export function getTransitionDecision({
     }
 
     if (toStatus === 'resolved') {
+      if (category === 'Public Concerns' && role === 'secretary') {
+        if (currentStatus !== 'in_progress') {
+          return reject(409, 'A field report can only be resolved from In Progress');
+        }
+        return {
+          allowed: true,
+          filter: {
+            ...responderCategoryFilter(category),
+            status: 'in_progress',
+          },
+          update: { status: 'resolved' },
+          action: 'resolution_submitted',
+        };
+      }
       if (!isResponder || (actorUid !== ownerUid && !helperUids.includes(actorUid))) {
         return reject(403, 'Only a responder on this incident can resolve it');
       }

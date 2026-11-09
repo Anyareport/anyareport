@@ -302,6 +302,18 @@ test('Captain, Secretary, and Admin cannot change field incident status', () => 
     fromStatus: 'pending',
     toStatus: 'in_progress',
   });
+  const secretaryResolvesPublicConcern = getTransitionDecision({
+    category: 'Public Concerns',
+    role: 'secretary',
+    fromStatus: 'in_progress',
+    toStatus: 'resolved',
+  });
+  const secretaryStartsPublicConcern = getTransitionDecision({
+    category: 'Public Concerns',
+    role: 'secretary',
+    fromStatus: 'pending',
+    toStatus: 'in_progress',
+  });
   const responderStartsBlotter = getTransitionDecision({
     category: 'Blotter Cases',
     role: 'responder',
@@ -315,6 +327,8 @@ test('Captain, Secretary, and Admin cannot change field incident status', () => 
     toStatus: 'in_progress',
   });
   assert.equal(captainStartsField.allowed, false);
+  assert.equal(secretaryStartsPublicConcern.allowed, true);
+  assert.equal(secretaryResolvesPublicConcern.allowed, true);
   assert.equal(responderStartsBlotter.allowed, false);
   assert.equal(adminStartsBlotter.allowed, false);
 });

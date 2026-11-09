@@ -1242,9 +1242,10 @@ export async function submitResolution(req, res) {
     });
     if (validationError) return res.status(400).json({ error: validationError });
     const canResolveAsBlotterOfficial =
-      report.category === BLOTTER_REPORT_CATEGORY &&
-      report.subcategory !== CRIMINAL_BLOTTER_SUBCATEGORY &&
-      ['captain', 'secretary'].includes(req.userRole);
+      (report.category === BLOTTER_REPORT_CATEGORY &&
+        report.subcategory !== CRIMINAL_BLOTTER_SUBCATEGORY &&
+        ['captain', 'secretary'].includes(req.userRole)) ||
+      (report.category === 'Public Concerns' && req.userRole === 'secretary');
     if (
       !canResolveAsBlotterOfficial &&
       !canSubmitResolution(req.firebaseUser.uid, report.acknowledgedBy)
