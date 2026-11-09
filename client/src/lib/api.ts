@@ -187,6 +187,7 @@ export interface NotificationEvent {
   type: string;
   message: string;
   announcementTitle: string | null;
+  announcementCategory: string | null;
   announcementImages: string[];
   read: boolean;
   urgent: boolean;
@@ -222,6 +223,7 @@ export interface NotificationFeedItem {
   latestEventId: string;
   message: string;
   announcementTitle: string | null;
+  announcementCategory: string | null;
   announcementImages: string[];
   reportId: string | null;
   report: {

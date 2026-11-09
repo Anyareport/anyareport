@@ -411,6 +411,11 @@ a {
   color: var(--status-pending-text);
 }
 
+.notification-card__icon--announcement {
+  background: color-mix(in srgb, var(--brand-color-info) 14%, transparent);
+  color: var(--brand-color-info);
+}
+
 .notification-card__icon--backup-requested,
 .notification-card__icon--in-progress {
   background: color-mix(in srgb, var(--status-coordinating-text) 14%, transparent);
@@ -492,6 +497,14 @@ a {
 
 .notification-card__resolved-label.ant-typography {
   color: var(--severity-low-tag);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  line-height: 1.2;
+}
+
+.notification-card__announcement-label.ant-typography {
+  color: var(--brand-color-info);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.07em;

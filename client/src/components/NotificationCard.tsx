@@ -56,7 +56,7 @@ function getItemActorLabel(item: NotificationFeedItem, role: string | null) {
 
 function getHeadline(item: NotificationFeedItem, role: string | null) {
   if (item.type === 'barangay_announcement') {
-    return `Announcement: ${item.announcementTitle || 'New barangay announcement'}`;
+    return item.announcementTitle || 'New barangay announcement';
   }
 
   const reference = item.report.referenceNumber;
@@ -194,6 +194,7 @@ export default function NotificationCard({ item, role, to, onOpen }: Notificatio
   const iconKind = getIconKind(item);
   const isPublicEmergencyAlert = item.type === 'public_emergency_alert';
   const isPublicEmergencyResolved = item.type === 'public_emergency_resolved';
+  const isBarangayAnnouncement = item.type === 'barangay_announcement';
   const severity = item.report.severity;
   const severityStyle = severity ? getSeverityStyle(severity) : undefined;
   const incidentSeverityClass =
@@ -228,6 +229,9 @@ export default function NotificationCard({ item, role, to, onOpen }: Notificatio
         )}
         {isPublicEmergencyResolved && (
           <Text className="notification-card__resolved-label">PUBLIC EMERGENCY UPDATE</Text>
+        )}
+        {isBarangayAnnouncement && (
+          <Text className="notification-card__announcement-label">ANNOUNCEMENT</Text>
         )}
         <Text className="notification-card__headline">{getHeadline(item, role)}</Text>
         {detailItems.length > 0 && (
