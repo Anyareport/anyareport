@@ -131,6 +131,8 @@ export interface Report {
     furtherActionRequired: boolean | null;
     furtherActionRecommendation: string | null;
     assistanceRequested: boolean | null;
+    endorsedToOtherEmergencyDepartment: boolean | null;
+    endorsedToDepartment: string | null;
     supportingEvidence: string[];
     resolvedBy: string;
     resolvedByName: string;

@@ -23,12 +23,20 @@ interface EmergencyHotlineProps {
 }
 
 interface HotlineContact {
-  id: 'bfp' | 'pnp' | 'red-cross' | 'nv-ert' | '911';
+  id: (typeof EMERGENCY_HOTLINE_OPTIONS)[number]['id'];
   name: string;
   description: string;
   number: string;
   icon: React.ReactNode;
 }
+
+export const EMERGENCY_HOTLINE_OPTIONS = [
+  { id: 'bfp', name: 'Bureau of Fire Protection' },
+  { id: 'pnp', name: 'Philippine National Police' },
+  { id: 'red-cross', name: 'Philippine Red Cross' },
+  { id: 'nv-ert', name: 'Nueva Vizcaya Emergency Response Team' },
+  { id: '911', name: 'National Emergency Hotline' },
+] as const;
 
 function getDialNumber(value: string, isNationalHotline = false) {
   const trimmed = value.trim();
@@ -46,36 +54,36 @@ function getDialNumber(value: string, isNationalHotline = false) {
 function getContacts(translate: boolean): HotlineContact[] {
   return [
     {
-      id: 'bfp',
-      name: 'Bureau of Fire Protection',
+      id: EMERGENCY_HOTLINE_OPTIONS[0].id,
+      name: EMERGENCY_HOTLINE_OPTIONS[0].name,
       description: translate ? 'BFP · sunog at rescue' : 'BFP · fire and rescue',
       number: import.meta.env.VITE_HOTLINE_BFP_NUMBER || '',
       icon: <FireOutlined />,
     },
     {
-      id: 'pnp',
-      name: 'Philippine National Police',
+      id: EMERGENCY_HOTLINE_OPTIONS[1].id,
+      name: EMERGENCY_HOTLINE_OPTIONS[1].name,
       description: translate ? 'PNP · krimen at kaligtasan' : 'PNP · crime and public safety',
       number: import.meta.env.VITE_HOTLINE_PNP_NUMBER || '',
       icon: <SafetyOutlined />,
     },
     {
-      id: 'red-cross',
-      name: 'Philippine Red Cross',
+      id: EMERGENCY_HOTLINE_OPTIONS[2].id,
+      name: EMERGENCY_HOTLINE_OPTIONS[2].name,
       description: translate ? 'Tulong medikal at ambulansya' : 'Medical and ambulance assistance',
       number: import.meta.env.VITE_HOTLINE_RED_CROSS_NUMBER || '',
       icon: <MedicineBoxOutlined />,
     },
     {
-      id: 'nv-ert',
-      name: 'Nueva Vizcaya Emergency Response Team',
+      id: EMERGENCY_HOTLINE_OPTIONS[3].id,
+      name: EMERGENCY_HOTLINE_OPTIONS[3].name,
       description: translate ? 'NV-ERT · pagtugon sa emerhensiya' : 'NV-ERT · emergency response',
       number: '0917-122-7150',
       icon: <SafetyOutlined />,
     },
     {
-      id: '911',
-      name: 'National Emergency Hotline',
+      id: EMERGENCY_HOTLINE_OPTIONS[4].id,
+      name: EMERGENCY_HOTLINE_OPTIONS[4].name,
       description: translate
         ? 'Pulis, bumbero, medikal, at rescue'
         : 'Police, fire, medical, and rescue',

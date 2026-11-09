@@ -44,7 +44,9 @@ import { api, type AuditLog, type DispatchResponder, type Report } from '../../l
 import StatusTag from '../../components/StatusTag';
 import SeverityTag from '../../components/SeverityTag';
 import AppTag from '../../components/AppTag';
-import EmergencyHotline from '../../components/EmergencyHotline';
+import EmergencyHotline, {
+  EMERGENCY_HOTLINE_OPTIONS,
+} from '../../components/EmergencyHotline';
 import { StaticMap, RouteMap } from '../../components/map/MapPicker';
 import { useAuth } from '../../contexts/AuthContext';
 import TranslationNote from '../../components/TranslationNote';
@@ -93,6 +95,8 @@ interface ResolutionFormValues {
   furtherActionRequired?: boolean;
   furtherActionRecommendation?: string;
   assistanceRequested?: boolean;
+  endorsedToOtherEmergencyDepartment?: boolean;
+  endorsedToDepartment?: string;
 }
 
 function getPhotoUrl(photo: string) {
@@ -255,6 +259,15 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
       }
       if (values.assistanceRequested !== undefined) {
         formData.append('assistanceRequested', String(values.assistanceRequested));
+      }
+      if (values.endorsedToOtherEmergencyDepartment !== undefined) {
+        formData.append(
+          'endorsedToOtherEmergencyDepartment',
+          String(values.endorsedToOtherEmergencyDepartment)
+        );
+      }
+      if (values.endorsedToDepartment) {
+        formData.append('endorsedToDepartment', values.endorsedToDepartment);
       }
       evidenceFiles.forEach((file) => {
         if (file.originFileObj) formData.append('evidence', file.originFileObj);
@@ -1182,6 +1195,32 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
                 </AppTag>
               </div>
             </Col>
+            <Col xs={12}>
+              <Text strong>
+                {text(
+                  'endorsedToOtherEmergencyDepartment',
+                  'Endorsed to another emergency department'
+                )}
+              </Text>
+              <div>
+                <AppTag tone="neutral">
+                  {report.resolution.endorsedToOtherEmergencyDepartment === null ||
+                  report.resolution.endorsedToOtherEmergencyDepartment === undefined
+                    ? '—'
+                    : report.resolution.endorsedToOtherEmergencyDepartment
+                      ? text('yes', 'Yes')
+                      : text('no', 'No')}
+                </AppTag>
+              </div>
+            </Col>
+            {report.resolution.endorsedToOtherEmergencyDepartment && (
+              <Col xs={24}>
+                <Text strong>
+                  {text('endorsedToDepartment', 'Endorsed emergency hotline')}
+                </Text>
+                <div>{report.resolution.endorsedToDepartment || '—'}</div>
+              </Col>
+            )}
           </Row>
           {report.resolution.furtherActionRequired && (
             <section>
@@ -1723,6 +1762,79 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
                                 {text('no', 'No')}
                               </Radio.Button>
                             </Radio.Group>
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} sm={12}>
+                          <Form.Item
+                            name="endorsedToOtherEmergencyDepartment"
+                            label={text(
+                              'endorsedToOtherEmergencyDepartment',
+                              'Endorsed to another emergency department'
+                            )}
+                            rules={
+                              isSimpleFieldCloseout
+                                ? undefined
+                                : [
+                                    {
+                                      required: true,
+                                      message: text('selectYesNo', 'Select Yes or No.'),
+                                    },
+                                  ]
+                            }
+                          >
+                            <Radio.Group
+                              buttonStyle="solid"
+                              optionType="button"
+                              style={{ display: 'flex', width: '100%' }}
+                            >
+                              <Radio.Button value={true} style={{ flex: 1, textAlign: 'center' }}>
+                                {text('yes', 'Yes')}
+                              </Radio.Button>
+                              <Radio.Button value={false} style={{ flex: 1, textAlign: 'center' }}>
+                                {text('no', 'No')}
+                              </Radio.Button>
+                            </Radio.Group>
+                          </Form.Item>
+                          <Form.Item
+                            noStyle
+                            shouldUpdate={(previous, current) =>
+                              previous.endorsedToOtherEmergencyDepartment !==
+                              current.endorsedToOtherEmergencyDepartment
+                            }
+                          >
+                            {({ getFieldValue }) =>
+                              getFieldValue('endorsedToOtherEmergencyDepartment') ? (
+                                <Form.Item
+                                  name="endorsedToDepartment"
+                                  label={text('endorsedToDepartment', 'Which emergency hotline?')}
+                                  rules={
+                                    isSimpleFieldCloseout
+                                      ? undefined
+                                      : [
+                                          {
+                                            required: true,
+                                            whitespace: true,
+                                            message: text(
+                                              'provideEndorsedDepartment',
+                                              'Provide the emergency department name.'
+                                            ),
+                                          },
+                                        ]
+                                  }
+                                >
+                                  <Select
+                                    placeholder={text(
+                                      'selectEmergencyHotline',
+                                      'Select an emergency hotline'
+                                    )}
+                                    options={EMERGENCY_HOTLINE_OPTIONS.map(({ name }) => ({
+                                      value: name,
+                                      label: name,
+                                    }))}
+                                  />
+                                </Form.Item>
+                              ) : null
+                            }
                           </Form.Item>
                         </Col>
                       </Row>

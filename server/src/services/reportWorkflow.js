@@ -34,6 +34,16 @@ export function validateResolutionDetails(details, { allowShortCloseout = false 
   if (!allowShortCloseout && typeof details.assistanceRequested !== 'boolean') {
     return 'Assistance requested must be specified';
   }
+  if (!allowShortCloseout && typeof details.endorsedToOtherEmergencyDepartment !== 'boolean') {
+    return 'Whether the report was endorsed to another emergency department must be specified';
+  }
+  if (
+    !allowShortCloseout &&
+    details.endorsedToOtherEmergencyDepartment &&
+    (typeof details.endorsedToDepartment !== 'string' || !details.endorsedToDepartment.trim())
+  ) {
+    return 'The endorsed emergency department is required when Yes is selected';
+  }
   return null;
 }
 

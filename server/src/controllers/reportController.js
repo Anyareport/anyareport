@@ -1221,6 +1221,9 @@ export async function submitResolution(req, res) {
   try {
     const furtherActionRequired = parseBoolean(req.body.furtherActionRequired);
     const assistanceRequested = parseBoolean(req.body.assistanceRequested);
+    const endorsedToOtherEmergencyDepartment = parseBoolean(
+      req.body.endorsedToOtherEmergencyDepartment
+    );
     const details = {
       summary: req.body.summary,
       actionsTaken: req.body.actionsTaken,
@@ -1228,6 +1231,8 @@ export async function submitResolution(req, res) {
       furtherActionRequired,
       furtherActionRecommendation: req.body.furtherActionRecommendation,
       assistanceRequested,
+      endorsedToOtherEmergencyDepartment,
+      endorsedToDepartment: req.body.endorsedToDepartment,
     };
 
     const report = await Report.findById(req.params.id);
@@ -1266,6 +1271,11 @@ export async function submitResolution(req, res) {
           ? details.furtherActionRecommendation.trim() || null
           : null,
       assistanceRequested,
+      endorsedToOtherEmergencyDepartment,
+      endorsedToDepartment:
+        endorsedToOtherEmergencyDepartment && typeof details.endorsedToDepartment === 'string'
+          ? details.endorsedToDepartment.trim()
+          : null,
       supportingEvidence: uploadedEvidence.map((file) => file.secure_url),
       resolvedBy: req.firebaseUser.uid,
       resolvedByName,

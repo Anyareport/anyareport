@@ -46,6 +46,8 @@ const reportSchema = new mongoose.Schema(
       furtherActionRequired: { type: Boolean, default: null },
       furtherActionRecommendation: { type: String, default: null },
       assistanceRequested: { type: Boolean, default: null },
+      endorsedToOtherEmergencyDepartment: { type: Boolean, default: null },
+      endorsedToDepartment: { type: String, default: null },
       supportingEvidence: [{ type: String }],
       resolvedBy: { type: String, default: null },
       resolvedByName: { type: String, default: null },

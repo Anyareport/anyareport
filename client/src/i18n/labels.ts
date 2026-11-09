@@ -396,6 +396,22 @@ export const labels = {
   furtherActionRequired: { en: 'Further Action Required', fil: 'May susunod pang gagawin' },
   furtherActionRecommendation: { en: 'Further Action / Recommendation', fil: 'Susunod na hakbang' },
   assistanceRequested: { en: 'Assistance Requested', fil: 'Humingi ng tulong' },
+  endorsedToOtherEmergencyDepartment: {
+    en: 'Endorsed to another emergency department',
+    fil: 'Iniendorso sa ibang emergency department',
+  },
+  endorsedToDepartment: {
+    en: 'Endorsed emergency hotline',
+    fil: 'Emergency hotline na pinag-endorsohan',
+  },
+  selectEmergencyHotline: {
+    en: 'Select an emergency hotline',
+    fil: 'Pumili ng emergency hotline',
+  },
+  provideEndorsedDepartment: {
+    en: 'Provide the emergency department name.',
+    fil: 'Ilagay ang pangalan ng emergency department.',
+  },
   supportingEvidence: { en: 'Supporting Evidence', fil: 'Mga kalakip na patunay' },
   resolvedBy: { en: 'Resolved By', fil: 'Nagsara ng report' },
   resolvedDateTime: { en: 'Resolved Date & Time', fil: 'Petsa at oras ng pagsara' },

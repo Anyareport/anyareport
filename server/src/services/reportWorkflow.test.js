@@ -107,6 +107,7 @@ test('full resolution details require all mandatory fields and conditional recom
     outcome: 'No further danger was observed.',
     furtherActionRequired: false,
     assistanceRequested: false,
+    endorsedToOtherEmergencyDepartment: false,
   };
   assert.equal(validateResolutionDetails(valid), null);
   assert.match(validateResolutionDetails({ ...valid, outcome: ' ' }), /outcome/i);
@@ -121,6 +122,18 @@ test('full resolution details require all mandatory fields and conditional recom
   assert.match(
     validateResolutionDetails({ ...valid, assistanceRequested: undefined }),
     /assistance/i
+  );
+  assert.match(
+    validateResolutionDetails({ ...valid, endorsedToOtherEmergencyDepartment: undefined }),
+    /endorsed/i
+  );
+  assert.match(
+    validateResolutionDetails({
+      ...valid,
+      endorsedToOtherEmergencyDepartment: true,
+      endorsedToDepartment: '',
+    }),
+    /department/i
   );
 });
 
