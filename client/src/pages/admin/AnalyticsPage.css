@@ -1,0 +1,29 @@
+.analytics-insights-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-secondary);
+}
+
+.analytics-insights-summary {
+  background: var(--bg-tertiary);
+}
+
+.analytics-insights-recommendation .ant-card-head {
+  min-height: 42px;
+}
+
+.analytics-insights-recommendation .ant-card-head-title {
+  white-space: normal;
+}
+
+.analytics-insights-evidence {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.analytics-insights-disclaimer {
+  display: block;
+  font-size: 12px;
+}

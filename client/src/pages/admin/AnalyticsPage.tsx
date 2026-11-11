@@ -5,13 +5,16 @@ import {
   Button,
   Card,
   Col,
+  Drawer,
   Dropdown,
   Empty,
   Progress,
   Row,
   Select,
+  Spin,
   Space,
   theme,
+  Typography,
 } from 'antd';
 import {
   DownloadOutlined,
@@ -31,8 +34,10 @@ import { getCompactAddressLabel, getIncidentLabel } from '../../lib/incidentUtil
 import KpiCard from '../../components/KpiCard';
 import PurokBreakdownCard from '../../components/PurokBreakdownCard';
 import { useAntdMessage } from '../../lib/useAntdMessage';
+import './AnalyticsPage.css';
 
 type AnalyticsPeriod = 'all' | 'week' | 'month' | 'year';
+const { Text } = Typography;
 
 const periodLabels: Record<AnalyticsPeriod, string> = {
   all: 'All time',
@@ -90,6 +95,7 @@ export default function AdminAnalyticsPage() {
   const message = useAntdMessage();
   const navigate = useNavigate();
   const [period, setPeriod] = useState<AnalyticsPeriod>('month');
+  const [isInsightsOpen, setIsInsightsOpen] = useState(false);
   const {
     data: analytics,
     isLoading,
@@ -108,10 +114,28 @@ export default function AdminAnalyticsPage() {
     refetchInterval: 30000,
   });
 
+  const analyticsFingerprint = JSON.stringify(
+    analytics && {
+      total: analytics.total,
+      resolved: analytics.resolvedWithinBarangay,
+      endorsed: analytics.resolvedExternally,
+      byCategory: analytics.byCategory.slice().sort((left, right) => left._id.localeCompare(right._id)),
+      byStatus: analytics.byStatus.slice().sort((left, right) => left._id.localeCompare(right._id)),
+      bySeverity: analytics.bySeverity?.slice().sort((left, right) => left._id.localeCompare(right._id)),
+      byHour: analytics.byHour?.slice().sort((left, right) => left._id.localeCompare(right._id)),
+      byPurok: analytics.byPurok?.slice().sort((left, right) => left._id.localeCompare(right._id)),
+      last30Days: analytics.last30Days,
+    }
+  );
+
   const insightsQuery = useQuery({
     queryKey: ['admin-analytics-insights', period],
-    queryFn: () => api.get<AnalyticsInsights>(`/api/reports/analytics/insights?period=${period}`),
+    queryFn: async () => ({
+      insights: await api.get<AnalyticsInsights>(`/api/reports/analytics/insights?period=${period}`),
+      sourceFingerprint: analyticsFingerprint,
+    }),
     enabled: false,
+    staleTime: Infinity,
     retry: false,
   });
 
@@ -177,6 +201,14 @@ export default function AdminAnalyticsPage() {
     .filter((entry) => !['Resolved', 'Flagged'].includes(entry.name))
     .reduce((total, entry) => total + entry.count, 0);
   const hasData = Boolean(analytics && analytics.total > 0);
+  const insightsData = insightsQuery.data?.insights;
+  const insightsAreOutdated = Boolean(
+    insightsQuery.data && analytics && insightsQuery.data.sourceFingerprint !== analyticsFingerprint
+  );
+  const openInsights = () => {
+    setIsInsightsOpen(true);
+    if (hasData && !insightsQuery.data) void insightsQuery.refetch();
+  };
 
   const inProgressCount = statusData.find((e) => e.name === 'In Progress')?.count ?? 0;
   const pendingCount = statusData.find((e) => e.name === 'Pending')?.count ?? 0;
@@ -296,6 +328,13 @@ export default function AdminAnalyticsPage() {
                 { value: 'all', label: 'All time' },
               ]}
             />
+            <Button
+              type="primary"
+              disabled={insightsQuery.isFetching}
+              onClick={openInsights}
+            >
+              {insightsData ? 'View insights' : 'Generate insights'}
+            </Button>
             <Dropdown
               disabled={!hasData}
               trigger={['click']}
@@ -338,85 +377,116 @@ export default function AdminAnalyticsPage() {
 
       {!hasData && <Alert type="info" showIcon message="No reports found for this period." />}
 
-      <Card className="soft-card" title="Analytics decision support">
-        <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          <span style={{ color: 'var(--text-secondary)' }}>
-            Get a brief, advisory summary and practical suggestions based on the selected period.
-          </span>
-          {hasData ? (
-            <Button
-              type="primary"
-              onClick={() => void insightsQuery.refetch()}
-              loading={insightsQuery.isFetching}
-            >
-              Generate insights
-            </Button>
-          ) : (
-            <Alert
-              type="info"
-              showIcon
-              message="Not enough data for this period"
-              description="Choose a period with reports to generate analytics suggestions."
-            />
-          )}
-          {insightsQuery.isError && (
+      <Drawer
+        title="Analytics insights"
+        placement="right"
+        width="min(440px, 100vw)"
+        open={isInsightsOpen}
+        onClose={() => setIsInsightsOpen(false)}
+      >
+        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+          <div className="analytics-insights-heading">
+            <span>
+              Insights · <strong>{periodLabels[period]}</strong>
+            </span>
+            {insightsData && !insightsData.insufficientData && (
+              <Button
+                type="link"
+                disabled={!hasData || insightsQuery.isFetching}
+                onClick={() => void insightsQuery.refetch()}
+              >
+                Regenerate
+              </Button>
+            )}
+          </div>
+          {insightsAreOutdated && (
             <Alert
               type="warning"
               showIcon
-              message="Suggestions are temporarily unavailable"
-              description="Analytics are still available. Please try generating suggestions again later."
+              message="Analytics have changed since these insights were generated."
+              description="You can review the existing insights or regenerate them to use the latest counts."
+            />
+          )}
+          {!hasData && (
+            <Alert
+              type="info"
+              showIcon
+              message="Not enough data"
+              description={`There are no reports in ${periodLabels[period].toLowerCase()}. Try a longer period.`}
               action={
-                <Button size="small" onClick={() => void insightsQuery.refetch()}>
+                period !== 'all' ? (
+                  <Button size="small" onClick={() => setPeriod('all')}>
+                    Try all time
+                  </Button>
+                ) : undefined
+              }
+            />
+          )}
+          {hasData && !insightsData && !insightsQuery.isFetching && (
+            <Button type="primary" block onClick={() => void insightsQuery.refetch()}>
+              Generate insights
+            </Button>
+          )}
+          {insightsQuery.isFetching && (
+            <Spin tip={`Generating insights for ${periodLabels[period].toLowerCase()}...`} />
+          )}
+          {insightsQuery.isError && (
+            <Alert
+              type="error"
+              showIcon
+              message="Couldn’t generate insights"
+              description="The analytics charts are unaffected. Try again in a moment."
+              action={
+                <Button
+                  size="small"
+                  onClick={() => void insightsQuery.refetch()}
+                  disabled={!hasData}
+                >
                   Try again
                 </Button>
               }
             />
           )}
-          {insightsQuery.data?.insufficientData && (
+          {insightsData?.insufficientData && (
             <Alert
               type="info"
               showIcon
-              message="Not enough data for this period"
-              description="Choose a period with reports to generate analytics suggestions."
+              message="Not enough data"
+              description="There are no reports in this period. Pick a longer period."
             />
           )}
-          {insightsQuery.data && !insightsQuery.data.insufficientData && (
+          {insightsData && !insightsData.insufficientData && hasData && (
             <>
-              <Alert
-                type="info"
-                showIcon
-                message="Decision-support disclaimer"
-                description="These AI-generated suggestions are advisory and based on recorded incident counts. Verify them against current conditions and official assessments before taking action."
-              />
-              <section aria-label="Analytics summary">
-                <strong>Summary</strong>
-                <p style={{ margin: '4px 0 0' }}>{insightsQuery.data.overallSummary}</p>
-                <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)' }}>
-                  Resolved within barangay: {insightsQuery.data.resolvedCount} · Endorsed to
-                  external agencies: {insightsQuery.data.endorsedCount}
-                </p>
-              </section>
-              {insightsQuery.data.recommendations.map((item, index) => (
-                <section
-                  key={`${item.title}-${index}`}
-                  aria-label={`Recommendation ${index + 1}`}
-                  style={{
-                    width: '100%',
-                    borderLeft: '3px solid var(--brand-primary)',
-                    padding: '4px 0 4px 12px',
-                  }}
+              <Card size="small" className="analytics-insights-summary">
+                <Space direction="vertical" size={8}>
+                  <strong>{insightsData.overallSummary}</strong>
+                  <span>
+                    Resolved in barangay: {insightsData.resolvedCount} · Endorsed to
+                    agencies: {insightsData.endorsedCount}
+                  </span>
+                </Space>
+              </Card>
+              {insightsData.recommendations.map((item, index) => (
+                <Card
+                  key={`${period}-${item.title}-${index}`}
+                  size="small"
+                  title={`${index + 1}. ${item.title}`}
+                  className="analytics-insights-recommendation"
                 >
-                  <strong>{item.title}</strong>
-                  <p style={{ margin: '4px 0', color: 'var(--text-secondary)' }}>
-                    Evidence: {item.evidence}
-                  </p>
-                  <p style={{ margin: 0 }}>{item.recommendation}</p>
-                </section>
+                  <Space direction="vertical" size={6}>
+                    <span className="analytics-insights-evidence">{item.evidence}</span>
+                    <span>{item.recommendation}</span>
+                  </Space>
+                </Card>
               ))}
+              <Text type="secondary" className="analytics-insights-disclaimer">
+                AI suggestions are advisory. Verify with current conditions and official assessments
+                before acting.
+              </Text>
             </>
           )}
         </Space>
-      </Card>
+      </Drawer>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} xl={6}>

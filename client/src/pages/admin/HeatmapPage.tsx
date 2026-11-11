@@ -1,19 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   Button,
   Card,
-  Modal,
   Progress,
   Segmented,
   Select,
   Space,
-  Spin,
   Tag,
   Typography,
 } from 'antd';
+import { useMutation } from '@tanstack/react-query';
 import IncidentHeatmap, {
   type HeatmapMode,
   type HeatmapPoint,
@@ -31,9 +30,18 @@ const knownSeverityLevels = new Set<string>(severityLevels);
 type RiskLevel = 'Low' | 'Medium' | 'High' | 'Critical';
 interface RiskZone {
   purok: string;
+  incidents: number;
   riskLevel: RiskLevel;
   rationale: string;
   recommendation: string;
+  recommendationSource: 'ai' | 'rule';
+}
+
+interface HeatmapRiskAnalysis {
+  overallSummary: string;
+  riskCounts: Record<RiskLevel, number>;
+  aiError: boolean;
+  riskZones: RiskZone[];
 }
 
 function isPointInRing(lat: number, lng: number, ring: number[][]) {
@@ -79,7 +87,12 @@ export default function AdminHeatmapPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>();
   const [selectedSeverity, setSelectedSeverity] = useState<string>();
   const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
-  const [isRiskAnalysisOpen, setIsRiskAnalysisOpen] = useState(false);
+  const [riskAnalysis, setRiskAnalysis] = useState<{
+    filterKey: string;
+    pointsFingerprint: string;
+    data: HeatmapRiskAnalysis;
+  } | null>(null);
+  const [riskAnalysisErrorFor, setRiskAnalysisErrorFor] = useState<string | null>(null);
 
   const { data: points = [] } = useQuery({
     queryKey: ['admin-heatmap-points'],
@@ -87,24 +100,55 @@ export default function AdminHeatmapPage() {
     refetchInterval: 30000,
   });
 
+  const filterKey = `${selectedCategory || '*'}:${selectedSeverity || '*'}`;
+  const pointsFingerprint = useMemo(
+    () =>
+      points
+        .map(
+          ({ id, lat, lng, category, severity, status }) =>
+            `${id}:${lat}:${lng}:${category || ''}:${severity || ''}:${status || ''}`
+        )
+        .sort()
+        .join('|'),
+    [points]
+  );
+  const riskAnalysisIsOutdated = Boolean(
+    riskAnalysis &&
+      (riskAnalysis.filterKey !== filterKey ||
+        riskAnalysis.pointsFingerprint !== pointsFingerprint)
+  );
+  const currentRiskAnalysis =
+    riskAnalysis && !riskAnalysisIsOutdated ? riskAnalysis.data : null;
+
   const { data: reports = [] } = useQuery({
     queryKey: ['admin-reports'],
     queryFn: () => api.get<Report[]>('/api/reports'),
     refetchInterval: 30000,
   });
 
-  const riskAnalysisQuery = useQuery({
-    queryKey: ['heatmap-risk-analysis', selectedCategory, selectedSeverity],
-    queryFn: () => {
+  const riskAnalysisMutation = useMutation({
+    mutationFn: (filters: { category?: string; severity?: string }) => {
       const params = new URLSearchParams();
-      if (selectedCategory) params.set('category', selectedCategory);
-      if (selectedSeverity) params.set('severity', selectedSeverity);
-      return api.get<{ overallSummary: string; riskZones: RiskZone[] }>(
+      if (filters.category) params.set('category', filters.category);
+      if (filters.severity) params.set('severity', filters.severity);
+      return api.get<HeatmapRiskAnalysis>(
         `/api/reports/heatmap/risk-analysis?${params.toString()}`
       );
     },
-    enabled: false,
   });
+
+  const runRiskAnalysis = async () => {
+    setRiskAnalysisErrorFor(null);
+    try {
+      const data = await riskAnalysisMutation.mutateAsync({
+        category: selectedCategory,
+        severity: selectedSeverity,
+      });
+      setRiskAnalysis({ filterKey, pointsFingerprint, data });
+    } catch {
+      setRiskAnalysisErrorFor(filterKey);
+    }
+  };
 
   const purokFeatures = useMemo(() => {
     const data = barangayData as FeatureCollection;
@@ -327,6 +371,100 @@ export default function AdminHeatmapPage() {
       </section>
       <aside className="heatmap-analytics" aria-label="Heatmap analytics">
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
+          <Card className="soft-card heatmap-ai-card" title="AI risk analysis">
+            <Space direction="vertical" size={12} style={{ width: '100%' }}>
+              <Text type="secondary">
+                Risk levels use incident counts and severity. Suggested actions are based on the
+                current category and severity filters.
+              </Text>
+              <Button
+                type="primary"
+                block
+                disabled={mapTotal === 0}
+                loading={riskAnalysisMutation.isPending}
+                onClick={() => void runRiskAnalysis()}
+              >
+                {riskAnalysis ? 'Re-analyze' : 'Analyze risk zones'}
+              </Button>
+              {riskAnalysisMutation.isPending && (
+                <Text type="secondary">Analyzing risk zones...</Text>
+              )}
+              {riskAnalysisIsOutdated && (
+                <Alert
+                  type="info"
+                  showIcon
+                  message="Heatmap data or filters changed"
+                  description="The previous analysis is hidden so the risk labels stay aligned with the current map. Re-analyze to update it."
+                />
+              )}
+              {riskAnalysisErrorFor === filterKey && (
+                <Alert
+                  type="error"
+                  showIcon
+                  message="Couldn’t get the analysis"
+                  description="Your rankings and map are still available. Try again in a moment."
+                  action={
+                    <Button size="small" onClick={() => void runRiskAnalysis()}>
+                      Retry
+                    </Button>
+                  }
+                />
+              )}
+              {currentRiskAnalysis?.aiError && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  message="AI suggestions are unavailable"
+                  description="Risk levels and standard guidance are still available. Try again later for tailored suggestions."
+                />
+              )}
+              {currentRiskAnalysis && (
+                <>
+                  <Space size={[4, 4]} wrap aria-label="Areas by risk level">
+                    {severityLevels.map((level) => (
+                      <Tag
+                        key={level}
+                        className={`heatmap-ai-risk-tag heatmap-ai-risk-tag--${level.toLowerCase()}`}
+                      >
+                        {currentRiskAnalysis.riskCounts[level]} {level}
+                      </Tag>
+                    ))}
+                  </Space>
+                  <Text>{currentRiskAnalysis.overallSummary}</Text>
+                  {currentRiskAnalysis.riskZones.length === 0 ? (
+                    <Text type="secondary">No mapped incidents match the current filters.</Text>
+                  ) : (
+                    <div className="heatmap-ai-zone-list">
+                      {currentRiskAnalysis.riskZones.slice(0, 3).map((zone) => (
+                        <article key={zone.purok} className="heatmap-ai-zone">
+                          <div className="heatmap-ai-zone__heading">
+                            <Text strong>{zone.purok}</Text>
+                            <Tag
+                              className={`heatmap-ai-risk-tag heatmap-ai-risk-tag--${zone.riskLevel.toLowerCase()}`}
+                            >
+                              {zone.riskLevel}
+                            </Tag>
+                          </div>
+                          <Text className="heatmap-ai-zone__evidence">{zone.rationale}</Text>
+                          <Text className="heatmap-ai-zone__label">
+                            {zone.recommendationSource === 'ai' ? 'AI suggested action' : 'Standard guidance'}
+                          </Text>
+                          <Text>{zone.recommendation}</Text>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                  <Text type="secondary" className="heatmap-ai-disclaimer">
+                    Advisory only. Verify with current conditions and official assessments before
+                    acting.
+                  </Text>
+                </>
+              )}
+              {riskAnalysisErrorFor !== filterKey && mapTotal === 0 && (
+                <Text type="secondary">No mapped incidents match the current filters.</Text>
+              )}
+            </Space>
+          </Card>
           <Card
             className="soft-card heatmap-list-card"
             title="Purok Incidents"
@@ -345,29 +483,52 @@ export default function AdminHeatmapPage() {
               <Text strong>{mapTotal} total</Text>
             </div>
             <div className="heatmap-purok-list">
-              {purokCounts.map(([name, count]) => (
-                <Button
-                  key={name}
-                  type="text"
-                  block
-                  className={`heatmap-purok-row${selectedPurok === name ? ' is-selected' : ''}`}
-                  aria-pressed={selectedPurok === name}
-                  onClick={() => {
-                    setSelectedPurok(selectedPurok === name ? undefined : name);
-                    setSelectedPointId(null);
-                  }}
-                >
-                  <span className="heatmap-purok-row__name">{name}</span>
-                  <span className="heatmap-purok-row__count">{count}</span>
-                  <span className="heatmap-purok-row__track" aria-hidden="true">
-                    <span
-                      style={{
-                        width: `${purokCounts[0]?.[1] ? (count / purokCounts[0][1]) * 100 : 0}%`,
+              {purokCounts.map(([name, count]) => {
+                const riskZone = currentRiskAnalysis?.riskZones.find((zone) => zone.purok === name);
+                return (
+                  <Fragment key={name}>
+                    <Button
+                      type="text"
+                      block
+                      className={`heatmap-purok-row${selectedPurok === name ? ' is-selected' : ''}`}
+                      aria-pressed={selectedPurok === name}
+                      onClick={() => {
+                        setSelectedPurok(selectedPurok === name ? undefined : name);
+                        setSelectedPointId(null);
                       }}
-                    />
-                  </span>
-                </Button>
-              ))}
+                    >
+                      <span className="heatmap-purok-row__name">{name}</span>
+                      {riskZone && (
+                        <Tag
+                          className={`heatmap-ai-risk-tag heatmap-ai-risk-tag--${riskZone.riskLevel.toLowerCase()}`}
+                        >
+                          {riskZone.riskLevel}
+                        </Tag>
+                      )}
+                      <span className="heatmap-purok-row__count">{count}</span>
+                      <span className="heatmap-purok-row__track" aria-hidden="true">
+                        <span
+                          style={{
+                            width: `${purokCounts[0]?.[1] ? (count / purokCounts[0][1]) * 100 : 0}%`,
+                          }}
+                        />
+                      </span>
+                    </Button>
+                    {selectedPurok === name && riskZone && (
+                      <div className="heatmap-ai-selected-zone">
+                        <Text className="heatmap-ai-zone__label">Why this area is listed</Text>
+                        <Text className="heatmap-ai-zone__evidence">{riskZone.rationale}</Text>
+                        <Text className="heatmap-ai-zone__label">
+                          {riskZone.recommendationSource === 'ai'
+                            ? 'AI suggested action'
+                            : 'Standard guidance'}
+                        </Text>
+                        <Text>{riskZone.recommendation}</Text>
+                      </div>
+                    )}
+                  </Fragment>
+                );
+              })}
             </div>
           </Card>
 
@@ -419,101 +580,8 @@ export default function AdminHeatmapPage() {
               )}
             </div>
           </Card>
-          <Card className="soft-card heatmap-ai-card" title="AI Safety DSS">
-            <Text type="secondary">
-              Generate an AI-assisted risk-zone analysis using the current heatmap filters.
-            </Text>
-            <Button
-              type="primary"
-              block
-              disabled={points.length === 0}
-              onClick={() => {
-                setIsRiskAnalysisOpen(true);
-                void riskAnalysisQuery.refetch();
-              }}
-              style={{ marginTop: 12 }}
-            >
-              Analyze risk zones
-            </Button>
-          </Card>
         </Space>
       </aside>
-      <Modal
-        title="AI Safety DSS risk analysis"
-        open={isRiskAnalysisOpen}
-        onCancel={() => setIsRiskAnalysisOpen(false)}
-        footer={null}
-        width={640}
-        className="heatmap-ai-modal"
-        styles={{
-          body: { height: 500, overflowY: 'auto' },
-        }}
-      >
-        <Alert
-          className="heatmap-ai-disclaimer"
-          type="info"
-          showIcon
-          message="Decision-support disclaimer"
-          description="AI-generated risk levels and recommendations are advisory estimates based on recorded incidents. Verify them with current conditions and official assessment before taking action."
-        />
-        {riskAnalysisQuery.isFetching ? (
-          <Space>
-            <Spin size="small" />
-            <Text type="secondary">Analyzing risk zones...</Text>
-          </Space>
-        ) : riskAnalysisQuery.isError ? (
-          <Alert
-            type="warning"
-            showIcon
-            message="AI analysis unavailable"
-            description="Please close this dialog and try again later."
-          />
-        ) : riskAnalysisQuery.data ? (
-          <div className="heatmap-ai-results">
-            <section className="heatmap-ai-summary" aria-labelledby="heatmap-ai-summary-title">
-              <Text strong id="heatmap-ai-summary-title">
-                Overall summary
-              </Text>
-              <Text>{riskAnalysisQuery.data.overallSummary}</Text>
-            </section>
-            <section aria-labelledby="heatmap-ai-zones-title">
-              <div className="heatmap-ai-section-heading">
-                <Text strong id="heatmap-ai-zones-title">
-                  Risk zones
-                </Text>
-                <Text type="secondary">
-                  {riskAnalysisQuery.data.riskZones.length}{' '}
-                  {riskAnalysisQuery.data.riskZones.length === 1 ? 'area' : 'areas'}
-                </Text>
-              </div>
-              <div className="heatmap-ai-zone-list">
-                {riskAnalysisQuery.data.riskZones.map((zone) => (
-                  <article key={zone.purok} className="heatmap-ai-zone">
-                    <div className="heatmap-ai-zone__heading">
-                      <Text strong>{zone.purok}</Text>
-                      <Tag
-                        className={`heatmap-ai-risk-tag heatmap-ai-risk-tag--${zone.riskLevel.toLowerCase()}`}
-                      >
-                        {zone.riskLevel} risk
-                      </Tag>
-                    </div>
-                    <div className="heatmap-ai-zone__field">
-                      <Text className="heatmap-ai-zone__label">Why this area is listed</Text>
-                      <Text type="secondary">{zone.rationale}</Text>
-                    </div>
-                    <div className="heatmap-ai-zone__field">
-                      <Text className="heatmap-ai-zone__label">Recommended action</Text>
-                      <Text>{zone.recommendation}</Text>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-          </div>
-        ) : (
-          <Text type="secondary">No mapped incident data is available for analysis.</Text>
-        )}
-      </Modal>
     </div>
   );
 }

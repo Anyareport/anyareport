@@ -7,9 +7,10 @@ import Notification from '../models/Notification.js';
 import Category from '../models/Category.js';
 import {
   analyzeAnalyticsInsights,
-  analyzeHeatmapRisk,
+  analyzeHeatmapRecommendations,
   classifyReport,
 } from '../services/gemini.js';
+import { scoreHeatmapZones } from '../services/heatmapRisk.js';
 import {
   disconnectUserSockets,
   emitReportChanged,
@@ -1878,7 +1879,10 @@ export async function getHeatmapData(req, res) {
 
 export async function getHeatmapRiskAnalysis(req, res) {
   try {
-    const match = { 'location.address': { $exists: true, $ne: '' } };
+    const match = {
+      'location.address': { $exists: true, $ne: '' },
+      'location.coordinates': { $exists: true },
+    };
     if (typeof req.query.category === 'string' && req.query.category) {
       match.category = req.query.category;
     }
@@ -1912,9 +1916,44 @@ export async function getHeatmapRiskAnalysis(req, res) {
       zones.set(purok, zone);
     }
 
-    const analysis = await analyzeHeatmapRisk([...zones.values()]);
-    if (analysis.error) return res.status(503).json({ error: analysis.error });
-    res.json(analysis);
+    const riskZones = scoreHeatmapZones([...zones.values()]);
+    const prioritizedZones = riskZones.slice(0, 3).map((zone) => ({
+      purok: zone.purok,
+      incidents: zone.incidents,
+      categories: zone.categories,
+      severities: zone.severities,
+      statuses: zone.statuses,
+      riskLevel: zone.riskLevel,
+    }));
+    const recommendations = prioritizedZones.length
+      ? await analyzeHeatmapRecommendations(prioritizedZones)
+      : { recommendations: [], error: null };
+    const recommendationMap = new Map(
+      (recommendations.recommendations || []).map((item) => [item.purok, item.recommendation])
+    );
+    const riskCounts = Object.fromEntries(
+      ['Critical', 'High', 'Medium', 'Low'].map((level) => [
+        level,
+        riskZones.filter((zone) => zone.riskLevel === level).length,
+      ])
+    );
+    const overallSummary = riskZones.length
+      ? `${riskCounts.Critical} critical, ${riskCounts.High} high, ${riskCounts.Medium} medium, and ${riskCounts.Low} low-risk areas among ${riskZones.length} areas with reports.`
+      : 'No mapped incidents match the current filters.';
+
+    res.json({
+      overallSummary,
+      riskCounts,
+      aiError: Boolean(recommendations.error),
+      riskZones: riskZones.map((zone) => ({
+        purok: zone.purok,
+        incidents: zone.incidents,
+        riskLevel: zone.riskLevel,
+        rationale: zone.rationale,
+        recommendation: recommendationMap.get(zone.purok) || zone.recommendation,
+        recommendationSource: recommendationMap.has(zone.purok) ? 'ai' : 'rule',
+      })),
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

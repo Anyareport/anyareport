@@ -159,7 +159,7 @@ Written description: ${description?.trim() || '(none provided)'}`;
   }
 }
 
-export async function analyzeHeatmapRisk(zones) {
+export async function analyzeHeatmapRecommendations(zones) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey.includes('your-gemini')) {
     return { error: 'analysis_unavailable' };
@@ -171,14 +171,13 @@ export async function analyzeHeatmapRisk(zones) {
       model: 'gemini-3.5-flash-lite',
       generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
     });
-    const prompt = `You are a barangay safety decision-support analyst. Analyze these incident counts by purok and return ONLY valid JSON.
-Do not invent incidents or claim certainty. Risk level must be Low, Medium, High, or Critical.
-Return exactly: {"overallSummary":"<1-2 sentences>","riskZones":[{"purok":"<name>","riskLevel":"<level>","rationale":"<brief evidence-based reason>","recommendation":"<2-4 sentences with prioritized preventive actions, suggested timeframe, responsible responder or office, and what should be monitored>"}]}
-Include every purok in the input, ordered highest risk first.
-Recommendations must be practical and proportionate to the evidence. Mention relevant actions such as inspection, cleanup, lighting or infrastructure checks, community advisories, patrol coordination, referral, or emergency escalation only when supported by the incident categories, severity, and status. Do not prescribe medical, legal, or disciplinary decisions.
-Use short sentences and common words that barangay staff and residents can easily understand. Avoid uncommon words, technical terms, jargon, abbreviations, and formal phrases; say "check the area" instead of "conduct an assessment" and "tell residents" instead of "issue a public advisory."
+    const prompt = `You are a barangay safety decision-support analyst. Use the aggregated counts below to recommend practical actions for only the listed highest-priority puroks. Return ONLY valid JSON.
+Risk levels and evidence are already assigned by a fixed rule; never change them. Do not invent incidents, claim certainty, or infer causes.
+Return exactly: {"recommendations":[{"purok":"<exact input name>","recommendation":"<one or two short sentences with a practical action>"}]}
+Include each input purok at most once. Recommendations must be proportionate to its categories, severity, and open-report counts. Do not prescribe medical, legal, or disciplinary decisions.
+Use short sentences and common words. Suggest actions such as follow-up, monitoring, cleanup, lighting checks, community information, or patrol coordination only when supported by the counts.
 
-Incident data:
+Prioritized aggregated incident data:
 ${JSON.stringify(zones)}`;
     const result = await model.generateContent(prompt);
     const parsed = JSON.parse(
@@ -190,30 +189,26 @@ ${JSON.stringify(zones)}`;
         .trim()
     );
     if (
-      typeof parsed.overallSummary !== 'string' ||
-      !Array.isArray(parsed.riskZones) ||
-      parsed.riskZones.some(
-        (zone) =>
-          typeof zone?.purok !== 'string' ||
-          !['Low', 'Medium', 'High', 'Critical'].includes(zone.riskLevel) ||
-          typeof zone.rationale !== 'string' ||
-          typeof zone.recommendation !== 'string'
+      !Array.isArray(parsed.recommendations) ||
+      parsed.recommendations.some(
+        (item) =>
+          typeof item?.purok !== 'string' ||
+          !zones.some((zone) => zone.purok === item.purok) ||
+          typeof item.recommendation !== 'string' ||
+          !item.recommendation.trim()
       )
     ) {
       return { error: 'analysis_unavailable' };
     }
     return {
-      overallSummary: parsed.overallSummary.trim(),
-      riskZones: parsed.riskZones.map((zone) => ({
-        purok: zone.purok.trim(),
-        riskLevel: zone.riskLevel,
-        rationale: zone.rationale.trim(),
-        recommendation: zone.recommendation.trim(),
+      recommendations: parsed.recommendations.slice(0, 3).map((item) => ({
+        purok: item.purok,
+        recommendation: item.recommendation.trim(),
       })),
       error: null,
     };
   } catch (err) {
-    console.error('[Gemini] Heatmap risk analysis failed:', err.message);
+    console.error('[Gemini] Heatmap recommendations failed:', err.message);
     return { error: 'analysis_unavailable' };
   }
 }
