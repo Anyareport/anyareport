@@ -21,6 +21,7 @@ export function normalizeReportStatus(status: string): string {
 export function getStatusLabel(status: string): string {
   if (status === 'reviewed') return 'Reviewed (legacy)';
   const canonicalStatus = normalizeReportStatus(status);
+  if (canonicalStatus === 'coordinating') return 'Acknowledged';
   return canonicalStatus
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (character) => character.toUpperCase());

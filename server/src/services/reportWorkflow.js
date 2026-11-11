@@ -77,6 +77,11 @@ export function normalizeReportStatus(status) {
   }
 }
 
+export function getReportStatusLabel(status) {
+  const normalizedStatus = normalizeReportStatus(status);
+  return normalizedStatus === 'coordinating' ? 'Acknowledged' : status;
+}
+
 export function isTerminalReportStatus(status) {
   const normalizedStatus = normalizeReportStatus(status);
   return ['resolved', 'endorsed', 'flagged'].includes(normalizedStatus);
@@ -213,7 +218,7 @@ export function getTransitionDecision({
         return reject(403, 'Only the lead responder can start field work');
       }
       if (currentStatus !== 'coordinating') {
-        return reject(409, 'A field report must be coordinating before work starts');
+        return reject(409, 'A field report must be acknowledged before work starts');
       }
       return {
         allowed: true,

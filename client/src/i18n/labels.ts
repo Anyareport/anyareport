@@ -64,7 +64,7 @@ export const labels = {
   noAlertsInCategory: { en: 'No alerts in this category', fil: 'Walang alert sa kategoryang ito' },
   noIncidentsInList: { en: 'No data', fil: 'Walang incident' },
   pending: { en: 'Pending', fil: 'Naghihintay' },
-  coordinating: { en: 'Coordinating', fil: 'Tinanggap' },
+  coordinating: { en: 'Acknowledged', fil: 'Natanggap' },
   inProgress: { en: 'In Progress', fil: 'Kumikilos' },
   resolved: { en: 'Resolved', fil: 'Tapos na' },
   endorsed: { en: 'Endorsed', fil: 'Iniendorso' },

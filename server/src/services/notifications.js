@@ -13,6 +13,7 @@ import {
   BLOTTER_REPORT_CATEGORY,
   CRIMINAL_BLOTTER_SUBCATEGORY,
   FIELD_REPORT_CATEGORIES,
+  getReportStatusLabel,
   normalizeReportStatus,
 } from './reportWorkflow.js';
 import { writeAudit } from './auditLog.js';
@@ -474,7 +475,7 @@ export async function notifyOnStatusUpdate(report, status, updatedBy, updatedByR
     recipientRole: user.role,
     reportId: report._id,
     type: 'report_status_updated',
-    message: `Your report${reference} status was updated to ${status.replace(/_/g, ' ')} by ${updatedBy}.${reasonText}`,
+    message: `Your report${reference} status was updated to ${getReportStatusLabel(status).replace(/_/g, ' ')} by ${updatedBy}.${reasonText}`,
     reportSnapshot: getReportSnapshot(report),
     statusSnapshot: normalizeReportStatus(status),
     actorRole: updatedByRole || null,

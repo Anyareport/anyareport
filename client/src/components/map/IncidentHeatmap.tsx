@@ -18,6 +18,7 @@ import type { Feature, FeatureCollection, Geometry } from 'geojson';
 import type { PathOptions } from 'leaflet';
 import barangayData from '../../data/DMM.json';
 import { getIncidentSeverityColor } from '../../lib/incidentUtils';
+import { getStatusLabel } from '../../lib/reportWorkflow';
 
 export interface HeatmapPoint {
   id: string;
@@ -152,7 +153,7 @@ function IncidentDots({
             >
               <Tooltip>
                 {point.category || 'Incident'}
-                {point.status ? ` - ${point.status.replace(/_/g, ' ')}` : ''}
+                {point.status ? ` - ${getStatusLabel(point.status)}` : ''}
               </Tooltip>
               {renderPointPopup && (
                 <Popup

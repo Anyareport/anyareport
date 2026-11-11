@@ -7,6 +7,7 @@ import {
   getJoinDecision,
   getTransitionDecision,
   isTerminalReportStatus,
+  getReportStatusLabel,
   normalizeReportStatus,
   supportsBackupRequests,
   validateResolutionDetails,
@@ -566,6 +567,12 @@ test('legacy statuses map to canonical user-facing states', () => {
   assert.equal(normalizeReportStatus('en_route'), 'in_progress');
   assert.equal(normalizeReportStatus('on_scene'), 'in_progress');
   assert.equal(normalizeReportStatus('verified'), 'pending');
+});
+
+test('coordinating status is displayed as acknowledged, including legacy values', () => {
+  assert.equal(getReportStatusLabel('coordinating'), 'Acknowledged');
+  assert.equal(getReportStatusLabel('acknowledged'), 'Acknowledged');
+  assert.equal(getReportStatusLabel('in_progress'), 'in_progress');
 });
 
 test('reporter visibility follows role and incident participation', () => {

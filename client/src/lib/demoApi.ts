@@ -9,6 +9,11 @@ import {
   createAuditId,
 } from './demoStore';
 import type { Report, UserProfile } from './api';
+import { getStatusLabel, normalizeReportStatus } from './reportWorkflow';
+
+function getExportStatus(status: string) {
+  return normalizeReportStatus(status) === 'coordinating' ? getStatusLabel(status) : status;
+}
 
 function now() {
   return new Date().toISOString();
@@ -386,7 +391,7 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
     const format = searchParams.get('format') || 'csv';
     if (format === 'pdf') {
       const content = db.reports
-        .map((report, index) => `${index + 1}. [${report.status}] ${report.category}`)
+        .map((report, index) => `${index + 1}. [${getExportStatus(report.status)}] ${report.category}`)
         .join('\n');
       return new Blob([content], { type: 'application/pdf' }) as T;
     }
@@ -397,7 +402,7 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
         [
           report._id,
           report.category,
-          report.status,
+          getExportStatus(report.status),
           report.description.replace(/"/g, '""'),
           report.location.address,
           report.createdAt,

@@ -25,7 +25,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 const reportStatuses = [
   { label: 'Pending', className: 'pending', current: false },
-  { label: 'Coordinating', className: 'coordinating', current: false },
+  { label: 'Acknowledged', className: 'coordinating', current: false },
   { label: 'In progress', className: 'in-progress', current: true },
   { label: 'Resolved', className: 'resolved', current: false },
 ];

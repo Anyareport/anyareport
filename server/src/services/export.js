@@ -1,6 +1,7 @@
 import PDFDocument from 'pdfkit';
 import User from '../models/User.js';
 import { toCsv, toIsoTimestamp } from './csvExport.js';
+import { getReportStatusLabel } from './reportWorkflow.js';
 
 async function withSubmitterNames(reports) {
   const submitterUids = [...new Set(reports.map((report) => report.submittedBy).filter(Boolean))];
@@ -40,7 +41,7 @@ export async function exportToCSV(reports) {
     category: report.category ?? '',
     subcategory: report.subcategory ?? '',
     severity: report.severity ?? '',
-    status: report.status ?? '',
+    status: report.status ? getReportStatusLabel(report.status) : '',
     incident: getIncidentLabel(report),
     description: report.description ?? '',
     location: getLocationLabel(report),
@@ -84,7 +85,7 @@ export function exportToPDF(reports) {
           doc
             .fontSize(10)
             .text(
-              `${index + 1}.${reference} [${report.status}] ${report.category} (Submitted by: ${report.submittedByName})`
+              `${index + 1}.${reference} [${report.status ? getReportStatusLabel(report.status) : ''}] ${report.category} (Submitted by: ${report.submittedByName})`
             );
           if (report.subcategory) doc.fontSize(9).text(`   Subcategory: ${report.subcategory}`);
           doc.fontSize(9).text(`   Incident: ${getIncidentLabel(report)}`);
