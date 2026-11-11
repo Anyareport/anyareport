@@ -13,7 +13,7 @@ import LandingPage from './pages/resident/LandingPage';
 import MapPage from './pages/resident/MapPage';
 import MyReportsPage from './pages/resident/MyReportsPage';
 import NotificationsPage from './pages/shared/NotificationsPage';
-import AnnouncementsPage from './pages/resident/AnnouncementsPage';
+import AnnouncementDetailPage from './pages/resident/AnnouncementDetailPage';
 import ProfilePage from './pages/shared/ProfilePage';
 import ResponderDashboardPage from './pages/responder/DashboardPage';
 import ResponderAlertsPage from './pages/responder/AlertsPage';
@@ -84,8 +84,7 @@ function App() {
           <Route path="/resident/reports" element={<MyReportsPage />} />
           <Route path="/resident/reports/:id" element={<IncidentDetailPage variant="resident" />} />
           <Route path="/resident/notifications" element={<NotificationsPage />} />
-          <Route path="/resident/announcements" element={<AnnouncementsPage />} />
-          <Route path="/resident/announcements/:id" element={<AnnouncementsPage />} />
+          <Route path="/resident/announcements/:id" element={<AnnouncementDetailPage />} />
           <Route path="/resident/profile" element={<ProfilePage />} />
         </Route>
       </Route>
