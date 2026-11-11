@@ -965,7 +965,14 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
   const historyTimeline = (
     <Timeline
       items={reportHistory.map((entry, index) => ({
-        color: index === reportHistory.length - 1 ? 'blue' : 'gray',
+        dot: (
+          <span
+            className={`incident-timeline-marker${
+              index === reportHistory.length - 1 ? ' incident-timeline-marker--latest' : ''
+            }`}
+            aria-hidden="true"
+          />
+        ),
         children: (
           <div className="incident-timeline-entry">
             <Text strong>
@@ -984,8 +991,15 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
 
   const auditTimeline = (
     <Timeline
-      items={auditEntries.map((entry) => ({
-        color: 'blue',
+      items={auditEntries.map((entry, index) => ({
+        dot: (
+          <span
+            className={`incident-timeline-marker${
+              index === auditEntries.length - 1 ? ' incident-timeline-marker--latest' : ''
+            }`}
+            aria-hidden="true"
+          />
+        ),
         children: (
           <div className="incident-timeline-entry">
             <Text strong>{getAuditLabel(entry)}</Text>

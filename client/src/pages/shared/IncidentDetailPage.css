@@ -476,6 +476,18 @@
   gap: 2px;
 }
 
+.incident-timeline-marker {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--brand-color-info);
+}
+
+.incident-timeline-marker--latest {
+  background: var(--brand-primary);
+}
+
 .incident-mobile-actions {
   display: none;
 }
