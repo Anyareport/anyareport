@@ -12,9 +12,12 @@ import { useNotificationFeed } from '../lib/notificationFeed';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function ResidentShell() {
-  const { profile } = useAuth();
+  const { firebaseUser, profile } = useAuth();
   const suspended = profile?.status === 'suspended';
-  const { data: notificationFeed } = useNotificationFeed({ enabled: !suspended });
+  const { data: notificationFeed } = useNotificationFeed({
+    userId: firebaseUser?.uid,
+    enabled: !suspended,
+  });
   const unreadCount = notificationFeed?.pages[0]?.unreadCount ?? 0;
 
   const location = useLocation();

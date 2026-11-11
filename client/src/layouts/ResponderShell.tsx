@@ -12,9 +12,11 @@ import EmergencyHotline from '../components/EmergencyHotline';
 import { api, type Report } from '../lib/api';
 import { useNotificationFeed } from '../lib/notificationFeed';
 import { useLang } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function ResponderShell() {
   const { t } = useLang();
+  const { firebaseUser } = useAuth();
   const { data: reports = [] } = useQuery({
     queryKey: ['responder-reports'],
     queryFn: () => api.get<Report[]>('/api/reports'),
@@ -25,7 +27,7 @@ export default function ResponderShell() {
     (report) => report.status === 'pending' && !report.acknowledgedBy
   ).length;
 
-  const { data: notificationFeed } = useNotificationFeed();
+  const { data: notificationFeed } = useNotificationFeed({ userId: firebaseUser?.uid });
   const unreadCount = notificationFeed?.pages[0]?.unreadCount ?? 0;
 
   const menuItems = useMemo(

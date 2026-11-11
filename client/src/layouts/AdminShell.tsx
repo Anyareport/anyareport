@@ -19,9 +19,9 @@ import { api } from '../lib/api';
 import { useNotificationFeed } from '../lib/notificationFeed';
 
 export default function AdminShell() {
-  const { role } = useAuth();
+  const { firebaseUser, role } = useAuth();
 
-  const { data: notificationFeed } = useNotificationFeed();
+  const { data: notificationFeed } = useNotificationFeed({ userId: firebaseUser?.uid });
 
   const { data: pendingReportCount = { count: 0 } } = useQuery({
     queryKey: ['pending-reports-count'],

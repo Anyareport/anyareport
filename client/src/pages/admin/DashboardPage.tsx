@@ -67,7 +67,7 @@ const isOpenReport = (report: Report) => !['resolved', 'endorsed', 'flagged'].in
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
-  const { role } = useAuth();
+  const { firebaseUser, role } = useAuth();
   const isSecretary = role === 'secretary';
 
   const { data: analytics } = useQuery({
@@ -82,7 +82,7 @@ export default function AdminDashboardPage() {
     refetchInterval: 30000,
   });
 
-  const { data: notificationFeed } = useNotificationFeed();
+  const { data: notificationFeed } = useNotificationFeed({ userId: firebaseUser?.uid });
 
   const { data: inactivityMonitor } = useQuery({
     queryKey: ['captain-inactive-reports'],

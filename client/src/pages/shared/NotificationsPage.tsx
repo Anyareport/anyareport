@@ -66,7 +66,7 @@ export default function NotificationsPage() {
   const { firebaseUser, role } = useAuth();
   const { lang, t } = useLang();
   const translate = lang === 'fil' && ['tanod', 'responder'].includes(role || '');
-  const feed = useNotificationFeed();
+  const feed = useNotificationFeed({ userId: firebaseUser?.uid });
   const [filter, setFilter] = useState<NotificationFilter>('all');
   const [notificationPermission, setNotificationPermission] =
     useState<BrowserNotificationPermission>(getBrowserNotificationPermission);

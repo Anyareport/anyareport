@@ -4,9 +4,15 @@ import { api, type NotificationFeedResponse } from './api';
 export const notificationFeedQueryKey = ['notification-feed'] as const;
 const NOTIFICATION_PAGE_SIZE = 20;
 
-export function useNotificationFeed({ enabled = true }: { enabled?: boolean } = {}) {
+export function useNotificationFeed({
+  userId,
+  enabled = true,
+}: {
+  userId?: string | null;
+  enabled?: boolean;
+} = {}) {
   return useInfiniteQuery({
-    queryKey: notificationFeedQueryKey,
+    queryKey: [...notificationFeedQueryKey, userId ?? 'anonymous'],
     queryFn: ({ pageParam }) => {
       const params = new URLSearchParams({ limit: String(NOTIFICATION_PAGE_SIZE) });
       if (pageParam) params.set('cursor', pageParam);
@@ -16,6 +22,6 @@ export function useNotificationFeed({ enabled = true }: { enabled?: boolean } = 
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: 20_000,
     refetchInterval: 30_000,
-    enabled,
+    enabled: enabled && Boolean(userId),
   });
 }
