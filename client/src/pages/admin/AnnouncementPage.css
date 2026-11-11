@@ -20,7 +20,7 @@
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .announcement-page__form-grid {
@@ -30,22 +30,25 @@
 }
 
 .announcement-page__history-message.ant-typography {
-  color: #1f2937;
+  color: var(--text-primary);
   margin-bottom: 16px;
   line-height: 1.7;
 }
 
 .announcement-page__history-meta.ant-typography {
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
 .announcement-modal .ant-modal-content {
   padding: 24px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .announcement-modal .ant-modal-header {
   margin-bottom: 20px;
+  background: transparent;
 }
 
 .announcement-modal .ant-alert {
@@ -66,6 +69,12 @@
 
 .announcement-modal__images .ant-upload-select {
   margin-bottom: 0;
+}
+
+.announcement-modal__images .ant-upload-list-item,
+.announcement-modal__images .ant-upload-select {
+  border-color: var(--border-default);
+  background: var(--bg-tertiary);
 }
 
 @media (max-width: 640px) {
