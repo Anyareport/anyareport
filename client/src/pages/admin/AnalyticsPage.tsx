@@ -22,7 +22,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { api, type Analytics } from '../../lib/api';
+import { api, type Analytics, type AnalyticsInsights } from '../../lib/api';
 import { sharedColors } from '../../theme/colorTokens';
 import LoadingState from '../../components/LoadingState';
 import { getStatusLabel, normalizeReportStatus } from '../../lib/reportWorkflow';
@@ -106,6 +106,13 @@ export default function AdminAnalyticsPage() {
     queryKey: ['admin-analytics-reports', period],
     queryFn: () => api.get<import('../../lib/api').Report[]>(`/api/reports?period=${period}`),
     refetchInterval: 30000,
+  });
+
+  const insightsQuery = useQuery({
+    queryKey: ['admin-analytics-insights', period],
+    queryFn: () => api.get<AnalyticsInsights>(`/api/reports/analytics/insights?period=${period}`),
+    enabled: false,
+    retry: false,
   });
 
   // The reports endpoint ignores `period`, so apply the same cutoff the analytics
@@ -330,6 +337,86 @@ export default function AdminAnalyticsPage() {
       </Row>
 
       {!hasData && <Alert type="info" showIcon message="No reports found for this period." />}
+
+      <Card className="soft-card" title="Analytics decision support">
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <span style={{ color: 'var(--text-secondary)' }}>
+            Get a brief, advisory summary and practical suggestions based on the selected period.
+          </span>
+          {hasData ? (
+            <Button
+              type="primary"
+              onClick={() => void insightsQuery.refetch()}
+              loading={insightsQuery.isFetching}
+            >
+              Generate insights
+            </Button>
+          ) : (
+            <Alert
+              type="info"
+              showIcon
+              message="Not enough data for this period"
+              description="Choose a period with reports to generate analytics suggestions."
+            />
+          )}
+          {insightsQuery.isError && (
+            <Alert
+              type="warning"
+              showIcon
+              message="Suggestions are temporarily unavailable"
+              description="Analytics are still available. Please try generating suggestions again later."
+              action={
+                <Button size="small" onClick={() => void insightsQuery.refetch()}>
+                  Try again
+                </Button>
+              }
+            />
+          )}
+          {insightsQuery.data?.insufficientData && (
+            <Alert
+              type="info"
+              showIcon
+              message="Not enough data for this period"
+              description="Choose a period with reports to generate analytics suggestions."
+            />
+          )}
+          {insightsQuery.data && !insightsQuery.data.insufficientData && (
+            <>
+              <Alert
+                type="info"
+                showIcon
+                message="Decision-support disclaimer"
+                description="These AI-generated suggestions are advisory and based on recorded incident counts. Verify them against current conditions and official assessments before taking action."
+              />
+              <section aria-label="Analytics summary">
+                <strong>Summary</strong>
+                <p style={{ margin: '4px 0 0' }}>{insightsQuery.data.overallSummary}</p>
+                <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)' }}>
+                  Resolved within barangay: {insightsQuery.data.resolvedCount} · Endorsed to
+                  external agencies: {insightsQuery.data.endorsedCount}
+                </p>
+              </section>
+              {insightsQuery.data.recommendations.map((item, index) => (
+                <section
+                  key={`${item.title}-${index}`}
+                  aria-label={`Recommendation ${index + 1}`}
+                  style={{
+                    width: '100%',
+                    borderLeft: '3px solid var(--brand-primary)',
+                    padding: '4px 0 4px 12px',
+                  }}
+                >
+                  <strong>{item.title}</strong>
+                  <p style={{ margin: '4px 0', color: 'var(--text-secondary)' }}>
+                    Evidence: {item.evidence}
+                  </p>
+                  <p style={{ margin: 0 }}>{item.recommendation}</p>
+                </section>
+              ))}
+            </>
+          )}
+        </Space>
+      </Card>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} xl={6}>

@@ -290,3 +290,17 @@ export interface Analytics {
   byHour?: { _id: string; count: number }[];
   byPurok?: { _id: string; count: number }[];
 }
+
+export type AnalyticsInsights =
+  | { insufficientData: true }
+  | {
+      insufficientData: false;
+      overallSummary: string;
+      resolvedCount: number;
+      endorsedCount: number;
+      recommendations: {
+        title: string;
+        evidence: string;
+        recommendation: string;
+      }[];
+    };

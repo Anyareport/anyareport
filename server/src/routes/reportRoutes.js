@@ -30,6 +30,7 @@ import {
   closeBackupRequest,
   getCategories,
   getAnalytics,
+  getAnalyticsInsights,
   getHeatmapData,
   getHeatmapRiskAnalysis,
   classifyReportHandler,
@@ -74,6 +75,7 @@ router.post(
 );
 router.get('/mine', getMyReports);
 router.get('/analytics', requireRole('admin', 'captain', 'secretary'), getAnalytics);
+router.get('/analytics/insights', requireRole('admin', 'captain', 'secretary'), getAnalyticsInsights);
 router.get('/heatmap', requireRole('admin', 'captain', 'secretary'), getHeatmapData);
 router.get('/heatmap/risk-analysis', requireRole('admin', 'captain', 'secretary'), getHeatmapRiskAnalysis);
 router.get('/captain/inactive', requireRole('captain'), getCaptainInactiveReports);

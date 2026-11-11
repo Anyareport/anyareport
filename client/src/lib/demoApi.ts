@@ -74,10 +74,74 @@ export async function demoRequest<T>(path: string, options: RequestInit = {}): P
   }
 
   if (pathname === '/api/reports/analytics' && method === 'GET') {
-    const period = new URLSearchParams(window.location.search).get('period') || 'month';
+    const period = searchParams.get('period') || 'month';
     return getDemoAnalytics(
       period === 'all' || period === 'week' || period === 'year' ? period : 'month',
     ) as T;
+  }
+
+  if (pathname === '/api/reports/analytics/insights' && method === 'GET') {
+    const requestedPeriod = searchParams.get('period') || 'month';
+    const period =
+      requestedPeriod === 'all' || requestedPeriod === 'week' || requestedPeriod === 'year'
+        ? requestedPeriod
+        : 'month';
+    const analytics = getDemoAnalytics(period);
+    if (!analytics.total) return { insufficientData: true } as T;
+
+    const periodDays = period === 'all' ? null : { week: 7, month: 30, year: 365 }[period];
+    const cutoff = periodDays === null ? null : Date.now() - periodDays * 86400000;
+    const periodReports =
+      cutoff === null
+        ? db.reports
+        : db.reports.filter((report) => new Date(report.createdAt).getTime() >= cutoff);
+    const statuses = new Map(
+      analytics.byStatus.map((entry) => [normalizeReportStatus(entry._id), entry.count]),
+    );
+    const open = [...statuses]
+      .filter(([status]) => !['resolved', 'endorsed', 'flagged'].includes(status))
+      .reduce((count, [, value]) => count + value, 0);
+    const highSeverity = periodReports.filter((report) =>
+      ['Critical', 'High'].includes(report.severity || ''),
+    ).length;
+    const recommendations: {
+      title: string;
+      evidence: string;
+      recommendation: string;
+    }[] = [];
+
+    if (open > 0) {
+      recommendations.push({
+        title: 'Review open reports',
+        evidence: `${open} reports are not yet resolved, endorsed, or flagged.`,
+        recommendation: 'Review pending and in-progress cases, starting with the oldest and most urgent.',
+      });
+    }
+    if (highSeverity > 0) {
+      recommendations.push({
+        title: 'Prioritize higher-severity incidents',
+        evidence: `${highSeverity} reports are marked High or Critical.`,
+        recommendation: 'Confirm that urgent cases have an assigned responder and receive timely follow-up.',
+      });
+    }
+    const topCategory = analytics.byCategory.slice().sort((left, right) => right.count - left.count)[0];
+    if (topCategory) {
+      recommendations.push({
+        title: 'Review the most reported category',
+        evidence: `${topCategory._id}: ${topCategory.count} of ${analytics.total} reports.`,
+        recommendation: 'Review these cases for recurring needs and consider whether prevention or public information could help.',
+      });
+    }
+
+    const resolved = analytics.resolvedWithinBarangay;
+    const endorsed = analytics.resolvedExternally;
+    return {
+      insufficientData: false,
+      overallSummary: `There are ${analytics.total} reports for this period: ${open} remain open, ${resolved} were resolved within the barangay, and ${endorsed} were endorsed to external agencies.`,
+      resolvedCount: resolved,
+      endorsedCount: endorsed,
+      recommendations: recommendations.slice(0, 3),
+    } as T;
   }
 
   if (pathname === '/api/reports/heatmap' && method === 'GET') {

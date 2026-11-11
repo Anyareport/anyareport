@@ -5,7 +5,11 @@ import User from '../models/User.js';
 import AuditLog from '../models/AuditLog.js';
 import Notification from '../models/Notification.js';
 import Category from '../models/Category.js';
-import { analyzeHeatmapRisk, classifyReport } from '../services/gemini.js';
+import {
+  analyzeAnalyticsInsights,
+  analyzeHeatmapRisk,
+  classifyReport,
+} from '../services/gemini.js';
 import {
   disconnectUserSockets,
   emitReportChanged,
@@ -1736,6 +1740,116 @@ export async function getAnalytics(req, res) {
       bySeverity,
       byHour,
       byPurok,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export async function getAnalyticsInsights(req, res) {
+  try {
+    const period = ['all', 'week', 'month', 'year'].includes(req.query.period)
+      ? req.query.period
+      : 'month';
+    const match = {};
+    if (period !== 'all') {
+      const periodDays = { week: 7, month: 30, year: 365 }[period];
+      match.createdAt = { $gte: new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000) };
+    }
+
+    const [aggregates] = await Report.aggregate([
+      { $match: match },
+      {
+        $facet: {
+          total: [{ $count: 'count' }],
+          categories: [
+            { $group: { _id: '$category', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 10 },
+          ],
+          statuses: [{ $group: { _id: '$status', count: { $sum: 1 } } }],
+          severities: [
+            { $match: { severity: { $exists: true, $ne: null } } },
+            { $group: { _id: '$severity', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+          ],
+          puroks: [
+            {
+              $project: {
+                purokMatch: {
+                  $regexFind: {
+                    input: { $ifNull: ['$location.address', ''] },
+                    regex: 'purok\\s+\\d+(?:\\s+(?:upper|lower)(?:\\s+[ab])?)?',
+                    options: 'i',
+                  },
+                },
+              },
+            },
+            { $match: { 'purokMatch.match': { $ne: null } } },
+            { $group: { _id: { $toLower: '$purokMatch.match' }, count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 5 },
+          ],
+          resolvedWithinBarangay: [
+            {
+              $match: {
+                status: 'resolved',
+                $or: [
+                  { 'resolution.endorsedToOtherEmergencyDepartment': { $ne: true } },
+                  { 'resolution.endorsedToOtherEmergencyDepartment': null },
+                ],
+              },
+            },
+            { $count: 'count' },
+          ],
+          endorsed: [
+            {
+              $match: {
+                $or: [
+                  { status: 'endorsed' },
+                  { 'resolution.endorsedToOtherEmergencyDepartment': true },
+                ],
+              },
+            },
+            { $count: 'count' },
+          ],
+        },
+      },
+    ]);
+
+    const total = aggregates?.total[0]?.count || 0;
+    if (!total) return res.json({ insufficientData: true });
+
+    const statusCounts = new Map();
+    for (const item of aggregates.statuses) {
+      const status = normalizeReportStatus(item._id);
+      statusCounts.set(status, (statusCounts.get(status) || 0) + item.count);
+    }
+    const open = [...statusCounts]
+      .filter(([status]) => !['resolved', 'endorsed', 'flagged'].includes(status))
+      .reduce((count, [, value]) => count + value, 0);
+
+    const metrics = {
+      period,
+      total,
+      resolved: aggregates.resolvedWithinBarangay[0]?.count || 0,
+      endorsed: aggregates.endorsed[0]?.count || 0,
+      open,
+      byCategory: aggregates.categories,
+      byStatus: [...statusCounts].map(([_id, count]) => ({ _id, count })),
+      bySeverity: aggregates.severities,
+      byPurok: aggregates.puroks.map(({ _id, count }) => ({
+        _id: _id.replace(/\s+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()),
+        count,
+      })),
+    };
+    const insights = await analyzeAnalyticsInsights(metrics);
+    if (insights.error) return res.status(503).json({ error: insights.error });
+    res.json({
+      insufficientData: false,
+      resolvedCount: metrics.resolved,
+      endorsedCount: metrics.endorsed,
+      ...insights,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
