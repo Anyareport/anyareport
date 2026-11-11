@@ -290,7 +290,7 @@
   padding: 14px;
   border: 1px solid var(--border-default);
   border-radius: 8px;
-  background: var(--bg-tertiary);
+  background: var(--bg-secondary);
 }
 
 .heatmap-ai-disclaimer {
@@ -328,7 +328,7 @@
   margin: 0 8px 8px;
   padding: 10px;
   border-radius: 6px;
-  background: var(--bg-tertiary);
+  background: var(--bg-secondary);
 }
 
 .heatmap-ai-risk-tag {
