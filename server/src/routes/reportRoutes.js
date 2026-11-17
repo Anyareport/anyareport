@@ -17,9 +17,12 @@ import {
   createReport,
   getMyReports,
   getReports,
+  getComplaintForms,
   getReportCount,
   getReportById,
   getReportAudit,
+  logComplaintFormExport,
+  saveComplaintForm,
   logHotlineOpened,
   getCaptainInactiveReports,
   flagReport,
@@ -84,9 +87,12 @@ router.get(
   requireRole('admin', 'captain', 'secretary', 'tanod', 'responder'),
   getReportCount
 );
+router.get('/complaint-forms', requireRole('secretary'), getComplaintForms);
 router.get('/', requireRole('admin', 'captain', 'secretary', 'tanod', 'responder'), getReports);
 router.get('/:id/dispatch-options', requireRole('captain', 'secretary'), getDispatchOptions);
 router.get('/:id/audit', requireRole('admin', 'captain', 'secretary'), getReportAudit);
+router.post('/:id/complaint-form-export', requireRole('secretary'), logComplaintFormExport);
+router.patch('/:id/complaint-form', requireRole('secretary'), saveComplaintForm);
 router.post('/:id/hotline-opened', requireRole('captain', 'tanod', 'responder'), logHotlineOpened);
 router.get('/:id', getReportById);
 router.post('/:id/dispatch', requireRole('captain', 'secretary'), dispatchReport);

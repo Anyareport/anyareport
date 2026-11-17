@@ -1,0 +1,95 @@
+.complaint-form-page {
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.complaint-form-page__header,
+.complaint-form-page__editor-heading,
+.complaint-form-page__saved-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.complaint-form-page__header {
+  margin-bottom: 24px;
+}
+
+.complaint-form-page__header .ant-typography + .ant-typography {
+  display: block;
+  margin-top: 6px;
+}
+
+.complaint-form-page__saved-caption {
+  display: block;
+  margin-top: 4px;
+}
+
+.complaint-form-page__details-card,
+.complaint-form-page__preview-card {
+  height: 100%;
+}
+
+.complaint-form-page__edit-note {
+  margin-bottom: 20px;
+}
+
+.complaint-form-page__export-actions {
+  margin-bottom: 16px;
+}
+
+.complaint-form-page__list-card,
+.complaint-form-page__saved-card {
+  min-height: 360px;
+}
+
+.complaint-form-page__search {
+  max-width: 560px;
+  margin-bottom: 18px;
+}
+
+.complaint-form-page__list-item {
+  padding: 16px 4px;
+}
+
+.complaint-form-page__saved-toolbar {
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.complaint-form-page__saved-image {
+  display: block;
+  width: 100%;
+  max-width: 794px;
+  height: auto;
+  margin: 0 auto;
+  border: 1px solid var(--color-border, #d9d9d9);
+  border-radius: 6px;
+}
+
+.complaint-form-page__editor-heading {
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .complaint-form-page__header,
+  .complaint-form-page__editor-heading,
+  .complaint-form-page__saved-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .complaint-form-page__header .ant-btn,
+  .complaint-form-page__editor-heading .ant-btn {
+    width: 100%;
+  }
+
+  .complaint-form-page__export-actions {
+    width: 100%;
+  }
+
+  .complaint-form-page__export-actions .ant-btn {
+    flex: 1;
+  }
+}

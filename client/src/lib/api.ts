@@ -1,4 +1,15 @@
 import { getIdToken } from './firebase';
+import type { ComplaintFormValues } from './complaintForm';
+
+export interface ComplaintFormSummary {
+  _id: string;
+  referenceNumber: string | null;
+  category: string;
+  subcategory: string | null;
+  complainantName: string;
+  updatedAt: string;
+  source?: 'manual' | 'incident';
+}
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 const NETWORK_ERROR_MESSAGE =
@@ -104,6 +115,7 @@ export interface Report {
   isGuest?: boolean;
   guestAccessKey?: string | null;
   referenceNumber?: string | null;
+  complaintForm?: (ComplaintFormValues & { image?: string | null }) | null;
   submittedBy: string | null;
   submitterName: string | null;
   reportedBy?: string | null;

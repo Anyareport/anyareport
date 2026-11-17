@@ -9,6 +9,7 @@ import {
   BellOutlined,
   UserOutlined,
   FileAddOutlined,
+  PrinterOutlined,
 } from '@ant-design/icons';
 import { useMemo } from 'react';
 import type { ItemType } from 'antd/es/menu/interface';
@@ -50,6 +51,7 @@ export default function AdminShell() {
       workItems.push(
         { key: '/admin/intake', icon: <InboxOutlined />, label: 'Intake Queue' },
         { key: '/admin/report', icon: <FileAddOutlined />, label: 'Add Report' },
+        { key: '/admin/complaint', icon: <PrinterOutlined />, label: 'Complaint Form' },
         { key: '/admin/announcements', icon: <BellOutlined />, label: 'Announcements' }
       );
     }

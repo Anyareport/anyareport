@@ -1,5 +1,25 @@
 import mongoose from 'mongoose';
 
+const complaintFormSchema = new mongoose.Schema(
+  {
+    complainantName: { type: String, default: '' },
+    contactNumber: { type: String, default: '' },
+    caseNo: { type: String, default: '' },
+    caseFor: { type: String, default: '' },
+    respondentName: { type: String, default: '' },
+    narrative: { type: String, default: '' },
+    relief: { type: String, default: '' },
+    madeDay: { type: String, default: '' },
+    madeMonth: { type: String, default: '' },
+    madeYear: { type: String, default: '' },
+    receivedDay: { type: String, default: '' },
+    receivedMonth: { type: String, default: '' },
+    receivedYear: { type: String, default: '' },
+    image: { type: String, default: null },
+  },
+  { _id: false }
+);
+
 const reportSchema = new mongoose.Schema(
   {
     submittedBy: { type: String, required: true, index: true },
@@ -8,6 +28,7 @@ const reportSchema = new mongoose.Schema(
     isGuest: { type: Boolean, default: false },
     guestContactPhone: { type: String, default: null },
     referenceNumber: { type: String },
+    complaintForm: { type: complaintFormSchema, default: null },
     clientRequestId: { type: String, default: undefined },
     category: { type: String, required: true },
     description: { type: String, default: '' },

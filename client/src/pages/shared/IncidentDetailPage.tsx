@@ -30,6 +30,7 @@ import {
   DownOutlined,
   DownloadOutlined,
   EnvironmentOutlined,
+  EyeOutlined,
   FlagOutlined,
   LeftOutlined,
   PhoneOutlined,
@@ -44,9 +45,7 @@ import { api, type AuditLog, type DispatchResponder, type Report } from '../../l
 import StatusTag from '../../components/StatusTag';
 import SeverityTag from '../../components/SeverityTag';
 import AppTag from '../../components/AppTag';
-import EmergencyHotline, {
-  EMERGENCY_HOTLINE_OPTIONS,
-} from '../../components/EmergencyHotline';
+import EmergencyHotline, { EMERGENCY_HOTLINE_OPTIONS } from '../../components/EmergencyHotline';
 import { StaticMap, RouteMap } from '../../components/map/MapPicker';
 import { useAuth } from '../../contexts/AuthContext';
 import TranslationNote from '../../components/TranslationNote';
@@ -267,10 +266,7 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
           String(values.endorsedToOtherEmergencyDepartment)
         );
       }
-      formData.set(
-        'endorsedToOtherEmergencyDepartment',
-        String(values.closureType === 'endorsed')
-      );
+      formData.set('endorsedToOtherEmergencyDepartment', String(values.closureType === 'endorsed'));
       if (values.endorsedToDepartment) {
         formData.append('endorsedToDepartment', values.endorsedToDepartment);
       }
@@ -325,8 +321,7 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
   });
 
   const canViewReportAudit =
-    !guest &&
-    variant === 'admin' && ['admin', 'captain', 'secretary'].includes(role || '');
+    !guest && variant === 'admin' && ['admin', 'captain', 'secretary'].includes(role || '');
   const showStatusTimeline = variant !== 'admin' || role !== 'admin';
   const { data: auditEntries = [] } = useQuery({
     queryKey: ['report-audit', id],
@@ -456,7 +451,8 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
   }
 
   const isResident = variant === 'resident' && !guest;
-  const isResponder = !guest && variant === 'responder' && ['tanod', 'responder'].includes(role || '');
+  const isResponder =
+    !guest && variant === 'responder' && ['tanod', 'responder'].includes(role || '');
   const canViewSuggestedNextSteps =
     variant !== 'resident' && ['tanod', 'responder', 'captain', 'secretary'].includes(role || '');
   const isBlotter = report.category === BLOTTER_REPORT_CATEGORY;
@@ -517,9 +513,7 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
     (variant === 'responder' && isParticipant) || (variant === 'admin' && role === 'secretary');
   const canExportIncidentSummary =
     variant === 'admin' && ['captain', 'secretary'].includes(role || '');
-  const reporterContact = report.reportedBy
-    ? report.reportedByContact
-    : report.submitterPhone;
+  const reporterContact = report.reportedBy ? report.reportedByContact : report.submitterPhone;
   const reporterDialNumber = reporterContact ? getDialablePhone(reporterContact) : null;
   const canJoinBackup =
     isResponder &&
@@ -755,40 +749,56 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
     </Button>
   ) : null;
 
-  const secretaryAction = isBlotter || report.category === 'Public Concerns' ? (
-    <Card
-      className="soft-card incident-side-section incident-mobile-hide-panel"
-      role="region"
-      aria-label={text('actionsHeading', 'Actions')}
-      title={text('actionsHeading', 'Actions')}
-    >
-      {oversightAction || (
-        <Text type="secondary">
-          {status === 'resolved' || status === 'endorsed'
-            ? 'This blotter case is resolved.'
-            : status === 'flagged'
-              ? 'This blotter case was flagged and is closed to further action.'
-              : isCriminalBlotter
-                ? 'Criminal cases are worked by the dispatched tanod or responder. Dispatch a responder, then verify the resolution.'
-                : 'Blotter processing is managed by the Captain and Secretary.'}
-        </Text>
-      )}
-      <Button
-        block
-        icon={<DownloadOutlined />}
-        disabled={!auditEntries.length}
-        onClick={() =>
-          downloadFile(
-            `/api/reports/${id}/audit?format=csv`,
-            `anyareport-report-${report.referenceNumber || id}-audit.csv`,
-            message
-          )
-        }
+  const secretaryAction =
+    isBlotter || report.category === 'Public Concerns' ? (
+      <Card
+        className="soft-card incident-side-section incident-mobile-hide-panel"
+        role="region"
+        aria-label={text('actionsHeading', 'Actions')}
+        title={text('actionsHeading', 'Actions')}
       >
-        Export case audit
-      </Button>
-    </Card>
-  ) : null;
+        {oversightAction || (
+          <Text type="secondary">
+            {status === 'resolved' || status === 'endorsed'
+              ? 'This blotter case is resolved.'
+              : status === 'flagged'
+                ? 'This blotter case was flagged and is closed to further action.'
+                : isCriminalBlotter
+                  ? 'Criminal cases are worked by the dispatched tanod or responder. Dispatch a responder, then verify the resolution.'
+                  : 'Blotter processing is managed by the Captain and Secretary.'}
+          </Text>
+        )}
+        <Button
+          block
+          icon={<DownloadOutlined />}
+          disabled={!auditEntries.length}
+          onClick={() =>
+            downloadFile(
+              `/api/reports/${id}/audit?format=csv`,
+              `anyareport-report-${report.referenceNumber || id}-audit.csv`,
+              message
+            )
+          }
+        >
+          Export case audit
+        </Button>
+        {role === 'secretary' && isBlotter ? (
+          <Button
+            block
+            icon={report.complaintForm?.image ? <EyeOutlined /> : <PrinterOutlined />}
+            onClick={() =>
+              navigate(
+                report.complaintForm?.image
+                  ? `/admin/complaint?report=${id}&view=saved`
+                  : `/admin/complaint?report=${id}`
+              )
+            }
+          >
+            {report.complaintForm?.image ? 'View previous complaint form' : 'Print complaint form'}
+          </Button>
+        ) : null}
+      </Card>
+    ) : null;
   const dispatchAction = canDispatch ? (
     <Card
       className="soft-card incident-side-section incident-mobile-hide-panel"
@@ -1265,9 +1275,7 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
             </Col>
             {report.resolution.endorsedToOtherEmergencyDepartment && (
               <Col xs={24}>
-                <Text strong>
-                  {text('endorsedToDepartment', 'Endorsed emergency hotline')}
-                </Text>
+                <Text strong>{text('endorsedToDepartment', 'Endorsed emergency hotline')}</Text>
                 <div>{report.resolution.endorsedToDepartment || '—'}</div>
               </Col>
             )}
@@ -1431,7 +1439,8 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
                   ) : report.reportedBy || report.submitterName ? (
                     <div className="incident-reporter">
                       <Text>
-                        {text('reporterLabel', 'Reporter')}: {report.reportedBy || report.submitterName}
+                        {text('reporterLabel', 'Reporter')}:{' '}
+                        {report.reportedBy || report.submitterName}
                       </Text>
                       {canViewReporterContact &&
                         (reporterContact ? (
@@ -1751,161 +1760,175 @@ export default function IncidentDetailPage({ variant, guest = false }: IncidentD
                     size="small"
                     defaultActiveKey={isSimpleFieldCloseout ? [] : ['additional-details']}
                     items={[
-                {
-                  key: 'additional-details',
-                  label: isSimpleFieldCloseout
-                    ? text('optionalDetails', 'Additional details (optional)')
-                    : text('followUp', 'Follow-up and evidence'),
-                  children: (
-                    <>
-                      <Form.Item
-                        name="summary"
-                        label={text('resolutionSummary', 'Resolution Summary')}
-                        rules={
-                          isSimpleFieldCloseout ? undefined : [{ required: true, whitespace: true }]
-                        }
-                      >
-                        <Input.TextArea
-                          rows={isSimpleFieldCloseout ? 2 : 3}
-                          placeholder={text(
-                            'describeWhatHappened',
-                            'Briefly describe what happened'
-                          )}
-                        />
-                      </Form.Item>
-                      <Row gutter={16}>
-                        <Col xs={24} sm={12}>
-                          <Form.Item
-                            name="furtherActionRequired"
-                            label={text('furtherActionRequired', 'Further Action Required')}
-                            rules={
-                              isSimpleFieldCloseout
-                                ? undefined
-                                : [
-                                    {
-                                      required: true,
-                                      message: text('selectYesNo', 'Select Yes or No.'),
-                                    },
-                                  ]
-                            }
-                          >
-                            <Radio.Group
-                              buttonStyle="solid"
-                              optionType="button"
-                              style={{ display: 'flex', width: '100%' }}
+                      {
+                        key: 'additional-details',
+                        label: isSimpleFieldCloseout
+                          ? text('optionalDetails', 'Additional details (optional)')
+                          : text('followUp', 'Follow-up and evidence'),
+                        children: (
+                          <>
+                            <Form.Item
+                              name="summary"
+                              label={text('resolutionSummary', 'Resolution Summary')}
+                              rules={
+                                isSimpleFieldCloseout
+                                  ? undefined
+                                  : [{ required: true, whitespace: true }]
+                              }
                             >
-                              <Radio.Button value={true} style={{ flex: 1, textAlign: 'center' }}>
-                                {text('yes', 'Yes')}
-                              </Radio.Button>
-                              <Radio.Button value={false} style={{ flex: 1, textAlign: 'center' }}>
-                                {text('no', 'No')}
-                              </Radio.Button>
-                            </Radio.Group>
-                          </Form.Item>
-                          <Form.Item
-                            noStyle
-                            shouldUpdate={(previous, current) =>
-                              previous.furtherActionRequired !== current.furtherActionRequired
-                            }
-                          >
-                            {({ getFieldValue }) =>
-                              getFieldValue('furtherActionRequired') ? (
+                              <Input.TextArea
+                                rows={isSimpleFieldCloseout ? 2 : 3}
+                                placeholder={text(
+                                  'describeWhatHappened',
+                                  'Briefly describe what happened'
+                                )}
+                              />
+                            </Form.Item>
+                            <Row gutter={16}>
+                              <Col xs={24} sm={12}>
                                 <Form.Item
-                                  name="furtherActionRecommendation"
-                                  label={text(
-                                    'furtherActionRecommendation',
-                                    'Further Action / Recommendation'
-                                  )}
+                                  name="furtherActionRequired"
+                                  label={text('furtherActionRequired', 'Further Action Required')}
                                   rules={
                                     isSimpleFieldCloseout
                                       ? undefined
                                       : [
                                           {
                                             required: true,
-                                            whitespace: true,
-                                            message: text(
-                                              'provideRecommendation',
-                                              'Provide the further action or recommendation.'
-                                            ),
+                                            message: text('selectYesNo', 'Select Yes or No.'),
                                           },
                                         ]
                                   }
                                 >
-                                  <Input.TextArea
-                                    rows={2}
-                                    placeholder={text(
-                                      'exampleRecommendation',
-                                      'Example: Conduct a follow-up visit or refer the matter to the appropriate office.'
-                                    )}
-                                  />
+                                  <Radio.Group
+                                    buttonStyle="solid"
+                                    optionType="button"
+                                    style={{ display: 'flex', width: '100%' }}
+                                  >
+                                    <Radio.Button
+                                      value={true}
+                                      style={{ flex: 1, textAlign: 'center' }}
+                                    >
+                                      {text('yes', 'Yes')}
+                                    </Radio.Button>
+                                    <Radio.Button
+                                      value={false}
+                                      style={{ flex: 1, textAlign: 'center' }}
+                                    >
+                                      {text('no', 'No')}
+                                    </Radio.Button>
+                                  </Radio.Group>
                                 </Form.Item>
-                              ) : null
-                            }
-                          </Form.Item>
-                        </Col>
-                        <Col xs={24} sm={12}>
-                          <Form.Item
-                            name="assistanceRequested"
-                            label={text('assistanceRequested', 'Assistance Requested')}
-                            rules={
-                              isSimpleFieldCloseout
-                                ? undefined
-                                : [
-                                    {
-                                      required: true,
-                                      message: text('selectYesNo', 'Select Yes or No.'),
-                                    },
-                                  ]
-                            }
-                          >
-                            <Radio.Group
-                              buttonStyle="solid"
-                              optionType="button"
-                              style={{ display: 'flex', width: '100%' }}
-                            >
-                              <Radio.Button value={true} style={{ flex: 1, textAlign: 'center' }}>
-                                {text('yes', 'Yes')}
-                              </Radio.Button>
-                              <Radio.Button value={false} style={{ flex: 1, textAlign: 'center' }}>
-                                {text('no', 'No')}
-                              </Radio.Button>
-                            </Radio.Group>
-                          </Form.Item>
-                        </Col>
-                      </Row>
-                      <Title level={5} style={{ margin: '0 0 12px' }}>
-                        {text('evidence', 'Evidence')}
-                      </Title>
-                      <Form.Item>
-                        <Upload
-                          listType="picture-card"
-                          beforeUpload={() => false}
-                          accept="image/*"
-                          maxCount={3}
-                          fileList={evidenceFiles}
-                          onChange={({ fileList }) => setEvidenceFiles(fileList)}
-                          onRemove={(file) => {
-                            setEvidenceFiles((current) =>
-                              current.filter((entry) => entry.uid !== file.uid)
-                            );
-                          }}
-                        >
-                          {evidenceFiles.length < 3 && (
-                            <div>
-                              <UploadOutlined />
-                              <div style={{ marginTop: 8 }}>
-                                {text('uploadPhotos', 'Upload photos')}
-                              </div>
-                            </div>
-                          )}
-                        </Upload>
-                        <Text type="secondary">
-                          {text('evidenceLimit', 'Images only, up to 3 files and 5 MB each.')}
-                        </Text>
-                      </Form.Item>
-                    </>
-                  ),
-                },
+                                <Form.Item
+                                  noStyle
+                                  shouldUpdate={(previous, current) =>
+                                    previous.furtherActionRequired !== current.furtherActionRequired
+                                  }
+                                >
+                                  {({ getFieldValue }) =>
+                                    getFieldValue('furtherActionRequired') ? (
+                                      <Form.Item
+                                        name="furtherActionRecommendation"
+                                        label={text(
+                                          'furtherActionRecommendation',
+                                          'Further Action / Recommendation'
+                                        )}
+                                        rules={
+                                          isSimpleFieldCloseout
+                                            ? undefined
+                                            : [
+                                                {
+                                                  required: true,
+                                                  whitespace: true,
+                                                  message: text(
+                                                    'provideRecommendation',
+                                                    'Provide the further action or recommendation.'
+                                                  ),
+                                                },
+                                              ]
+                                        }
+                                      >
+                                        <Input.TextArea
+                                          rows={2}
+                                          placeholder={text(
+                                            'exampleRecommendation',
+                                            'Example: Conduct a follow-up visit or refer the matter to the appropriate office.'
+                                          )}
+                                        />
+                                      </Form.Item>
+                                    ) : null
+                                  }
+                                </Form.Item>
+                              </Col>
+                              <Col xs={24} sm={12}>
+                                <Form.Item
+                                  name="assistanceRequested"
+                                  label={text('assistanceRequested', 'Assistance Requested')}
+                                  rules={
+                                    isSimpleFieldCloseout
+                                      ? undefined
+                                      : [
+                                          {
+                                            required: true,
+                                            message: text('selectYesNo', 'Select Yes or No.'),
+                                          },
+                                        ]
+                                  }
+                                >
+                                  <Radio.Group
+                                    buttonStyle="solid"
+                                    optionType="button"
+                                    style={{ display: 'flex', width: '100%' }}
+                                  >
+                                    <Radio.Button
+                                      value={true}
+                                      style={{ flex: 1, textAlign: 'center' }}
+                                    >
+                                      {text('yes', 'Yes')}
+                                    </Radio.Button>
+                                    <Radio.Button
+                                      value={false}
+                                      style={{ flex: 1, textAlign: 'center' }}
+                                    >
+                                      {text('no', 'No')}
+                                    </Radio.Button>
+                                  </Radio.Group>
+                                </Form.Item>
+                              </Col>
+                            </Row>
+                            <Title level={5} style={{ margin: '0 0 12px' }}>
+                              {text('evidence', 'Evidence')}
+                            </Title>
+                            <Form.Item>
+                              <Upload
+                                listType="picture-card"
+                                beforeUpload={() => false}
+                                accept="image/*"
+                                maxCount={3}
+                                fileList={evidenceFiles}
+                                onChange={({ fileList }) => setEvidenceFiles(fileList)}
+                                onRemove={(file) => {
+                                  setEvidenceFiles((current) =>
+                                    current.filter((entry) => entry.uid !== file.uid)
+                                  );
+                                }}
+                              >
+                                {evidenceFiles.length < 3 && (
+                                  <div>
+                                    <UploadOutlined />
+                                    <div style={{ marginTop: 8 }}>
+                                      {text('uploadPhotos', 'Upload photos')}
+                                    </div>
+                                  </div>
+                                )}
+                              </Upload>
+                              <Text type="secondary">
+                                {text('evidenceLimit', 'Images only, up to 3 files and 5 MB each.')}
+                              </Text>
+                            </Form.Item>
+                          </>
+                        ),
+                      },
                     ]}
                   />
                 )

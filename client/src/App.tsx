@@ -31,6 +31,8 @@ import SecretaryReportPage from './pages/admin/SecretaryReportPage';
 import SecretaryIntakePage from './pages/admin/IntakeQueuePage';
 import AnnouncementPage from './pages/admin/AnnouncementPage';
 import { getProfilePath } from './lib/roles';
+import ComplaintFormPage from './pages/admin/ComplaintFormPage';
+
 function HomeRedirect() {
   const { firebaseUser, loading, role, profile } = useAuth();
 
@@ -118,6 +120,7 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={['secretary']} />}>
             <Route path="/admin/report" element={<SecretaryReportPage />} />
             <Route path="/admin/report/map" element={<SecretaryReportPage />} />
+            <Route path="/admin/complaint" element={<ComplaintFormPage />} />
             <Route path="/admin/announcements" element={<AnnouncementPage />} />
           </Route>
           <Route

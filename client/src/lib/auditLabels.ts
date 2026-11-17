@@ -20,6 +20,24 @@ const AUDIT_LABELS: Record<string, AuditLabel> = {
   },
   report_classified: { label: 'Report classified', category: 'incident', tone: 'blue', icon: 'file' },
   hotline_opened: { label: 'Hotline opened', category: 'incident', tone: 'blue', icon: 'file' },
+  complaint_form_printed: {
+    label: 'Complaint form printed',
+    category: 'incident',
+    tone: 'blue',
+    icon: 'file',
+  },
+  complaint_form_downloaded: {
+    label: 'Complaint form downloaded',
+    category: 'incident',
+    tone: 'blue',
+    icon: 'file',
+  },
+  complaint_form_saved: {
+    label: 'Complaint form details saved',
+    category: 'incident',
+    tone: 'blue',
+    icon: 'file',
+  },
   report_recipients_notified: {
     label: 'Responders notified',
     category: 'system',

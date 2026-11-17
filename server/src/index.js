@@ -16,6 +16,7 @@ import authRoutes from "./routes/authRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import auditRoutes from "./routes/auditRoutes.js";
+import complaintFormRoutes from "./routes/complaintFormRoutes.js";
 import { isBlockedUnverifiedOfficial } from "./middleware/requireVerifiedOfficial.js";
 import {
   notificationRoutes,
@@ -107,7 +108,7 @@ io.on("connection", (socket) => {
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(cors({ origin: corsOrigin, credentials: true }));
 app.use(morgan("dev"));
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 
 app.use((req, _res, next) => {
   if (req.method !== "OPTIONS" && req.headers["user-agent"]) {
@@ -125,6 +126,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/audit-logs", auditRoutes);
+app.use("/api/complaint-forms", complaintFormRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/export", exportRoutes);
 
@@ -132,6 +134,9 @@ app.use(uploadErrorHandler);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
+  if (err.type === "entity.too.large") {
+    return res.status(413).json({ error: "Request payload is too large" });
+  }
   res.status(500).json({ error: err.message || "Internal server error" });
 });
 

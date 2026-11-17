@@ -833,6 +833,43 @@ export async function getReports(req, res) {
   }
 }
 
+export async function getComplaintForms(req, res) {
+  try {
+    const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+    const query = { 'complaintForm.image': { $type: 'string', $ne: '' } };
+    if (search) {
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = new RegExp(escapedSearch, 'i');
+      query.$or = [
+        { referenceNumber: pattern },
+        { 'complaintForm.complainantName': pattern },
+        { category: pattern },
+        { subcategory: pattern },
+      ];
+    }
+
+    const reports = await Report.find(query)
+      .select('_id referenceNumber category subcategory complaintForm.complainantName updatedAt')
+      .sort({ updatedAt: -1 })
+      .limit(200)
+      .lean();
+
+    res.json(
+      reports.map((report) => ({
+        _id: report._id,
+        referenceNumber: report.referenceNumber || null,
+        category: report.category,
+        subcategory: report.subcategory,
+        complainantName: report.complaintForm?.complainantName || '',
+        updatedAt: report.updatedAt,
+        source: 'incident',
+      }))
+    );
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
 export async function getReportCount(req, res) {
   try {
     const query = buildReportQuery({
@@ -945,6 +982,76 @@ export async function logHotlineOpened(req, res) {
 
     await logAudit('hotline_opened', req, report._id, { agency: agencyNames[agency] });
     return res.status(201).json({ logged: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+export async function logComplaintFormExport(req, res) {
+  const actions = {
+    print: 'complaint_form_printed',
+    download: 'complaint_form_downloaded',
+  };
+
+  try {
+    const action = actions[req.body?.action];
+    if (!action) return res.status(400).json({ error: 'Select a valid complaint form export action' });
+
+    const report = await Report.findById(req.params.id).select('_id');
+    if (!report) return res.status(404).json({ error: 'Report not found' });
+
+    await logAudit(action, req, report._id);
+    return res.status(201).json({ logged: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+export async function saveComplaintForm(req, res) {
+  const fields = [
+    'complainantName',
+    'contactNumber',
+    'caseNo',
+    'caseFor',
+    'respondentName',
+    'narrative',
+    'relief',
+    'madeDay',
+    'madeMonth',
+    'madeYear',
+    'receivedDay',
+    'receivedMonth',
+    'receivedYear',
+  ];
+
+  try {
+    const image = req.body?.image;
+    if (
+      typeof image !== 'string' ||
+      !image.startsWith('data:image/jpeg;base64,') ||
+      image.length > 5_000_000
+    ) {
+      return res.status(400).json({ error: 'A valid complaint form JPEG is required' });
+    }
+
+    const complaintForm = {};
+    for (const field of fields) {
+      if (typeof req.body?.[field] !== 'string') {
+        return res.status(400).json({ error: `Complaint form field "${field}" must be text` });
+      }
+      complaintForm[field] = req.body[field];
+    }
+    complaintForm.image = image;
+
+    const report = await Report.findByIdAndUpdate(
+      req.params.id,
+      { $set: { complaintForm } },
+      { new: true, runValidators: true }
+    ).select('_id complaintForm');
+    if (!report) return res.status(404).json({ error: 'Report not found' });
+
+    await logAudit('complaint_form_saved', req, report._id);
+    return res.json({ complaintForm: report.complaintForm });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
